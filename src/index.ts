@@ -12,7 +12,7 @@ export type {
 
 export { IMocodyCoreEntityModel } from "./core/base-schema";
 export { MocodyGenericError } from "./helpers/errors";
-export { MocodyUtil } from "./helpers/fuse-utils";
+export { MocodyUtil } from "./helpers/mocody-utils";
 //
 export { MocodyInitializerDynamo } from "./dynamo/dynamo-initializer";
 export { DynamoDataOperation } from "./dynamo/dynamo-data-operation";

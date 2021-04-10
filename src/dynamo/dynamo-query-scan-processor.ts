@@ -2,7 +2,7 @@ import type { DynamoDB, QueryInput, QueryCommandOutput } from "@aws-sdk/client-d
 import { marshall } from "@aws-sdk/util-dynamodb";
 import type { IMocodyPagingResult } from "../type/types";
 import { LoggingService } from "../helpers/logging-service";
-import { MocodyUtil } from "../helpers/fuse-utils";
+import { MocodyUtil } from "../helpers/mocody-utils";
 
 export class DynamoQueryScanProcessor {
   //

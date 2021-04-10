@@ -1,5 +1,5 @@
 import { UtilService } from "./../helpers/util-service";
-import { MocodyUtil } from "./../helpers/fuse-utils";
+import { MocodyUtil } from "../helpers/mocody-utils";
 import { RepoModel } from "../model/repo-model";
 import type {
   IMocodyIndexDefinition,
