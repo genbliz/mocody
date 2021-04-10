@@ -7,7 +7,7 @@ interface IDbOptions {
   options?: MongoClientOptions;
 }
 
-export class FuseInitializerMongo {
+export class MocodyInitializerMongo {
   private _mongoClient: MongoClient;
   private readonly _inits: IDbOptions;
 

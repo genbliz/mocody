@@ -9,16 +9,16 @@ import type {
 } from "../type/types";
 import { RepoModel } from "../model/repo-model";
 import Joi from "joi";
-import type { FuseInitializerCouch } from "./couch-initializer";
+import type { MocodyInitializerCouch } from "./couch-initializer";
 import { coreSchemaDefinition, IMocodyCoreEntityModel } from "../core/base-schema";
-import { FuseErrorUtils, FuseGenericError } from "../helpers/errors";
+import { MocodyErrorUtils, MocodyGenericError } from "../helpers/errors";
 import { getJoiValidationErrors } from "../helpers/base-joi-helper";
 import { CouchFilterQueryOperation } from "./couch-filter-query-operation";
 import { CouchManageTable } from "./couch-manage-table";
 
 interface IOptions<T> {
   schemaDef: Joi.SchemaMap;
-  couchDb: () => FuseInitializerCouch;
+  couchDb: () => MocodyInitializerCouch;
   dataKeyGenerator: () => string;
   featureEntityValue: string;
   secondaryIndexOptions: IMocodyIndexDefinition<T>[];
@@ -36,14 +36,14 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   //
   private readonly _mocody_operationNotSuccessful = "Operation Not Successful";
   private readonly _mocody_entityResultFieldKeysMap: Map<string, string>;
-  private readonly _mocody_couchDb: () => FuseInitializerCouch;
+  private readonly _mocody_couchDb: () => MocodyInitializerCouch;
   private readonly _mocody_dataKeyGenerator: () => string;
   private readonly _mocody_schema: Joi.Schema;
   private readonly _mocody_tableFullName: string;
   private readonly _mocody_strictRequiredFields: string[];
   private readonly _mocody_featureEntityValue: string;
   private readonly _mocody_secondaryIndexOptions: IMocodyIndexDefinition<T>[];
-  private readonly _mocody_errorHelper: FuseErrorUtils;
+  private readonly _mocody_errorHelper: MocodyErrorUtils;
   private readonly _mocody_filterQueryOperation = new CouchFilterQueryOperation();
   //
   private _mocody_tableManager!: CouchManageTable<T>;
@@ -64,7 +64,7 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     this._mocody_featureEntityValue = featureEntityValue;
     this._mocody_secondaryIndexOptions = secondaryIndexOptions;
     this._mocody_strictRequiredFields = strictRequiredFields as string[];
-    this._mocody_errorHelper = new FuseErrorUtils();
+    this._mocody_errorHelper = new MocodyErrorUtils();
     this._mocody_entityResultFieldKeysMap = new Map();
 
     const fullSchemaMapDef = { ...schemaDef, ...coreSchemaDefinition };
@@ -206,7 +206,7 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   }
 
   private _mocody_createGenericError(error: string) {
-    return new FuseGenericError(error);
+    return new MocodyGenericError(error);
   }
 
   async mocody_createOne({ data }: { data: T }): Promise<T> {

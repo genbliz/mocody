@@ -1,5 +1,5 @@
 import { UtilService } from "./../helpers/util-service";
-import { FuseUtil } from "./../helpers/fuse-utils";
+import { MocodyUtil } from "./../helpers/fuse-utils";
 import { RepoModel } from "../model/repo-model";
 import type {
   IMocodyIndexDefinition,
@@ -8,7 +8,7 @@ import type {
   IMocodyPagingResult,
   IMocodyQueryIndexOptionsNoPaging,
 } from "../type/types";
-import { FuseErrorUtils, FuseGenericError } from "./../helpers/errors";
+import { MocodyErrorUtils, MocodyGenericError } from "./../helpers/errors";
 import type {
   DynamoDB,
   PutItemInput,
@@ -24,13 +24,13 @@ import { getJoiValidationErrors } from "../helpers/base-joi-helper";
 import { coreSchemaDefinition, IMocodyCoreEntityModel } from "../core/base-schema";
 import { DynamoManageTable } from "./dynamo-manage-table";
 import { LoggingService } from "../helpers/logging-service";
-import { FuseInitializerDynamo } from "./dynamo-initializer";
+import { MocodyInitializerDynamo } from "./dynamo-initializer";
 import { DynamoFilterQueryOperation } from "./dynamo-filter-query-operation";
 import { DynamoQueryScanProcessor } from "./dynamo-query-scan-processor";
 
 interface IOptions<T> {
   schemaDef: Joi.SchemaMap;
-  dynamoDb: () => FuseInitializerDynamo;
+  dynamoDb: () => MocodyInitializerDynamo;
   dataKeyGenerator: () => string;
   featureEntityValue: string;
   secondaryIndexOptions: IMocodyIndexDefinition<T>[];
@@ -53,7 +53,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
   private readonly _mocody_featureEntity_Key_Value: { featureEntity: string };
 
   //
-  private readonly _mocody_dynamoDb: () => FuseInitializerDynamo;
+  private readonly _mocody_dynamoDb: () => MocodyInitializerDynamo;
   private readonly _mocody_dataKeyGenerator: () => string;
   private readonly _mocody_schema: Joi.Schema;
   private readonly _mocody_tableFullName: string;
@@ -62,7 +62,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
   private readonly _mocody_secondaryIndexOptions: IMocodyIndexDefinition<T>[];
   private readonly _mocody_queryFilter: DynamoFilterQueryOperation;
   private readonly _mocody_queryScanProcessor: DynamoQueryScanProcessor;
-  private readonly _mocody_errorHelper: FuseErrorUtils;
+  private readonly _mocody_errorHelper: MocodyErrorUtils;
   //
   private _mocody_tableManager!: DynamoManageTable<T>;
 
@@ -85,7 +85,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     this._mocody_strictRequiredFields = strictRequiredFields as string[];
     this._mocody_queryFilter = new DynamoFilterQueryOperation();
     this._mocody_queryScanProcessor = new DynamoQueryScanProcessor();
-    this._mocody_errorHelper = new FuseErrorUtils();
+    this._mocody_errorHelper = new MocodyErrorUtils();
     this._mocody_featureEntity_Key_Value = { featureEntity: featureEntityValue };
   }
 
@@ -154,7 +154,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
   }
 
   private _mocody_createGenericError(error: string) {
-    return new FuseGenericError(error);
+    return new MocodyGenericError(error);
   }
 
   private _mocody_withConditionPassed({
@@ -187,7 +187,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       throw this._mocody_errorHelper.mocody_helper_createFriendlyError(msg);
     }
 
-    const marshalledData = FuseUtil.mocody_marshallFromJson(value);
+    const marshalledData = MocodyUtil.mocody_marshallFromJson(value);
     return await Promise.resolve({
       validatedData: value,
       marshalled: marshalledData,
@@ -565,7 +565,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
             const itemListRaw = data.Responses[tableFullName];
             if (itemListRaw?.length) {
               const itemList = itemListRaw.map((item) => {
-                return FuseUtil.mocody_unmarshallToJson(item);
+                return MocodyUtil.mocody_unmarshallToJson(item);
               });
               returnedItems = [...returnedItems, ...itemList];
             }

@@ -1,10 +1,10 @@
-export class FuseGenericError extends Error {
+export class MocodyGenericError extends Error {
   constructor(message: string) {
     super(message);
   }
 }
 
-export class FuseErrorUtils {
+export class MocodyErrorUtils {
   mocody_helper_validateRequiredNumber(keyValueValidates: { [key: string]: number }) {
     const errors: string[] = [];
     Object.entries(keyValueValidates).forEach(([key, value]) => {
@@ -13,12 +13,12 @@ export class FuseErrorUtils {
       }
     });
     if (errors.length) {
-      throw new FuseGenericError(`${errors.join("; ")}.`);
+      throw new MocodyGenericError(`${errors.join("; ")}.`);
     }
   }
 
   mocody_helper_createFriendlyError(message: string, statusCode?: number) {
-    return new FuseGenericError(message);
+    return new MocodyGenericError(message);
   }
 
   mocody_helper_validateRequiredString(keyValueValidates: { [key: string]: string }) {
@@ -29,9 +29,9 @@ export class FuseErrorUtils {
       }
     });
     if (errors.length) {
-      throw new FuseGenericError(`${errors.join("; ")}.`);
+      throw new MocodyGenericError(`${errors.join("; ")}.`);
     }
   }
 }
 
-export const FuseErrorUtilsService = new FuseErrorUtils();
+export const MocodyErrorUtilsService = new MocodyErrorUtils();

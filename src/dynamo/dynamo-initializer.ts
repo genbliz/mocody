@@ -1,6 +1,6 @@
 import { DynamoDB, DynamoDBClientConfig } from "@aws-sdk/client-dynamodb";
 
-export class FuseInitializerDynamo {
+export class MocodyInitializerDynamo {
   private _dynamoDb: DynamoDB;
   private readonly _inits: DynamoDBClientConfig;
 

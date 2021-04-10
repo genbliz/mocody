@@ -1,9 +1,9 @@
 import { LoggingService } from "./../helpers/logging-service";
 import type { IMocodyIndexDefinition } from "./../type/types";
-import type { FuseInitializerMongo } from "./mongo-initializer";
+import type { MocodyInitializerMongo } from "./mongo-initializer";
 
 interface ITableOptions<T> {
-  mongoDb: () => FuseInitializerMongo;
+  mongoDb: () => MocodyInitializerMongo;
   secondaryIndexOptions: IMocodyIndexDefinition<T>[];
   tableFullName: string;
   partitionKeyFieldName: string;
@@ -20,7 +20,7 @@ interface IIndexModel {
 export class MongoManageTable<T> {
   private readonly partitionKeyFieldName: string;
   private readonly sortKeyFieldName: string;
-  private readonly mongoDb: () => FuseInitializerMongo;
+  private readonly mongoDb: () => MocodyInitializerMongo;
   private readonly tableFullName: string;
   private readonly secondaryIndexOptions: IMocodyIndexDefinition<T>[];
 

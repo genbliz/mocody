@@ -2,7 +2,7 @@ import { QueryValidatorCheck } from "./../helpers/query-validator";
 import { LoggingService } from "../helpers/logging-service";
 import { UtilService } from "../helpers/util-service";
 import type { IMocodyKeyConditionParams, IMocodyQueryConditionParams, IMocodyQueryDefinition } from "../type/types";
-import { FuseErrorUtilsService } from "../helpers/errors";
+import { MocodyErrorUtilsService } from "../helpers/errors";
 
 // https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.OperatorsAndFunctions.html
 
@@ -166,7 +166,7 @@ export class DynamoFilterQueryOperation {
         const conditionKey = condKey as keyof IMocodyKeyConditionParams;
         //
         if (!Object.keys(keyConditionMap).includes(conditionKey)) {
-          throw FuseErrorUtilsService.mocody_helper_createFriendlyError(
+          throw MocodyErrorUtilsService.mocody_helper_createFriendlyError(
             `Invalid query key: ${conditionKey} @ NestedMatchObject`,
           );
         }
@@ -193,7 +193,7 @@ export class DynamoFilterQueryOperation {
             const fromKey = `:fromKey0${getRandom()}`.toLowerCase();
             const toKey = `:toKey0${getRandom()}`.toLowerCase();
             if (!(Array.isArray(val) && val.length === 2)) {
-              throw FuseErrorUtilsService.mocody_helper_createFriendlyError(
+              throw MocodyErrorUtilsService.mocody_helper_createFriendlyError(
                 "$between query must be an array of length 2",
               );
             }
@@ -223,7 +223,7 @@ export class DynamoFilterQueryOperation {
             };
             results.push(result);
           } else {
-            throw FuseErrorUtilsService.mocody_helper_createFriendlyError(
+            throw MocodyErrorUtilsService.mocody_helper_createFriendlyError(
               `Query key: ${conditionKey} not currently supported`,
             );
           }

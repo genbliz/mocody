@@ -2,7 +2,7 @@ import type { DynamoDB, QueryInput, QueryCommandOutput } from "@aws-sdk/client-d
 import { marshall } from "@aws-sdk/util-dynamodb";
 import type { IMocodyPagingResult } from "../type/types";
 import { LoggingService } from "../helpers/logging-service";
-import { FuseUtil } from "../helpers/fuse-utils";
+import { MocodyUtil } from "../helpers/fuse-utils";
 
 export class DynamoQueryScanProcessor {
   //
@@ -208,7 +208,7 @@ export class DynamoQueryScanProcessor {
   private __unmarshallToJson(items: any[]) {
     if (items?.length) {
       const itemList = items.map((item) => {
-        return FuseUtil.mocody_unmarshallToJson(item);
+        return MocodyUtil.mocody_unmarshallToJson(item);
       });
       return itemList;
     }

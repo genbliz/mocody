@@ -1,6 +1,6 @@
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
 
-class FuseUtilBase {
+class MocodyUtilBase {
   mocody_marshallFromJson(jsonData: Record<string, any>) {
     const marshalled = marshall(jsonData, {
       convertClassInstanceToMap: true,
@@ -15,4 +15,4 @@ class FuseUtilBase {
   }
 }
 
-export const FuseUtil = new FuseUtilBase();
+export const MocodyUtil = new MocodyUtilBase();

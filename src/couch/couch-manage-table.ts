@@ -1,9 +1,9 @@
 import { LoggingService } from "./../helpers/logging-service";
 import type { IMocodyIndexDefinition } from "./../type/types";
-import type { FuseInitializerCouch } from "./couch-initializer";
+import type { MocodyInitializerCouch } from "./couch-initializer";
 
 interface ITableOptions<T> {
-  couchDb: () => FuseInitializerCouch;
+  couchDb: () => MocodyInitializerCouch;
   secondaryIndexOptions: IMocodyIndexDefinition<T>[];
   tableFullName: string;
   partitionKeyFieldName: string;
@@ -13,7 +13,7 @@ interface ITableOptions<T> {
 export class CouchManageTable<T> {
   private readonly partitionKeyFieldName: string;
   private readonly sortKeyFieldName: string;
-  private readonly couchDb: () => FuseInitializerCouch;
+  private readonly couchDb: () => MocodyInitializerCouch;
   private readonly tableFullName: string;
   private readonly secondaryIndexOptions: IMocodyIndexDefinition<T>[];
 

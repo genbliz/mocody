@@ -10,15 +10,15 @@ import type {
 import { RepoModel } from "../model/repo-model";
 import Joi from "joi";
 import { coreSchemaDefinition, IMocodyCoreEntityModel } from "../core/base-schema";
-import { FuseErrorUtils, FuseGenericError } from "../helpers/errors";
+import { MocodyErrorUtils, MocodyGenericError } from "../helpers/errors";
 import { getJoiValidationErrors } from "../helpers/base-joi-helper";
-import { FuseInitializerMongo } from "./mongo-initializer";
+import { MocodyInitializerMongo } from "./mongo-initializer";
 import { MongoFilterQueryOperation } from "./mongo-filter-query-operation";
 import { MongoManageTable } from "./mongo-table-manager";
 
 interface IOptions<T> {
   schemaDef: Joi.SchemaMap;
-  mongoDb: () => FuseInitializerMongo;
+  mongoDb: () => MocodyInitializerMongo;
   dataKeyGenerator: () => string;
   featureEntityValue: string;
   secondaryIndexOptions: IMocodyIndexDefinition<T>[];
@@ -36,14 +36,14 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   //
   private readonly _mocody_operationNotSuccessful = "Operation Not Successful";
   private readonly _mocody_entityResultFieldKeysMap: Map<string, string>;
-  private readonly _mocody_mongoDb: () => FuseInitializerMongo;
+  private readonly _mocody_mongoDb: () => MocodyInitializerMongo;
   private readonly _mocody_dataKeyGenerator: () => string;
   private readonly _mocody_schema: Joi.Schema;
   private readonly _mocody_tableFullName: string;
   private readonly _mocody_strictRequiredFields: string[];
   private readonly _mocody_featureEntityValue: string;
   private readonly _mocody_secondaryIndexOptions: IMocodyIndexDefinition<T>[];
-  private readonly _mocody_errorHelper: FuseErrorUtils;
+  private readonly _mocody_errorHelper: MocodyErrorUtils;
   private readonly _mocody_filterQueryOperation = new MongoFilterQueryOperation();
   //
   private _mocody_tableManager!: MongoManageTable<T>;
@@ -64,7 +64,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     this._mocody_featureEntityValue = featureEntityValue;
     this._mocody_secondaryIndexOptions = secondaryIndexOptions;
     this._mocody_strictRequiredFields = strictRequiredFields as string[];
-    this._mocody_errorHelper = new FuseErrorUtils();
+    this._mocody_errorHelper = new MocodyErrorUtils();
     this._mocody_entityResultFieldKeysMap = new Map();
 
     const fullSchemaMapDef = {
@@ -197,7 +197,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   }
 
   private _mocody_createGenericError(error: string) {
-    return new FuseGenericError(error);
+    return new MocodyGenericError(error);
   }
 
   async mocody_getOneById({

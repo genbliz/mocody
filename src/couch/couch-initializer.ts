@@ -22,7 +22,7 @@ interface IOptions {
   };
 }
 
-export class FuseInitializerCouch {
+export class MocodyInitializerCouch {
   private _databaseInstance!: Nano.ServerScope;
   private _documentScope!: Nano.DocumentScope<any>;
 

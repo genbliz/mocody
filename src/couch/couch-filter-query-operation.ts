@@ -1,4 +1,4 @@
-import { FuseErrorUtilsService } from "../helpers/errors";
+import { MocodyErrorUtilsService } from "../helpers/errors";
 import { QueryValidatorCheck } from "../helpers/query-validator";
 import type { IMocodyKeyConditionParams, IMocodyQueryConditionParams, IMocodyQueryDefinition } from "../type/types";
 // https://docs.couchdb.org/en/latest/api/database/find.html
@@ -259,7 +259,7 @@ export class CouchFilterQueryOperation {
         const conditionKey = condKey as keyof IMocodyKeyConditionParams;
         //
         if (!Object.keys(keyConditionMap).includes(conditionKey)) {
-          throw FuseErrorUtilsService.mocody_helper_createFriendlyError(
+          throw MocodyErrorUtilsService.mocody_helper_createFriendlyError(
             `Invalid query key: ${conditionKey} @ NestedMatchObject`,
           );
         }
@@ -273,7 +273,7 @@ export class CouchFilterQueryOperation {
         } else {
           if (conditionKey === "$between") {
             if (!(Array.isArray(val) && val.length === 2)) {
-              throw FuseErrorUtilsService.mocody_helper_createFriendlyError(
+              throw MocodyErrorUtilsService.mocody_helper_createFriendlyError(
                 "$between query must be an array of length 2",
               );
             }
@@ -289,7 +289,7 @@ export class CouchFilterQueryOperation {
             } as IQueryConditions;
             results.push(result);
           } else {
-            throw FuseErrorUtilsService.mocody_helper_createFriendlyError(
+            throw MocodyErrorUtilsService.mocody_helper_createFriendlyError(
               `Query key: ${conditionKey} not currently supported`,
             );
           }

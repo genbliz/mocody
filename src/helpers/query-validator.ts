@@ -1,8 +1,8 @@
-import { FuseErrorUtilsService } from "./errors";
+import { MocodyErrorUtilsService } from "./errors";
 
 class QueryValidatorCheckBase {
   private queryErrorThrowChecks({ conditionValue, queryType }: { conditionValue: any; queryType: string }) {
-    throw FuseErrorUtilsService.mocody_helper_createFriendlyError(
+    throw MocodyErrorUtilsService.mocody_helper_createFriendlyError(
       `Value: ${JSON.stringify(conditionValue)}, is invalid for ${queryType} query`,
     );
   }
@@ -48,14 +48,14 @@ class QueryValidatorCheckBase {
       this.queryErrorThrowChecks({ conditionValue, queryType: "$elemMatch" });
     }
     if (!(conditionValue?.$in?.length && Array.isArray(conditionValue.$in))) {
-      throw FuseErrorUtilsService.mocody_helper_createFriendlyError(
+      throw MocodyErrorUtilsService.mocody_helper_createFriendlyError(
         "$elemMatch must have a valid $in query and must be an array of non-zero length",
       );
     }
 
     for (const item of conditionValue.$in) {
       if (typeof item !== "number" && typeof item !== "string" && typeof item !== "boolean") {
-        throw FuseErrorUtilsService.mocody_helper_createFriendlyError(
+        throw MocodyErrorUtilsService.mocody_helper_createFriendlyError(
           "$in in $elemMatch MUST have values of string or number or boolean",
         );
       }
@@ -67,7 +67,9 @@ class QueryValidatorCheckBase {
       this.queryErrorThrowChecks({ conditionValue, queryType: "$nestedMatch" });
     }
     if (!Object.keys(conditionValue).length) {
-      throw FuseErrorUtilsService.mocody_helper_createFriendlyError("$nestedMatch must have a valid query definitions");
+      throw MocodyErrorUtilsService.mocody_helper_createFriendlyError(
+        "$nestedMatch must have a valid query definitions",
+      );
     }
   }
 
@@ -96,7 +98,7 @@ class QueryValidatorCheckBase {
   }
 
   throwQueryNotFound(queryType: any) {
-    throw FuseErrorUtilsService.mocody_helper_createFriendlyError(
+    throw MocodyErrorUtilsService.mocody_helper_createFriendlyError(
       `Query type: ${JSON.stringify(queryType)}, not supported`,
     );
   }

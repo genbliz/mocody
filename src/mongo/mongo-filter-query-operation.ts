@@ -1,7 +1,7 @@
 import { LoggingService } from "./../helpers/logging-service";
 import type { IMocodyKeyConditionParams, IMocodyQueryConditionParams, IMocodyQueryDefinition } from "../type/types";
 import { QueryValidatorCheck } from "../helpers/query-validator";
-import { FuseErrorUtilsService } from "../helpers/errors";
+import { MocodyErrorUtilsService } from "../helpers/errors";
 // https://docs.mongodb.com/drivers/node/fundamentals/crud/
 
 interface ISelectedQueryConditionsKeys {
@@ -252,7 +252,7 @@ export class MongoFilterQueryOperation {
         const conditionKey = condKey as keyof IMocodyKeyConditionParams;
         //
         if (!Object.keys(keyConditionMap).includes(conditionKey)) {
-          throw FuseErrorUtilsService.mocody_helper_createFriendlyError(
+          throw MocodyErrorUtilsService.mocody_helper_createFriendlyError(
             `Invalid query key: ${conditionKey} @ NestedMatchObject`,
           );
         }
@@ -266,7 +266,7 @@ export class MongoFilterQueryOperation {
         } else {
           if (conditionKey === "$between") {
             if (!(Array.isArray(val) && val.length === 2)) {
-              throw FuseErrorUtilsService.mocody_helper_createFriendlyError(
+              throw MocodyErrorUtilsService.mocody_helper_createFriendlyError(
                 "$between query must be an array of length 2",
               );
             }
@@ -282,7 +282,7 @@ export class MongoFilterQueryOperation {
             } as IQueryConditions;
             results.push(result);
           } else {
-            throw FuseErrorUtilsService.mocody_helper_createFriendlyError(
+            throw MocodyErrorUtilsService.mocody_helper_createFriendlyError(
               `Query key: ${conditionKey} not currently supported`,
             );
           }

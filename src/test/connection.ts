@@ -1,10 +1,10 @@
-import { FuseInitializerDynamo } from "./../dynamo/dynamo-initializer";
+import { MocodyInitializerDynamo } from "./../dynamo/dynamo-initializer";
 import { LoggingService } from "../helpers/logging-service";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 
 class DynamoConnectionBase {
   private _dynamoDbClient: DynamoDBClient;
-  private _dynamoConn!: FuseInitializerDynamo;
+  private _dynamoConn!: MocodyInitializerDynamo;
 
   constructor() {
     const region = "us-west-2";
@@ -21,7 +21,7 @@ class DynamoConnectionBase {
 
   getDynamoConnection() {
     if (!this._dynamoConn) {
-      this._dynamoConn = new FuseInitializerDynamo({
+      this._dynamoConn = new MocodyInitializerDynamo({
         region: "us-east-2",
       });
       console.log({ getDynamoConnection_INITIALIZED: true });
