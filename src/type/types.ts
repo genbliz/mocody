@@ -58,25 +58,13 @@ type IQueryDefAnd<T> = { $and?: QueryPartialAll<RequireAtLeastOne<T>>[] };
 
 export type IMocodyQueryDefinition<T> = QueryPartialAll<RequireAtLeastOne<T & IQueryDefOr<T> & IQueryDefAnd<T>>>;
 
-/*
-export interface IMocodyQueryParamOptions<T, ISortKeyObjField = any> {
-  partitionKeyValue: string | number;
-  sortKeyQuery?: QueryKeyConditionBasic<Required<ISortKeyObjField>>;
-  query?: IMocodyQueryDefinition<T>;
-  fields?: (keyof T)[];
-  pagingParams?: IMocodyPagingParams;
-  limit?: number | null;
-  sort?: "asc" | "desc" | null;
-}
-*/
-
 export interface IMocodyQueryIndexOptions<T, TSortKeyField = string> {
   indexName: string;
   partitionKeyValue: string | number;
   sortKeyQuery?: IMocodyKeyConditionParams<TSortKeyField>;
   query?: IMocodyQueryDefinition<T>;
   fields?: (keyof T)[];
-  pagingParams?: IMocodyPagingParams;
+  pagingParams: IMocodyPagingParams;
   limit?: number | null;
   sort?: "asc" | "desc" | null;
 }
