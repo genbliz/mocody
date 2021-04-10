@@ -64,7 +64,7 @@ export interface IMocodyQueryIndexOptions<T, TSortKeyField = string> {
   sortKeyQuery?: IMocodyKeyConditionParams<TSortKeyField>;
   query?: IMocodyQueryDefinition<T>;
   fields?: (keyof T)[];
-  pagingParams: IMocodyPagingParams;
+  pagingParams?: IMocodyPagingParams;
   limit?: number | null;
   sort?: "asc" | "desc" | null;
 }
