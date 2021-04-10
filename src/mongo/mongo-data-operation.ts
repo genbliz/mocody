@@ -31,22 +31,22 @@ type IModelBase = IFuseCoreEntityModel;
 type IFullEntity<T> = IFuseCoreEntityModel & T;
 
 export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> {
-  private readonly _fuse_partitionKeyFieldName: keyof Pick<IModelBase, "id"> = "id";
-  private readonly _fuse_sortKeyFieldName: keyof Pick<IModelBase, "featureEntity"> = "featureEntity";
+  private readonly _mocody_partitionKeyFieldName: keyof Pick<IModelBase, "id"> = "id";
+  private readonly _mocody_sortKeyFieldName: keyof Pick<IModelBase, "featureEntity"> = "featureEntity";
   //
-  private readonly _fuse_operationNotSuccessful = "Operation Not Successful";
-  private readonly _fuse_entityResultFieldKeysMap: Map<string, string>;
-  private readonly _fuse_mongoDb: () => FuseInitializerMongo;
-  private readonly _fuse_dataKeyGenerator: () => string;
-  private readonly _fuse_schema: Joi.Schema;
-  private readonly _fuse_tableFullName: string;
-  private readonly _fuse_strictRequiredFields: string[];
-  private readonly _fuse_featureEntityValue: string;
-  private readonly _fuse_secondaryIndexOptions: IFuseIndexDefinition<T>[];
-  private readonly _fuse_errorHelper: FuseErrorUtils;
-  private readonly _fuse_filterQueryOperation = new MongoFilterQueryOperation();
+  private readonly _mocody_operationNotSuccessful = "Operation Not Successful";
+  private readonly _mocody_entityResultFieldKeysMap: Map<string, string>;
+  private readonly _mocody_mongoDb: () => FuseInitializerMongo;
+  private readonly _mocody_dataKeyGenerator: () => string;
+  private readonly _mocody_schema: Joi.Schema;
+  private readonly _mocody_tableFullName: string;
+  private readonly _mocody_strictRequiredFields: string[];
+  private readonly _mocody_featureEntityValue: string;
+  private readonly _mocody_secondaryIndexOptions: IFuseIndexDefinition<T>[];
+  private readonly _mocody_errorHelper: FuseErrorUtils;
+  private readonly _mocody_filterQueryOperation = new MongoFilterQueryOperation();
   //
-  private _fuse_tableManager!: MongoManageTable<T>;
+  private _mocody_tableManager!: MongoManageTable<T>;
 
   constructor({
     schemaDef,
@@ -58,14 +58,14 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     dataKeyGenerator,
   }: IOptions<T>) {
     super();
-    this._fuse_mongoDb = mongoDb;
-    this._fuse_dataKeyGenerator = dataKeyGenerator;
-    this._fuse_tableFullName = baseTableName;
-    this._fuse_featureEntityValue = featureEntityValue;
-    this._fuse_secondaryIndexOptions = secondaryIndexOptions;
-    this._fuse_strictRequiredFields = strictRequiredFields as string[];
-    this._fuse_errorHelper = new FuseErrorUtils();
-    this._fuse_entityResultFieldKeysMap = new Map();
+    this._mocody_mongoDb = mongoDb;
+    this._mocody_dataKeyGenerator = dataKeyGenerator;
+    this._mocody_tableFullName = baseTableName;
+    this._mocody_featureEntityValue = featureEntityValue;
+    this._mocody_secondaryIndexOptions = secondaryIndexOptions;
+    this._mocody_strictRequiredFields = strictRequiredFields as string[];
+    this._mocody_errorHelper = new FuseErrorUtils();
+    this._mocody_entityResultFieldKeysMap = new Map();
 
     const fullSchemaMapDef = {
       ...schemaDef,
@@ -73,56 +73,56 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     };
 
     Object.keys(fullSchemaMapDef).forEach((key) => {
-      this._fuse_entityResultFieldKeysMap.set(key, key);
+      this._mocody_entityResultFieldKeysMap.set(key, key);
     });
 
-    this._fuse_schema = Joi.object().keys({
+    this._mocody_schema = Joi.object().keys({
       ...fullSchemaMapDef,
       _id: Joi.string().required().min(5).max(512),
     });
   }
 
-  fuse_tableManager() {
-    if (!this._fuse_tableManager) {
-      this._fuse_tableManager = new MongoManageTable<T>({
-        mongoDb: () => this._fuse_mongoDb(),
-        secondaryIndexOptions: this._fuse_secondaryIndexOptions,
-        tableFullName: this._fuse_tableFullName,
-        partitionKeyFieldName: this._fuse_partitionKeyFieldName,
-        sortKeyFieldName: this._fuse_sortKeyFieldName,
+  mocody_tableManager() {
+    if (!this._mocody_tableManager) {
+      this._mocody_tableManager = new MongoManageTable<T>({
+        mongoDb: () => this._mocody_mongoDb(),
+        secondaryIndexOptions: this._mocody_secondaryIndexOptions,
+        tableFullName: this._mocody_tableFullName,
+        partitionKeyFieldName: this._mocody_partitionKeyFieldName,
+        sortKeyFieldName: this._mocody_sortKeyFieldName,
       });
     }
-    return this._fuse_tableManager;
+    return this._mocody_tableManager;
   }
 
-  private _fuse_generateDynamoTableKey() {
-    return this._fuse_dataKeyGenerator();
+  private _mocody_generateDynamoTableKey() {
+    return this._mocody_dataKeyGenerator();
   }
 
-  private async _fuse_getDbInstance() {
-    return await this._fuse_mongoDb().getDbInstance<IFullEntity<T>>();
+  private async _mocody_getDbInstance() {
+    return await this._mocody_mongoDb().getDbInstance<IFullEntity<T>>();
   }
 
-  private _fuse_getLocalVariables() {
+  private _mocody_getLocalVariables() {
     return {
-      partitionKeyFieldName: this._fuse_partitionKeyFieldName,
-      sortKeyFieldName: this._fuse_sortKeyFieldName,
+      partitionKeyFieldName: this._mocody_partitionKeyFieldName,
+      sortKeyFieldName: this._mocody_sortKeyFieldName,
       //
-      featureEntityValue: this._fuse_featureEntityValue,
+      featureEntityValue: this._mocody_featureEntityValue,
       //
-      // tableFullName: this._fuse_tableFullName,
-      secondaryIndexOptions: this._fuse_secondaryIndexOptions,
-      strictRequiredFields: this._fuse_strictRequiredFields,
+      // tableFullName: this._mocody_tableFullName,
+      secondaryIndexOptions: this._mocody_secondaryIndexOptions,
+      strictRequiredFields: this._mocody_strictRequiredFields,
     } as const;
   }
 
-  private _fuse_getNativeMongoId(dataId: string) {
-    const { featureEntityValue } = this._fuse_getLocalVariables();
+  private _mocody_getNativeMongoId(dataId: string) {
+    const { featureEntityValue } = this._mocody_getLocalVariables();
     return [featureEntityValue, dataId].join(":");
   }
 
-  private _fuse_getBaseObject({ dataId }: { dataId: string }) {
-    const { partitionKeyFieldName, sortKeyFieldName, featureEntityValue } = this._fuse_getLocalVariables();
+  private _mocody_getBaseObject({ dataId }: { dataId: string }) {
+    const { partitionKeyFieldName, sortKeyFieldName, featureEntityValue } = this._mocody_getLocalVariables();
 
     const dataMust = {
       [partitionKeyFieldName]: dataId,
@@ -131,7 +131,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     return dataMust;
   }
 
-  private _fuse_withConditionPassed({
+  private _mocody_withConditionPassed({
     item,
     withCondition,
   }: {
@@ -147,34 +147,34 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     return true;
   }
 
-  private _fuse_checkValidateMustBeAnObjectDataType(data: unknown) {
+  private _mocody_checkValidateMustBeAnObjectDataType(data: unknown) {
     if (!data || typeof data !== "object") {
-      throw this._fuse_createGenericError(`Data MUST be valid object`);
+      throw this._mocody_createGenericError(`Data MUST be valid object`);
     }
   }
 
-  private _fuse_checkValidateStrictRequiredFields(onDataObj: any) {
-    this._fuse_checkValidateMustBeAnObjectDataType(onDataObj);
+  private _mocody_checkValidateStrictRequiredFields(onDataObj: any) {
+    this._mocody_checkValidateMustBeAnObjectDataType(onDataObj);
 
-    const { strictRequiredFields } = this._fuse_getLocalVariables();
+    const { strictRequiredFields } = this._mocody_getLocalVariables();
 
     if (strictRequiredFields?.length) {
       for (const field of strictRequiredFields) {
         if (onDataObj[field] === null || onDataObj[field] === undefined) {
-          throw this._fuse_createGenericError(`Strict required field NOT defined`);
+          throw this._mocody_createGenericError(`Strict required field NOT defined`);
         }
       }
     }
   }
 
-  private _fuse_removeDuplicateString(list: string[]) {
+  private _mocody_removeDuplicateString(list: string[]) {
     return Array.from(new Set(list));
   }
 
-  private _fuse_toMongoProjection(fields?: (keyof T)[]) {
+  private _mocody_toMongoProjection(fields?: (keyof T)[]) {
     if (fields?.length) {
       const projection: Record<string, any> = {};
-      const uniqueFields = this._fuse_removeDuplicateString(fields as string[]);
+      const uniqueFields = this._mocody_removeDuplicateString(fields as string[]);
       uniqueFields.forEach((field) => {
         projection[field] = 1;
       });
@@ -183,49 +183,49 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     return undefined;
   }
 
-  private async _fuse_allHelpValidateGetValue(data: any) {
-    const { error, value } = this._fuse_schema.validate(data, {
+  private async _mocody_allHelpValidateGetValue(data: any) {
+    const { error, value } = this._mocody_schema.validate(data, {
       stripUnknown: true,
     });
 
     if (error) {
       const msg = getJoiValidationErrors(error) ?? "Validation error occured";
-      throw this._fuse_errorHelper.fuse_helper_createFriendlyError(msg);
+      throw this._mocody_errorHelper.mocody_helper_createFriendlyError(msg);
     }
 
     return await Promise.resolve({ validatedData: value });
   }
 
-  private _fuse_createGenericError(error: string) {
+  private _mocody_createGenericError(error: string) {
     return new FuseGenericError(error);
   }
 
-  async fuse_getOneById({
+  async mocody_getOneById({
     dataId,
     withCondition,
   }: {
     dataId: string;
     withCondition?: IFuseFieldCondition<T> | undefined;
   }): Promise<T | null> {
-    this._fuse_errorHelper.fuse_helper_validateRequiredString({ dataId });
+    this._mocody_errorHelper.mocody_helper_validateRequiredString({ dataId });
 
-    const db = await this._fuse_getDbInstance();
+    const db = await this._mocody_getDbInstance();
 
-    const nativeId = this._fuse_getNativeMongoId(dataId);
+    const nativeId = this._mocody_getNativeMongoId(dataId);
     const query: any = { _id: nativeId };
     const dataInDb = await db.findOne(query, { projection: { _id: 0 } });
 
-    if (!(dataInDb?.id === dataId && dataInDb.featureEntity === this._fuse_featureEntityValue)) {
+    if (!(dataInDb?.id === dataId && dataInDb.featureEntity === this._mocody_featureEntityValue)) {
       return null;
     }
-    const passed = this._fuse_withConditionPassed({ item: dataInDb, withCondition });
+    const passed = this._mocody_withConditionPassed({ item: dataInDb, withCondition });
     if (!passed) {
       return null;
     }
     return dataInDb;
   }
 
-  async fuse_getManyByIds({
+  async mocody_getManyByIds({
     dataIds,
     fields,
     withCondition,
@@ -234,10 +234,10 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     fields?: (keyof T)[] | undefined;
     withCondition?: IFuseFieldCondition<T> | undefined;
   }): Promise<T[]> {
-    const uniqueIds = this._fuse_removeDuplicateString(dataIds);
-    const fullUniqueIds = uniqueIds.map((id) => this._fuse_getNativeMongoId(id));
+    const uniqueIds = this._mocody_removeDuplicateString(dataIds);
+    const fullUniqueIds = uniqueIds.map((id) => this._mocody_getNativeMongoId(id));
 
-    const db = await this._fuse_getDbInstance();
+    const db = await this._mocody_getDbInstance();
 
     if (withCondition?.length && fields?.length) {
       withCondition.forEach((item) => {
@@ -245,7 +245,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
       });
     }
 
-    const projection = this._fuse_toMongoProjection(fields) ?? { _id: -1 };
+    const projection = this._mocody_toMongoProjection(fields) ?? { _id: -1 };
 
     const query: any = { _id: { $in: fullUniqueIds } };
 
@@ -257,7 +257,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
 
     if (withCondition?.length) {
       const dataFiltered = dataListInDb.filter((item) => {
-        const passed = this._fuse_withConditionPassed({ item, withCondition });
+        const passed = this._mocody_withConditionPassed({ item, withCondition });
         return passed;
       });
       return dataFiltered;
@@ -266,47 +266,47 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     return dataListInDb;
   }
 
-  async fuse_createOne({ data }: { data: T }): Promise<T> {
-    this._fuse_checkValidateStrictRequiredFields(data);
+  async mocody_createOne({ data }: { data: T }): Promise<T> {
+    this._mocody_checkValidateStrictRequiredFields(data);
 
-    const { partitionKeyFieldName, featureEntityValue } = this._fuse_getLocalVariables();
+    const { partitionKeyFieldName, featureEntityValue } = this._mocody_getLocalVariables();
 
     let dataId: string | undefined = data[partitionKeyFieldName];
 
     if (!dataId) {
-      dataId = this._fuse_generateDynamoTableKey();
+      dataId = this._mocody_generateDynamoTableKey();
     }
 
     if (!(dataId && typeof dataId === "string")) {
-      throw this._fuse_createGenericError("Invalid dataId generation");
+      throw this._mocody_createGenericError("Invalid dataId generation");
     }
 
-    const dataMust = this._fuse_getBaseObject({ dataId });
+    const dataMust = this._mocody_getBaseObject({ dataId });
     const fullData = {
       ...data,
       ...dataMust,
-      _id: this._fuse_getNativeMongoId(dataId),
+      _id: this._mocody_getNativeMongoId(dataId),
     };
 
     if (fullData.featureEntity !== featureEntityValue) {
-      throw this._fuse_createGenericError("FeatureEntity mismatched");
+      throw this._mocody_createGenericError("FeatureEntity mismatched");
     }
 
-    const validated = await this._fuse_allHelpValidateGetValue(fullData);
+    const validated = await this._mocody_allHelpValidateGetValue(fullData);
 
-    const db = await this._fuse_getDbInstance();
+    const db = await this._mocody_getDbInstance();
 
     const result = await db.insertOne(validated.validatedData);
 
     if (!result?.insertedCount) {
-      throw this._fuse_createGenericError(this._fuse_operationNotSuccessful);
+      throw this._mocody_createGenericError(this._mocody_operationNotSuccessful);
     }
     const final = { ...validated.validatedData };
     delete final._id;
     return final;
   }
 
-  async fuse_updateOne({
+  async mocody_updateOne({
     dataId,
     updateData,
     withCondition,
@@ -315,24 +315,24 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     updateData: Partial<T>;
     withCondition?: IFuseFieldCondition<T> | undefined;
   }): Promise<T> {
-    this._fuse_errorHelper.fuse_helper_validateRequiredString({ dataId });
+    this._mocody_errorHelper.mocody_helper_validateRequiredString({ dataId });
 
-    const nativeId = this._fuse_getNativeMongoId(dataId);
+    const nativeId = this._mocody_getNativeMongoId(dataId);
     const query: any = { _id: nativeId };
 
-    const db = await this._fuse_getDbInstance();
+    const db = await this._mocody_getDbInstance();
 
     const dataInDb = await db.findOne(query);
-    if (!(dataInDb?.id === dataId && dataInDb.featureEntity === this._fuse_featureEntityValue)) {
-      throw this._fuse_createGenericError("Record does not exists");
+    if (!(dataInDb?.id === dataId && dataInDb.featureEntity === this._mocody_featureEntityValue)) {
+      throw this._mocody_createGenericError("Record does not exists");
     }
 
-    const passed = this._fuse_withConditionPassed({ item: dataInDb, withCondition });
+    const passed = this._mocody_withConditionPassed({ item: dataInDb, withCondition });
     if (!passed) {
-      throw this._fuse_createGenericError("Record with conditions does not exists");
+      throw this._mocody_createGenericError("Record with conditions does not exists");
     }
 
-    const dataMust = this._fuse_getBaseObject({ dataId });
+    const dataMust = this._mocody_getBaseObject({ dataId });
 
     const data: IFullEntity<T> = {
       ...dataInDb,
@@ -340,45 +340,45 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
       ...dataMust,
     };
 
-    const validated = await this._fuse_allHelpValidateGetValue(data);
+    const validated = await this._mocody_allHelpValidateGetValue(data);
 
     const result = await db.replaceOne(query, validated.validatedData);
     if (!result.modifiedCount) {
-      throw this._fuse_createGenericError(this._fuse_operationNotSuccessful);
+      throw this._mocody_createGenericError(this._mocody_operationNotSuccessful);
     }
     const final = { ...validated.validatedData };
     delete final._id;
     return final;
   }
 
-  async fuse_getManyBySecondaryIndex<TData = T, TSortKeyField = string>(
+  async mocody_getManyBySecondaryIndex<TData = T, TSortKeyField = string>(
     paramOption: IFuseQueryIndexOptionsNoPaging<TData, TSortKeyField>,
   ): Promise<T[]> {
-    const result = await this._fuse_getManyBySecondaryIndexPaginateBase<TData, TSortKeyField>(paramOption, false);
+    const result = await this._mocody_getManyBySecondaryIndexPaginateBase<TData, TSortKeyField>(paramOption, false);
     if (result?.mainResult) {
       return result.mainResult;
     }
     return [];
   }
 
-  fuse_getManyBySecondaryIndexPaginate<TData = T, TSortKeyField = string>(
+  mocody_getManyBySecondaryIndexPaginate<TData = T, TSortKeyField = string>(
     paramOption: IFuseQueryIndexOptions<TData, TSortKeyField>,
   ): Promise<IFusePagingResult<T[]>> {
-    return this._fuse_getManyBySecondaryIndexPaginateBase<TData, TSortKeyField>(paramOption, true);
+    return this._mocody_getManyBySecondaryIndexPaginateBase<TData, TSortKeyField>(paramOption, true);
   }
 
-  private async _fuse_getManyBySecondaryIndexPaginateBase<TData = T, TSortKeyField = string>(
+  private async _mocody_getManyBySecondaryIndexPaginateBase<TData = T, TSortKeyField = string>(
     paramOption: IFuseQueryIndexOptions<TData, TSortKeyField>,
     canPaginate: boolean,
   ): Promise<IFusePagingResult<T[]>> {
-    const { secondaryIndexOptions } = this._fuse_getLocalVariables();
+    const { secondaryIndexOptions } = this._mocody_getLocalVariables();
 
     if (!secondaryIndexOptions?.length) {
-      throw this._fuse_createGenericError("Invalid secondary index definitions");
+      throw this._mocody_createGenericError("Invalid secondary index definitions");
     }
 
     if (!paramOption?.indexName) {
-      throw this._fuse_createGenericError("Invalid index name input");
+      throw this._mocody_createGenericError("Invalid index name input");
     }
 
     const secondaryIndex = secondaryIndexOptions.find((item) => {
@@ -386,7 +386,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     });
 
     if (!secondaryIndex) {
-      throw this._fuse_createGenericError("Secondary index not named/defined");
+      throw this._mocody_createGenericError("Secondary index not named/defined");
     }
 
     const index_PartitionKeyFieldName = secondaryIndex.partitionKeyFieldName as string;
@@ -399,7 +399,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
         }
       : { [index_PartitionKeyFieldName]: paramOption.partitionKeyValue };
 
-    const localVariables = this._fuse_getLocalVariables();
+    const localVariables = this._mocody_getLocalVariables();
 
     /** Avoid query data leak */
     const hasFeatureEntity = [
@@ -426,11 +426,11 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
       ...partitionSortKeyQuery,
     };
 
-    const queryDefData: any = this._fuse_filterQueryOperation.processQueryFilter({ queryDefs });
+    const queryDefData: any = this._mocody_filterQueryOperation.processQueryFilter({ queryDefs });
 
-    const db = await this._fuse_getDbInstance();
+    const db = await this._mocody_getDbInstance();
 
-    const projection = this._fuse_toMongoProjection(paramOption.fields as any[]) ?? { _id: 0 };
+    const projection = this._mocody_toMongoProjection(paramOption.fields as any[]) ?? { _id: 0 };
 
     const sort01: Array<[string, number]> = [];
 
@@ -524,31 +524,31 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     };
   }
 
-  async fuse_deleteById({
+  async mocody_deleteById({
     dataId,
     withCondition,
   }: {
     dataId: string;
     withCondition?: IFuseFieldCondition<T> | undefined;
   }): Promise<T> {
-    this._fuse_errorHelper.fuse_helper_validateRequiredString({ dataId });
+    this._mocody_errorHelper.mocody_helper_validateRequiredString({ dataId });
 
-    const db = await this._fuse_getDbInstance();
+    const db = await this._mocody_getDbInstance();
 
-    const nativeId = this._fuse_getNativeMongoId(dataId);
+    const nativeId = this._mocody_getNativeMongoId(dataId);
     const query: any = { _id: nativeId };
     const dataInDb = await db.findOne(query);
 
-    if (!(dataInDb?.id === dataId && dataInDb.featureEntity === this._fuse_featureEntityValue)) {
-      throw this._fuse_createGenericError("Record does not exists");
+    if (!(dataInDb?.id === dataId && dataInDb.featureEntity === this._mocody_featureEntityValue)) {
+      throw this._mocody_createGenericError("Record does not exists");
     }
-    const passed = this._fuse_withConditionPassed({ item: dataInDb, withCondition });
+    const passed = this._mocody_withConditionPassed({ item: dataInDb, withCondition });
     if (!passed) {
-      throw this._fuse_createGenericError("Record with conditions does not exists for deletion");
+      throw this._mocody_createGenericError("Record with conditions does not exists for deletion");
     }
     const result = await db.deleteOne(query);
     if (!result?.deletedCount) {
-      throw this._fuse_createGenericError(this._fuse_operationNotSuccessful);
+      throw this._mocody_createGenericError(this._mocody_operationNotSuccessful);
     }
     return dataInDb;
   }

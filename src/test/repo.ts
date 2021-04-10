@@ -76,7 +76,7 @@ class MyRepositoryBase extends BaseRepository<IPayment> {
   }
 
   async getIt() {
-    return await this.fuse_getManyBySecondaryIndex({
+    return await this.mocody_getManyBySecondaryIndex({
       indexName: DefinedIndexes.featureEntity_tenantId.indexName,
       partitionKeyValue: this.featureEntityValue,
       query: {
@@ -98,7 +98,7 @@ class MyRepositoryBase extends BaseRepository<IPayment> {
   }
 
   async create() {
-    await this.fuse_createOne({
+    await this.mocody_createOne({
       data: {
         tenantId,
         amount: getRandom(),
@@ -125,7 +125,7 @@ class MyRepositoryBase extends BaseRepository<IPayment> {
   }
 
   async update() {
-    await this.fuse_updateOne({
+    await this.mocody_updateOne({
       dataId: "",
       updateData: {
         amount: getRandom(),

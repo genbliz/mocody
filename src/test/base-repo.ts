@@ -13,7 +13,7 @@ export abstract class BaseRepository<T> extends DynamoDataOperation<T> {
   constructor({ schemaSubDef, secondaryIndexOptions, featureEntityValue }: IBaseRepoOptions<T>) {
     super({
       dynamoDb: () => MyDynamoConnection.getDynamoConnection(),
-      baseTableName: "fuse_dynamo_test_table_01",
+      baseTableName: "mocody_dynamo_test_table_01",
       schemaDef: { ...schemaSubDef },
       secondaryIndexOptions,
       featureEntityValue: featureEntityValue,

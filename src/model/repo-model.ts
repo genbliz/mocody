@@ -1,7 +1,7 @@
 import type { IFuseFieldCondition, IFusePagingResult, IFuseQueryIndexOptions } from "../type/types";
 
 export abstract class RepoModel<T> {
-  protected abstract fuse_getOneById({
+  protected abstract mocody_getOneById({
     dataId,
     withCondition,
   }: {
@@ -9,7 +9,7 @@ export abstract class RepoModel<T> {
     withCondition?: IFuseFieldCondition<T>;
   }): Promise<T | null>;
 
-  protected abstract fuse_getManyByIds({
+  protected abstract mocody_getManyByIds({
     dataIds,
     fields,
     withCondition,
@@ -19,9 +19,9 @@ export abstract class RepoModel<T> {
     withCondition?: IFuseFieldCondition<T>;
   }): Promise<T[]>;
 
-  protected abstract fuse_createOne({ data }: { data: T }): Promise<T>;
+  protected abstract mocody_createOne({ data }: { data: T }): Promise<T>;
 
-  protected abstract fuse_updateOne({
+  protected abstract mocody_updateOne({
     dataId,
     updateData,
     withCondition,
@@ -31,15 +31,15 @@ export abstract class RepoModel<T> {
     withCondition?: IFuseFieldCondition<T>;
   }): Promise<T>;
 
-  protected abstract fuse_getManyBySecondaryIndex<TData = T, TSortKeyField = string>(
+  protected abstract mocody_getManyBySecondaryIndex<TData = T, TSortKeyField = string>(
     paramOption: Omit<IFuseQueryIndexOptions<TData, TSortKeyField>, "pagingParams">,
   ): Promise<T[]>;
 
-  protected abstract fuse_getManyBySecondaryIndexPaginate<TData = T, TSortKeyField = string>(
+  protected abstract mocody_getManyBySecondaryIndexPaginate<TData = T, TSortKeyField = string>(
     paramOption: IFuseQueryIndexOptions<TData, TSortKeyField>,
   ): Promise<IFusePagingResult<T[]>>;
 
-  protected abstract fuse_deleteById({
+  protected abstract mocody_deleteById({
     dataId,
     withCondition,
   }: {

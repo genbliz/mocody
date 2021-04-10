@@ -48,23 +48,23 @@ function createTenantSchema(schemaMapDef: Joi.SchemaMap) {
 type IModelBase = IFuseCoreEntityModel;
 
 export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T> {
-  private readonly _fuse_partitionKeyFieldName: keyof Pick<IModelBase, "id"> = "id";
-  private readonly _fuse_sortKeyFieldName: keyof Pick<IModelBase, "featureEntity"> = "featureEntity";
-  private readonly _fuse_featureEntity_Key_Value: { featureEntity: string };
+  private readonly _mocody_partitionKeyFieldName: keyof Pick<IModelBase, "id"> = "id";
+  private readonly _mocody_sortKeyFieldName: keyof Pick<IModelBase, "featureEntity"> = "featureEntity";
+  private readonly _mocody_featureEntity_Key_Value: { featureEntity: string };
 
   //
-  private readonly _fuse_dynamoDb: () => FuseInitializerDynamo;
-  private readonly _fuse_dataKeyGenerator: () => string;
-  private readonly _fuse_schema: Joi.Schema;
-  private readonly _fuse_tableFullName: string;
-  private readonly _fuse_strictRequiredFields: string[];
-  private readonly _fuse_featureEntityValue: string;
-  private readonly _fuse_secondaryIndexOptions: IFuseIndexDefinition<T>[];
-  private readonly _fuse_queryFilter: DynamoFilterQueryOperation;
-  private readonly _fuse_queryScanProcessor: DynamoQueryScanProcessor;
-  private readonly _fuse_errorHelper: FuseErrorUtils;
+  private readonly _mocody_dynamoDb: () => FuseInitializerDynamo;
+  private readonly _mocody_dataKeyGenerator: () => string;
+  private readonly _mocody_schema: Joi.Schema;
+  private readonly _mocody_tableFullName: string;
+  private readonly _mocody_strictRequiredFields: string[];
+  private readonly _mocody_featureEntityValue: string;
+  private readonly _mocody_secondaryIndexOptions: IFuseIndexDefinition<T>[];
+  private readonly _mocody_queryFilter: DynamoFilterQueryOperation;
+  private readonly _mocody_queryScanProcessor: DynamoQueryScanProcessor;
+  private readonly _mocody_errorHelper: FuseErrorUtils;
   //
-  private _fuse_tableManager!: DynamoManageTable<T>;
+  private _mocody_tableManager!: DynamoManageTable<T>;
 
   constructor({
     schemaDef,
@@ -76,55 +76,55 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     dataKeyGenerator,
   }: IOptions<T>) {
     super();
-    this._fuse_dynamoDb = dynamoDb;
-    this._fuse_dataKeyGenerator = dataKeyGenerator;
-    this._fuse_schema = createTenantSchema(schemaDef);
-    this._fuse_tableFullName = baseTableName;
-    this._fuse_featureEntityValue = featureEntityValue;
-    this._fuse_secondaryIndexOptions = secondaryIndexOptions;
-    this._fuse_strictRequiredFields = strictRequiredFields as string[];
-    this._fuse_queryFilter = new DynamoFilterQueryOperation();
-    this._fuse_queryScanProcessor = new DynamoQueryScanProcessor();
-    this._fuse_errorHelper = new FuseErrorUtils();
-    this._fuse_featureEntity_Key_Value = { featureEntity: featureEntityValue };
+    this._mocody_dynamoDb = dynamoDb;
+    this._mocody_dataKeyGenerator = dataKeyGenerator;
+    this._mocody_schema = createTenantSchema(schemaDef);
+    this._mocody_tableFullName = baseTableName;
+    this._mocody_featureEntityValue = featureEntityValue;
+    this._mocody_secondaryIndexOptions = secondaryIndexOptions;
+    this._mocody_strictRequiredFields = strictRequiredFields as string[];
+    this._mocody_queryFilter = new DynamoFilterQueryOperation();
+    this._mocody_queryScanProcessor = new DynamoQueryScanProcessor();
+    this._mocody_errorHelper = new FuseErrorUtils();
+    this._mocody_featureEntity_Key_Value = { featureEntity: featureEntityValue };
   }
 
-  fuse_tableManager() {
-    if (!this._fuse_tableManager) {
-      this._fuse_tableManager = new DynamoManageTable<T>({
-        dynamoDb: () => this._fuse_dynamoDbInstance(),
-        secondaryIndexOptions: this._fuse_secondaryIndexOptions,
-        tableFullName: this._fuse_tableFullName,
-        partitionKeyFieldName: this._fuse_partitionKeyFieldName,
-        sortKeyFieldName: this._fuse_sortKeyFieldName,
+  mocody_tableManager() {
+    if (!this._mocody_tableManager) {
+      this._mocody_tableManager = new DynamoManageTable<T>({
+        dynamoDb: () => this._mocody_dynamoDbInstance(),
+        secondaryIndexOptions: this._mocody_secondaryIndexOptions,
+        tableFullName: this._mocody_tableFullName,
+        partitionKeyFieldName: this._mocody_partitionKeyFieldName,
+        sortKeyFieldName: this._mocody_sortKeyFieldName,
       });
     }
-    return this._fuse_tableManager;
+    return this._mocody_tableManager;
   }
 
-  private _fuse_dynamoDbInstance(): DynamoDB {
-    return this._fuse_dynamoDb().getInstance();
+  private _mocody_dynamoDbInstance(): DynamoDB {
+    return this._mocody_dynamoDb().getInstance();
   }
 
-  private _fuse_generateDynamoTableKey() {
-    return this._fuse_dataKeyGenerator();
+  private _mocody_generateDynamoTableKey() {
+    return this._mocody_dataKeyGenerator();
   }
 
-  private _fuse_getLocalVariables() {
+  private _mocody_getLocalVariables() {
     return {
-      partitionKeyFieldName: this._fuse_partitionKeyFieldName,
-      sortKeyFieldName: this._fuse_sortKeyFieldName,
+      partitionKeyFieldName: this._mocody_partitionKeyFieldName,
+      sortKeyFieldName: this._mocody_sortKeyFieldName,
       //
-      featureEntityValue: this._fuse_featureEntityValue,
+      featureEntityValue: this._mocody_featureEntityValue,
       //
-      tableFullName: this._fuse_tableFullName,
-      secondaryIndexOptions: this._fuse_secondaryIndexOptions,
-      strictRequiredFields: this._fuse_strictRequiredFields,
+      tableFullName: this._mocody_tableFullName,
+      secondaryIndexOptions: this._mocody_secondaryIndexOptions,
+      strictRequiredFields: this._mocody_strictRequiredFields,
     } as const;
   }
 
-  private _fuse_getBaseObject({ dataId }: { dataId: string }) {
-    const { partitionKeyFieldName, sortKeyFieldName, featureEntityValue } = this._fuse_getLocalVariables();
+  private _mocody_getBaseObject({ dataId }: { dataId: string }) {
+    const { partitionKeyFieldName, sortKeyFieldName, featureEntityValue } = this._mocody_getLocalVariables();
 
     const dataMust = {
       [partitionKeyFieldName]: dataId,
@@ -133,31 +133,31 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     return dataMust;
   }
 
-  private _fuse_checkValidateMustBeAnObjectDataType(data: any) {
+  private _mocody_checkValidateMustBeAnObjectDataType(data: any) {
     if (!data || typeof data !== "object") {
-      throw this._fuse_createGenericError(`Data MUST be valid object`);
+      throw this._mocody_createGenericError(`Data MUST be valid object`);
     }
   }
 
-  private _fuse_checkValidateStrictRequiredFields(onDataObj: any) {
-    this._fuse_checkValidateMustBeAnObjectDataType(onDataObj);
+  private _mocody_checkValidateStrictRequiredFields(onDataObj: any) {
+    this._mocody_checkValidateMustBeAnObjectDataType(onDataObj);
 
-    const { strictRequiredFields } = this._fuse_getLocalVariables();
+    const { strictRequiredFields } = this._mocody_getLocalVariables();
 
     if (strictRequiredFields?.length) {
       for (const field of strictRequiredFields) {
         if (onDataObj[field] === null || onDataObj[field] === undefined) {
-          throw this._fuse_createGenericError(`Strict required field NOT defined`);
+          throw this._mocody_createGenericError(`Strict required field NOT defined`);
         }
       }
     }
   }
 
-  private _fuse_createGenericError(error: string) {
+  private _mocody_createGenericError(error: string) {
     return new FuseGenericError(error);
   }
 
-  private _fuse_withConditionPassed({ item, withCondition }: { item: any; withCondition?: IFuseFieldCondition<T> }) {
+  private _mocody_withConditionPassed({ item, withCondition }: { item: any; withCondition?: IFuseFieldCondition<T> }) {
     if (item && typeof item === "object" && withCondition?.length) {
       const isPassed = withCondition.every(({ field, equals }) => {
         return item[field] !== undefined && item[field] === equals;
@@ -167,62 +167,62 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     return true;
   }
 
-  private _fuse_removeDuplicateString<T = string>(strArray: T[]) {
+  private _mocody_removeDuplicateString<T = string>(strArray: T[]) {
     return Array.from(new Set([...strArray]));
   }
 
-  private async _fuse_allHelpValidateMarshallAndGetValue(data: any) {
-    const { error, value } = this._fuse_schema.validate(data, {
+  private async _mocody_allHelpValidateMarshallAndGetValue(data: any) {
+    const { error, value } = this._mocody_schema.validate(data, {
       stripUnknown: true,
     });
 
     if (error) {
       const msg = getJoiValidationErrors(error) ?? "Validation error occured";
-      throw this._fuse_errorHelper.fuse_helper_createFriendlyError(msg);
+      throw this._mocody_errorHelper.mocody_helper_createFriendlyError(msg);
     }
 
-    const marshalledData = FuseUtil.fuse_marshallFromJson(value);
+    const marshalledData = FuseUtil.mocody_marshallFromJson(value);
     return await Promise.resolve({
       validatedData: value,
       marshalled: marshalledData,
     });
   }
 
-  async fuse_createOne({ data }: { data: T }) {
-    this._fuse_checkValidateStrictRequiredFields(data);
+  async mocody_createOne({ data }: { data: T }) {
+    this._mocody_checkValidateStrictRequiredFields(data);
 
-    const { tableFullName, partitionKeyFieldName, featureEntityValue } = this._fuse_getLocalVariables();
+    const { tableFullName, partitionKeyFieldName, featureEntityValue } = this._mocody_getLocalVariables();
 
     let dataId: string | undefined = data[partitionKeyFieldName];
 
     if (!dataId) {
-      dataId = this._fuse_generateDynamoTableKey();
+      dataId = this._mocody_generateDynamoTableKey();
     }
 
     if (!(dataId && typeof dataId === "string")) {
-      throw this._fuse_createGenericError("Invalid dataId generation");
+      throw this._mocody_createGenericError("Invalid dataId generation");
     }
 
-    const dataMust = this._fuse_getBaseObject({ dataId });
+    const dataMust = this._mocody_getBaseObject({ dataId });
     const fullData = { ...data, ...dataMust };
 
     if (fullData.featureEntity !== featureEntityValue) {
-      throw this._fuse_createGenericError("FeatureEntity mismatched");
+      throw this._mocody_createGenericError("FeatureEntity mismatched");
     }
 
-    const { validatedData, marshalled } = await this._fuse_allHelpValidateMarshallAndGetValue(fullData);
+    const { validatedData, marshalled } = await this._mocody_allHelpValidateMarshallAndGetValue(fullData);
 
     const params: PutItemInput = {
       TableName: tableFullName,
       Item: marshalled,
     };
 
-    await this._fuse_dynamoDbInstance().putItem(params);
+    await this._mocody_dynamoDbInstance().putItem(params);
     const result: T = validatedData;
     return result;
   }
 
-  async fuse_getOneById({
+  async mocody_getOneById({
     dataId,
     withCondition,
   }: {
@@ -235,9 +235,9 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       sortKeyFieldName,
       featureEntityValue,
       tableFullName,
-    } = this._fuse_getLocalVariables();
+    } = this._mocody_getLocalVariables();
 
-    this._fuse_errorHelper.fuse_helper_validateRequiredString({
+    this._mocody_errorHelper.mocody_helper_validateRequiredString({
       QueryGetOnePartitionKey: dataId,
       QueryGetOneSortKey: featureEntityValue,
     });
@@ -249,19 +249,19 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
         [sortKeyFieldName]: { S: featureEntityValue },
       },
     };
-    const result = await this._fuse_dynamoDbInstance().getItem(params);
+    const result = await this._mocody_dynamoDbInstance().getItem(params);
     const item = result.Item as any;
     if (!item) {
       return null;
     }
-    const isPassed = this._fuse_withConditionPassed({ withCondition, item });
+    const isPassed = this._mocody_withConditionPassed({ withCondition, item });
     if (!isPassed) {
       return null;
     }
     return item;
   }
 
-  async fuse_updateOne({
+  async mocody_updateOne({
     dataId,
     updateData,
     withCondition,
@@ -270,31 +270,31 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     updateData: Partial<T>;
     withCondition?: IFuseFieldCondition<T>;
   }) {
-    this._fuse_checkValidateStrictRequiredFields(updateData);
+    this._mocody_checkValidateStrictRequiredFields(updateData);
 
-    const { tableFullName, partitionKeyFieldName, sortKeyFieldName } = this._fuse_getLocalVariables();
+    const { tableFullName, partitionKeyFieldName, sortKeyFieldName } = this._mocody_getLocalVariables();
 
-    this._fuse_errorHelper.fuse_helper_validateRequiredString({ Update1DataId: dataId });
+    this._mocody_errorHelper.mocody_helper_validateRequiredString({ Update1DataId: dataId });
 
-    const dataInDb = await this.fuse_getOneById({ dataId });
+    const dataInDb = await this.mocody_getOneById({ dataId });
 
     if (!dataInDb?.[partitionKeyFieldName]) {
-      throw this._fuse_errorHelper.fuse_helper_createFriendlyError("Data does NOT exists");
+      throw this._mocody_errorHelper.mocody_helper_createFriendlyError("Data does NOT exists");
     }
-    if (dataInDb?.[sortKeyFieldName] !== this._fuse_featureEntityValue) {
-      throw this._fuse_createGenericError("Record does not exists");
+    if (dataInDb?.[sortKeyFieldName] !== this._mocody_featureEntityValue) {
+      throw this._mocody_createGenericError("Record does not exists");
     }
 
-    const isPassed = this._fuse_withConditionPassed({
+    const isPassed = this._mocody_withConditionPassed({
       withCondition,
       item: dataInDb,
     });
 
     if (!isPassed) {
-      throw this._fuse_createGenericError("Update condition failed");
+      throw this._mocody_createGenericError("Update condition failed");
     }
 
-    const dataMust = this._fuse_getBaseObject({ dataId });
+    const dataMust = this._mocody_getBaseObject({ dataId });
 
     const fullData = {
       ...dataInDb,
@@ -302,36 +302,36 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       ...dataMust,
     };
 
-    const { validatedData, marshalled } = await this._fuse_allHelpValidateMarshallAndGetValue(fullData);
+    const { validatedData, marshalled } = await this._mocody_allHelpValidateMarshallAndGetValue(fullData);
 
     const params: PutItemInput = {
       TableName: tableFullName,
       Item: marshalled,
     };
 
-    await this._fuse_dynamoDbInstance().putItem(params);
+    await this._mocody_dynamoDbInstance().putItem(params);
     const result: T = validatedData;
     return result;
   }
 
   /*
-  async fuse_getManyByCondition(paramOptions: IFuseQueryParamOptions<T>) {
+  async mocody_getManyByCondition(paramOptions: IFuseQueryParamOptions<T>) {
     paramOptions.pagingParams = undefined;
-    const result = await this.fuse_getManyByConditionPaginate(paramOptions);
+    const result = await this.mocody_getManyByConditionPaginate(paramOptions);
     if (result?.mainResult?.length) {
       return result.mainResult;
     }
     return [];
   }
 
-  async fuse_getManyByConditionPaginate(paramOptions: IFuseQueryParamOptions<T>) {
-    const { tableFullName, sortKeyFieldName, partitionKeyFieldName } = this._fuse_getLocalVariables();
+  async mocody_getManyByConditionPaginate(paramOptions: IFuseQueryParamOptions<T>) {
+    const { tableFullName, sortKeyFieldName, partitionKeyFieldName } = this._mocody_getLocalVariables();
     //
     if (!paramOptions?.partitionKeyQuery?.equals === undefined) {
-      throw this._fuse_createGenericError("Invalid Hash key value");
+      throw this._mocody_createGenericError("Invalid Hash key value");
     }
     if (!sortKeyFieldName) {
-      throw this._fuse_createGenericError("Bad query sort configuration");
+      throw this._mocody_createGenericError("Bad query sort configuration");
     }
 
     let sortKeyQuery: any = {};
@@ -343,13 +343,13 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
           [sortKeyFieldName]: sortKeyQueryData[sortKeyFieldName],
         };
       } else {
-        throw this._fuse_createGenericError("Invalid Sort key value");
+        throw this._mocody_createGenericError("Invalid Sort key value");
       }
     }
 
-    const fieldKeys = paramOptions?.fields?.length ? this._fuse_removeDuplicateString(paramOptions.fields) : undefined;
+    const fieldKeys = paramOptions?.fields?.length ? this._mocody_removeDuplicateString(paramOptions.fields) : undefined;
 
-    const filterHashSortKey = this._fuse_queryFilter.fuse__helperDynamoFilterOperation({
+    const filterHashSortKey = this._mocody_queryFilter.mocody__helperDynamoFilterOperation({
       queryDefs: {
         ...sortKeyQuery,
         ...{
@@ -364,7 +364,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     let otherExpressionAttributeValues: any = undefined;
     let otherExpressionAttributeNames: any = undefined;
     if (paramOptions?.query) {
-      const filterOtherAttr = this._fuse_queryFilter.fuse__helperDynamoFilterOperation({
+      const filterOtherAttr = this._mocody_queryFilter.mocody__helperDynamoFilterOperation({
         queryDefs: paramOptions.query,
         projectionFields: null,
       });
@@ -402,8 +402,8 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     const hashKeyAndSortKey: [string, string] = [partitionKeyFieldName, sortKeyFieldName];
 
     const paginationObjects = { ...paramOptions.pagingParams };
-    const result = await this._fuse_queryScanProcessor.fuse__helperDynamoQueryProcessor<T>({
-      dynamoDb: () => this._fuse_dynamoDbInstance(),
+    const result = await this._mocody_queryScanProcessor.mocody__helperDynamoQueryProcessor<T>({
+      dynamoDb: () => this._mocody_dynamoDbInstance(),
       params,
       hashKeyAndSortKey,
       ...paginationObjects,
@@ -412,7 +412,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
   }
 */
 
-  async fuse_getManyByIds({
+  async mocody_getManyByIds({
     dataIds,
     fields,
     withCondition,
@@ -422,12 +422,12 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     withCondition?: IFuseFieldCondition<T>;
   }) {
     dataIds.forEach((dataId) => {
-      this._fuse_errorHelper.fuse_helper_validateRequiredString({
+      this._mocody_errorHelper.mocody_helper_validateRequiredString({
         BatchGetDataId: dataId,
       });
     });
 
-    const originalIds = this._fuse_removeDuplicateString(dataIds);
+    const originalIds = this._mocody_removeDuplicateString(dataIds);
     const BATCH_SIZE = 80;
 
     const batchIds: string[][] = [];
@@ -437,25 +437,25 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       batchIds.push(ids);
     }
 
-    LoggingService.log("@fuse_getManyByIds batchIds: ", batchIds.length);
+    LoggingService.log("@mocody_getManyByIds batchIds: ", batchIds.length);
 
     let result: T[] = [];
 
-    const fieldKeys = fields?.length ? this._fuse_removeDuplicateString(fields) : fields;
+    const fieldKeys = fields?.length ? this._mocody_removeDuplicateString(fields) : fields;
 
     for (const batch of batchIds) {
-      const call = await this.fuse_batchGetManyByIdsBasePrivate({
+      const call = await this.mocody_batchGetManyByIdsBasePrivate({
         dataIds: batch,
         fields: fieldKeys,
         withCondition,
       });
       result = [...result, ...call];
     }
-    LoggingService.log("@fuse_getManyByIds batchIds result Out: ", result.length);
+    LoggingService.log("@mocody_getManyByIds batchIds result Out: ", result.length);
     return result;
   }
 
-  private async fuse_batchGetManyByIdsBasePrivate({
+  private async mocody_batchGetManyByIdsBasePrivate({
     dataIds,
     fields,
     withCondition,
@@ -479,9 +479,9 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
         partitionKeyFieldName,
         sortKeyFieldName,
         featureEntityValue,
-      } = this._fuse_getLocalVariables();
+      } = this._mocody_getLocalVariables();
 
-      const dataIdsNoDup = this._fuse_removeDuplicateString(dataIds);
+      const dataIdsNoDup = this._mocody_removeDuplicateString(dataIds);
 
       type IKey = Record<string, AttributeValue>;
 
@@ -497,7 +497,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       let expressionAttributeNames: Record<string, string> | undefined = undefined;
 
       if (fields?.length) {
-        const fieldKeys = this._fuse_removeDuplicateString(fields);
+        const fieldKeys = this._mocody_removeDuplicateString(fields);
         if (withCondition?.length) {
           /** Add excluded condition */
           withCondition.forEach((condition) => {
@@ -559,7 +559,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
             const itemListRaw = data.Responses[tableFullName];
             if (itemListRaw?.length) {
               const itemList = itemListRaw.map((item) => {
-                return FuseUtil.fuse_unmarshallToJson(item);
+                return FuseUtil.mocody_unmarshallToJson(item);
               });
               returnedItems = [...returnedItems, ...itemList];
             }
@@ -571,7 +571,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
             };
             LoggingService.log({ dynamoBatchGetParams: _params });
 
-            this._fuse_dynamoDbInstance().batchGetItem(params, (err, resultData) => {
+            this._mocody_dynamoDbInstance().batchGetItem(params, (err, resultData) => {
               batchGetUntilDone(err, resultData);
             });
           } else {
@@ -579,40 +579,40 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
           }
         }
       };
-      this._fuse_dynamoDbInstance().batchGetItem(params, (err, resultData) => {
+      this._mocody_dynamoDbInstance().batchGetItem(params, (err, resultData) => {
         batchGetUntilDone(err, resultData);
       });
     });
   }
 
-  async fuse_getManyBySecondaryIndex<TData = T, TSortKeyField = string>(
+  async mocody_getManyBySecondaryIndex<TData = T, TSortKeyField = string>(
     paramOption: IFuseQueryIndexOptionsNoPaging<TData, TSortKeyField>,
   ): Promise<T[]> {
-    const result = await this._fuse_getManyBySecondaryIndexPaginateBase<TData, TSortKeyField>(paramOption, false);
+    const result = await this._mocody_getManyBySecondaryIndexPaginateBase<TData, TSortKeyField>(paramOption, false);
     if (result?.mainResult) {
       return result.mainResult;
     }
     return [];
   }
 
-  async fuse_getManyBySecondaryIndexPaginate<TData = T, TSortKeyField = string>(
+  async mocody_getManyBySecondaryIndexPaginate<TData = T, TSortKeyField = string>(
     paramOption: IFuseQueryIndexOptions<TData, TSortKeyField>,
   ): Promise<IFusePagingResult<T[]>> {
-    return this._fuse_getManyBySecondaryIndexPaginateBase<TData, TSortKeyField>(paramOption, true);
+    return this._mocody_getManyBySecondaryIndexPaginateBase<TData, TSortKeyField>(paramOption, true);
   }
 
-  private async _fuse_getManyBySecondaryIndexPaginateBase<TData = T, TSortKeyField = string>(
+  private async _mocody_getManyBySecondaryIndexPaginateBase<TData = T, TSortKeyField = string>(
     paramOption: IFuseQueryIndexOptions<TData, TSortKeyField>,
     canPaginate: boolean,
   ): Promise<IFusePagingResult<T[]>> {
-    const { tableFullName, secondaryIndexOptions } = this._fuse_getLocalVariables();
+    const { tableFullName, secondaryIndexOptions } = this._mocody_getLocalVariables();
 
     if (!secondaryIndexOptions?.length) {
-      throw this._fuse_createGenericError("Invalid secondary index definitions");
+      throw this._mocody_createGenericError("Invalid secondary index definitions");
     }
 
     if (!paramOption?.indexName) {
-      throw this._fuse_createGenericError("Invalid index name input");
+      throw this._mocody_createGenericError("Invalid index name input");
     }
 
     const secondaryIndex = secondaryIndexOptions.find((item) => {
@@ -620,7 +620,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     });
 
     if (!secondaryIndex) {
-      throw this._fuse_createGenericError("Secondary index not named/defined");
+      throw this._mocody_createGenericError("Secondary index not named/defined");
     }
 
     const index_PartitionKeyFieldName = secondaryIndex.partitionKeyFieldName as string;
@@ -633,9 +633,9 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
         }
       : { [index_PartitionKeyFieldName]: paramOption.partitionKeyValue };
 
-    const fieldKeys = paramOption.fields?.length ? this._fuse_removeDuplicateString(paramOption.fields) : undefined;
+    const fieldKeys = paramOption.fields?.length ? this._mocody_removeDuplicateString(paramOption.fields) : undefined;
 
-    const localVariables = this._fuse_getLocalVariables();
+    const localVariables = this._mocody_getLocalVariables();
 
     /** Avoid query data leak */
     const hasFeatureEntity = [
@@ -649,7 +649,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
 
       paramOption.query = {
         ...paramOption.query,
-        ...this._fuse_featureEntity_Key_Value,
+        ...this._mocody_featureEntity_Key_Value,
       } as any;
     } else if (index_PartitionKeyFieldName !== localVariables.sortKeyFieldName) {
       if (localVariables.sortKeyFieldName === index_SortKeyFieldName) {
@@ -657,7 +657,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       }
     }
 
-    const mainFilter = this._fuse_queryFilter.processQueryFilter({
+    const mainFilter = this._mocody_queryFilter.processQueryFilter({
       queryDefs: partitionSortKeyQuery,
       projectionFields: fieldKeys,
     });
@@ -667,7 +667,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     let otherExpressionAttributeNames: any = undefined;
 
     if (paramOption.query) {
-      const otherFilter = this._fuse_queryFilter.processQueryFilter({
+      const otherFilter = this._mocody_queryFilter.processQueryFilter({
         queryDefs: paramOption.query,
         projectionFields: null,
       });
@@ -709,8 +709,8 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
 
     const partitionAndSortKey: [string, string] = [index_PartitionKeyFieldName, index_SortKeyFieldName];
 
-    const result = await this._fuse_queryScanProcessor.fuse__helperDynamoQueryProcessor<T>({
-      dynamoDb: () => this._fuse_dynamoDbInstance(),
+    const result = await this._mocody_queryScanProcessor.mocody__helperDynamoQueryProcessor<T>({
+      dynamoDb: () => this._mocody_dynamoDbInstance(),
       params,
       orderDesc,
       partitionAndSortKey,
@@ -722,7 +722,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     return result;
   }
 
-  async fuse_deleteById({
+  async mocody_deleteById({
     dataId,
     withCondition,
   }: {
@@ -730,19 +730,19 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     withCondition?: IFuseFieldCondition<T>;
   }): Promise<T> {
     //
-    this._fuse_errorHelper.fuse_helper_validateRequiredString({ Del1SortKey: dataId });
+    this._mocody_errorHelper.mocody_helper_validateRequiredString({ Del1SortKey: dataId });
 
     const {
       tableFullName,
       partitionKeyFieldName,
       sortKeyFieldName,
       featureEntityValue,
-    } = this._fuse_getLocalVariables();
+    } = this._mocody_getLocalVariables();
 
-    const dataExist = await this.fuse_getOneById({ dataId, withCondition });
+    const dataExist = await this.mocody_getOneById({ dataId, withCondition });
 
     if (!(dataExist && dataExist[partitionKeyFieldName])) {
-      throw this._fuse_errorHelper.fuse_helper_createFriendlyError("Record does NOT exists");
+      throw this._mocody_errorHelper.mocody_helper_createFriendlyError("Record does NOT exists");
     }
 
     const params: DeleteItemInput = {
@@ -754,12 +754,12 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     };
 
     try {
-      await this._fuse_dynamoDbInstance().deleteItem(params);
+      await this._mocody_dynamoDbInstance().deleteItem(params);
     } catch (err) {
       if (err && err.code === "ResourceNotFoundException") {
-        throw this._fuse_errorHelper.fuse_helper_createFriendlyError("Table not found");
+        throw this._mocody_errorHelper.mocody_helper_createFriendlyError("Table not found");
       } else if (err && err.code === "ResourceInUseException") {
-        throw this._fuse_errorHelper.fuse_helper_createFriendlyError("Table in use");
+        throw this._mocody_errorHelper.mocody_helper_createFriendlyError("Table in use");
       } else {
         throw err;
       }

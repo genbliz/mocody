@@ -55,7 +55,7 @@ export class DynamoManageTable<T> {
     return this.dynamoDb();
   }
 
-  async fuse_tbl_getListOfTablesNamesOnline() {
+  async mocody_tbl_getListOfTablesNamesOnline() {
     const params: ListTablesInput = {
       Limit: 99,
     };
@@ -63,7 +63,7 @@ export class DynamoManageTable<T> {
     return listOfTables?.TableNames;
   }
 
-  async fuse_tbl_tableSettingUpdateTTL({ attrName, isEnabled }: { attrName: keyof T; isEnabled: boolean }) {
+  async mocody_tbl_tableSettingUpdateTTL({ attrName, isEnabled }: { attrName: keyof T; isEnabled: boolean }) {
     const { tableFullName } = this._tbl_getLocalVariables();
 
     const params: UpdateTimeToLiveInput = {
@@ -80,7 +80,7 @@ export class DynamoManageTable<T> {
     return null;
   }
 
-  async fuse_tbl_getTableInfo() {
+  async mocody_tbl_getTableInfo() {
     try {
       const { tableFullName } = this._tbl_getLocalVariables();
 
@@ -98,8 +98,8 @@ export class DynamoManageTable<T> {
     }
   }
 
-  async fuse_tbl_checkTableExists() {
-    const result = await this.fuse_tbl_getTableInfo();
+  async mocody_tbl_checkTableExists() {
+    const result = await this.mocody_tbl_getTableInfo();
     if (!result) {
       return false;
     }
@@ -270,10 +270,10 @@ export class DynamoManageTable<T> {
     }
   }
 
-  async fuse_tbl_createTableIfNotExists() {
+  async mocody_tbl_createTableIfNotExists() {
     const { secondaryIndexOptions } = this._tbl_getLocalVariables();
 
-    const existingTableInfo = await this.fuse_tbl_getTableInfo();
+    const existingTableInfo = await this.mocody_tbl_getTableInfo();
     if (existingTableInfo) {
       if (secondaryIndexOptions?.length) {
         await this._allUpdateGlobalSecondaryIndexBase({
@@ -288,7 +288,7 @@ export class DynamoManageTable<T> {
       }
       return null;
     }
-    return await this.fuse_tbl_createTable();
+    return await this.mocody_tbl_createTable();
   }
 
   private _getGlobalSecondaryIndexCreationParams({
@@ -375,7 +375,7 @@ export class DynamoManageTable<T> {
     };
   }
 
-  async fuse_tbl_createTable() {
+  async mocody_tbl_createTable() {
     const {
       partitionKeyFieldName,
       sortKeyFieldName,
@@ -454,7 +454,7 @@ export class DynamoManageTable<T> {
     return null;
   }
 
-  async fuse_tbl_deleteGlobalSecondaryIndex(indexName: string) {
+  async mocody_tbl_deleteGlobalSecondaryIndex(indexName: string) {
     const { tableFullName } = this._tbl_getLocalVariables();
 
     const params: UpdateTableInput = {

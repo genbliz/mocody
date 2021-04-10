@@ -45,12 +45,12 @@ export class MongoManageTable<T> {
     }
   }
 
-  private _fuse_getInstance() {
+  private _mocody_getInstance() {
     return this.mongoDb().getDbInstance();
   }
 
-  async fuse_createIndex({ indexName, fields }: { indexName: string; fields: string[] }): Promise<string> {
-    const db = await this._fuse_getInstance();
+  async mocody_createIndex({ indexName, fields }: { indexName: string; fields: string[] }): Promise<string> {
+    const db = await this._mocody_getInstance();
     const indexObject: Record<string, 1 | -1> = {};
     fields.forEach((key) => {
       indexObject[key] = 1;
@@ -60,9 +60,9 @@ export class MongoManageTable<T> {
     return result;
   }
 
-  async fuse_clearAllIndexes() {
-    const db = await this._fuse_getInstance();
-    const indexes = await this.fuse_getIndexes();
+  async mocody_clearAllIndexes() {
+    const db = await this._mocody_getInstance();
+    const indexes = await this.mocody_getIndexes();
     const dropedIndexes: IIndexModel[] = [];
     if (indexes?.length) {
       for (const index01 of indexes) {
@@ -78,18 +78,18 @@ export class MongoManageTable<T> {
     };
   }
 
-  async fuse_getIndexes(): Promise<IIndexModel[]> {
-    const db = await this._fuse_getInstance();
+  async mocody_getIndexes(): Promise<IIndexModel[]> {
+    const db = await this._mocody_getInstance();
     const indexes: IIndexModel[] = await db.indexes();
     return indexes;
   }
 
-  async fuse_createDefinedIndexes(): Promise<string[]> {
+  async mocody_createDefinedIndexes(): Promise<string[]> {
     const results: string[] = [];
     if (this.secondaryIndexOptions?.length) {
       for (const indexOption of this.secondaryIndexOptions) {
         if (indexOption.indexName) {
-          const resultData = await this.fuse_createIndex({
+          const resultData = await this.mocody_createIndex({
             fields: [indexOption.partitionKeyFieldName, indexOption.sortKeyFieldName] as any[],
             indexName: indexOption.indexName,
           });

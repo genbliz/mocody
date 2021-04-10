@@ -5,7 +5,7 @@ export class FuseGenericError extends Error {
 }
 
 export class FuseErrorUtils {
-  fuse_helper_validateRequiredNumber(keyValueValidates: { [key: string]: number }) {
+  mocody_helper_validateRequiredNumber(keyValueValidates: { [key: string]: number }) {
     const errors: string[] = [];
     Object.entries(keyValueValidates).forEach(([key, value]) => {
       if (!(!isNaN(Number(value)) && typeof value === "number")) {
@@ -17,11 +17,11 @@ export class FuseErrorUtils {
     }
   }
 
-  fuse_helper_createFriendlyError(message: string, statusCode?: number) {
+  mocody_helper_createFriendlyError(message: string, statusCode?: number) {
     return new FuseGenericError(message);
   }
 
-  fuse_helper_validateRequiredString(keyValueValidates: { [key: string]: string }) {
+  mocody_helper_validateRequiredString(keyValueValidates: { [key: string]: string }) {
     const errors: string[] = [];
     Object.entries(keyValueValidates).forEach(([key, value]) => {
       if (!(value && typeof value === "string")) {

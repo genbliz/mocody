@@ -38,12 +38,12 @@ export class CouchManageTable<T> {
     }
   }
 
-  private _fuse_getInstance() {
+  private _mocody_getInstance() {
     return this.couchDb();
   }
 
-  async fuse_createIndex({ indexName, fields }: { indexName: string; fields: string[] }) {
-    const result = await this._fuse_getInstance()
+  async mocody_createIndex({ indexName, fields }: { indexName: string; fields: string[] }) {
+    const result = await this._mocody_getInstance()
       .getDocInstance()
       .createIndex({
         index: {
@@ -62,14 +62,14 @@ export class CouchManageTable<T> {
     };
   }
 
-  async fuse_clearAllIndexes() {
-    const indexes = await this._fuse_getInstance().getIndexes();
+  async mocody_clearAllIndexes() {
+    const indexes = await this._mocody_getInstance().getIndexes();
     if (indexes?.indexes?.length) {
       const deletedIndexes: any[] = [];
       for (const index of indexes.indexes) {
         if (index?.type !== "special") {
           deletedIndexes.push(index);
-          await this._fuse_getInstance().deleteIndex({
+          await this._mocody_getInstance().deleteIndex({
             ddoc: index.ddoc,
             name: index.name,
           });
@@ -84,20 +84,20 @@ export class CouchManageTable<T> {
     };
   }
 
-  fuse_getIndexes() {
-    return this._fuse_getInstance().getIndexes();
+  mocody_getIndexes() {
+    return this._mocody_getInstance().getIndexes();
   }
 
-  fuse_createDatabase() {
-    return this._fuse_getInstance().createDatabase();
+  mocody_createDatabase() {
+    return this._mocody_getInstance().createDatabase();
   }
 
-  async fuse_createDefinedIndexes(): Promise<string[]> {
+  async mocody_createDefinedIndexes(): Promise<string[]> {
     const results: string[] = [];
     if (this.secondaryIndexOptions?.length) {
       for (const indexOption of this.secondaryIndexOptions) {
         if (indexOption.indexName) {
-          const resultData = await this.fuse_createIndex({
+          const resultData = await this.mocody_createIndex({
             fields: [indexOption.partitionKeyFieldName, indexOption.sortKeyFieldName] as any[],
             indexName: indexOption.indexName,
           });

@@ -166,7 +166,7 @@ export class DynamoFilterQueryOperation {
         const conditionKey = condKey as keyof IFuseKeyConditionParams;
         //
         if (!Object.keys(keyConditionMap).includes(conditionKey)) {
-          throw FuseErrorUtilsService.fuse_helper_createFriendlyError(
+          throw FuseErrorUtilsService.mocody_helper_createFriendlyError(
             `Invalid query key: ${conditionKey} @ NestedMatchObject`,
           );
         }
@@ -193,7 +193,7 @@ export class DynamoFilterQueryOperation {
             const fromKey = `:fromKey0${getRandom()}`.toLowerCase();
             const toKey = `:toKey0${getRandom()}`.toLowerCase();
             if (!(Array.isArray(val) && val.length === 2)) {
-              throw FuseErrorUtilsService.fuse_helper_createFriendlyError(
+              throw FuseErrorUtilsService.mocody_helper_createFriendlyError(
                 "$between query must be an array of length 2",
               );
             }
@@ -223,7 +223,7 @@ export class DynamoFilterQueryOperation {
             };
             results.push(result);
           } else {
-            throw FuseErrorUtilsService.fuse_helper_createFriendlyError(
+            throw FuseErrorUtilsService.mocody_helper_createFriendlyError(
               `Query key: ${conditionKey} not currently supported`,
             );
           }

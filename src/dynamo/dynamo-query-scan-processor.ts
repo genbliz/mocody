@@ -6,7 +6,7 @@ import { FuseUtil } from "../helpers/fuse-utils";
 
 export class DynamoQueryScanProcessor {
   //
-  async fuse__helperDynamoQueryProcessor<T>({
+  async mocody__helperDynamoQueryProcessor<T>({
     evaluationLimit,
     params,
     resultLimit,
@@ -208,7 +208,7 @@ export class DynamoQueryScanProcessor {
   private __unmarshallToJson(items: any[]) {
     if (items?.length) {
       const itemList = items.map((item) => {
-        return FuseUtil.fuse_unmarshallToJson(item);
+        return FuseUtil.mocody_unmarshallToJson(item);
       });
       return itemList;
     }

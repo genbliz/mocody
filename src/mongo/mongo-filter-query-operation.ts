@@ -252,7 +252,7 @@ export class MongoFilterQueryOperation {
         const conditionKey = condKey as keyof IFuseKeyConditionParams;
         //
         if (!Object.keys(keyConditionMap).includes(conditionKey)) {
-          throw FuseErrorUtilsService.fuse_helper_createFriendlyError(
+          throw FuseErrorUtilsService.mocody_helper_createFriendlyError(
             `Invalid query key: ${conditionKey} @ NestedMatchObject`,
           );
         }
@@ -266,7 +266,7 @@ export class MongoFilterQueryOperation {
         } else {
           if (conditionKey === "$between") {
             if (!(Array.isArray(val) && val.length === 2)) {
-              throw FuseErrorUtilsService.fuse_helper_createFriendlyError(
+              throw FuseErrorUtilsService.mocody_helper_createFriendlyError(
                 "$between query must be an array of length 2",
               );
             }
@@ -282,7 +282,7 @@ export class MongoFilterQueryOperation {
             } as IQueryConditions;
             results.push(result);
           } else {
-            throw FuseErrorUtilsService.fuse_helper_createFriendlyError(
+            throw FuseErrorUtilsService.mocody_helper_createFriendlyError(
               `Query key: ${conditionKey} not currently supported`,
             );
           }
