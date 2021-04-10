@@ -1,7 +1,7 @@
 {
   "name": "mocody",
   "version": "0.0.63",
-  "description": "An implementation of single table design, and unified query access mongodb, couchdb and dynamodb",
+  "description": "Implementation of single table design, and unified query access for MongoDB, CouchDB, and dynamoDB",
   "esnext": "dist-src/index.js",
   "main": "dist-dist/index.js",
   "types": "dist-types/index.d.ts",
