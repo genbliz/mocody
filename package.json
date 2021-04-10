@@ -19,7 +19,13 @@
     "type": "git",
     "url": "git+https://github.com/genbliz/mocody.git"
   },
-  "keywords": [],
+  "keywords": [
+    "dynamodb",
+    "mongodb",
+    "couchdb",
+    "orm",
+    "single table design"
+  ],
   "author": "",
   "license": "ISC",
   "bugs": {
