@@ -1,4 +1,4 @@
-import type { IFuseQueryDefinition } from "../type/types";
+import type { IMocodyQueryDefinition } from "../type/types";
 import { BaseRepository } from "./base-repo";
 import Joi from "joi";
 import faker from "faker";
@@ -23,7 +23,7 @@ const _searchTerm = "";
 const tenantId = "c4a3bdd6-289b-cb23-09a7-915adad9ea4f";
 const definedSkills = ["JavaScript", "Node", "C#", "Mongo", "React", "Angular"];
 
-export const paramOptions: IFuseQueryDefinition<IPayment> = {
+export const paramOptions: IMocodyQueryDefinition<IPayment> = {
   $or: [
     // { category: { $contains: _searchTerm } },
     { invoiceId: { $contains: _searchTerm } },

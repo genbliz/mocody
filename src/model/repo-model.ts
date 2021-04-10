@@ -1,4 +1,4 @@
-import type { IFuseFieldCondition, IFusePagingResult, IFuseQueryIndexOptions } from "../type/types";
+import type { IMocodyFieldCondition, IMocodyPagingResult, IMocodyQueryIndexOptions } from "../type/types";
 
 export abstract class RepoModel<T> {
   protected abstract mocody_getOneById({
@@ -6,7 +6,7 @@ export abstract class RepoModel<T> {
     withCondition,
   }: {
     dataId: string;
-    withCondition?: IFuseFieldCondition<T>;
+    withCondition?: IMocodyFieldCondition<T>;
   }): Promise<T | null>;
 
   protected abstract mocody_getManyByIds({
@@ -16,7 +16,7 @@ export abstract class RepoModel<T> {
   }: {
     dataIds: string[];
     fields?: (keyof T)[];
-    withCondition?: IFuseFieldCondition<T>;
+    withCondition?: IMocodyFieldCondition<T>;
   }): Promise<T[]>;
 
   protected abstract mocody_createOne({ data }: { data: T }): Promise<T>;
@@ -28,22 +28,22 @@ export abstract class RepoModel<T> {
   }: {
     dataId: string;
     updateData: Partial<T>;
-    withCondition?: IFuseFieldCondition<T>;
+    withCondition?: IMocodyFieldCondition<T>;
   }): Promise<T>;
 
   protected abstract mocody_getManyBySecondaryIndex<TData = T, TSortKeyField = string>(
-    paramOption: Omit<IFuseQueryIndexOptions<TData, TSortKeyField>, "pagingParams">,
+    paramOption: Omit<IMocodyQueryIndexOptions<TData, TSortKeyField>, "pagingParams">,
   ): Promise<T[]>;
 
   protected abstract mocody_getManyBySecondaryIndexPaginate<TData = T, TSortKeyField = string>(
-    paramOption: IFuseQueryIndexOptions<TData, TSortKeyField>,
-  ): Promise<IFusePagingResult<T[]>>;
+    paramOption: IMocodyQueryIndexOptions<TData, TSortKeyField>,
+  ): Promise<IMocodyPagingResult<T[]>>;
 
   protected abstract mocody_deleteById({
     dataId,
     withCondition,
   }: {
     dataId: string;
-    withCondition?: IFuseFieldCondition<T>;
+    withCondition?: IMocodyFieldCondition<T>;
   }): Promise<T>;
 }

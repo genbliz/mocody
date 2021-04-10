@@ -1,10 +1,10 @@
 import { LoggingService } from "./../helpers/logging-service";
-import type { IFuseIndexDefinition } from "./../type/types";
+import type { IMocodyIndexDefinition } from "./../type/types";
 import type { FuseInitializerMongo } from "./mongo-initializer";
 
 interface ITableOptions<T> {
   mongoDb: () => FuseInitializerMongo;
-  secondaryIndexOptions: IFuseIndexDefinition<T>[];
+  secondaryIndexOptions: IMocodyIndexDefinition<T>[];
   tableFullName: string;
   partitionKeyFieldName: string;
   sortKeyFieldName: string;
@@ -22,7 +22,7 @@ export class MongoManageTable<T> {
   private readonly sortKeyFieldName: string;
   private readonly mongoDb: () => FuseInitializerMongo;
   private readonly tableFullName: string;
-  private readonly secondaryIndexOptions: IFuseIndexDefinition<T>[];
+  private readonly secondaryIndexOptions: IMocodyIndexDefinition<T>[];
 
   constructor({
     mongoDb,

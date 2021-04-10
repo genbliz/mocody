@@ -1,6 +1,6 @@
 import type { DynamoDB, QueryInput, QueryCommandOutput } from "@aws-sdk/client-dynamodb";
 import { marshall } from "@aws-sdk/util-dynamodb";
-import type { IFusePagingResult } from "../type/types";
+import type { IMocodyPagingResult } from "../type/types";
 import { LoggingService } from "../helpers/logging-service";
 import { FuseUtil } from "../helpers/fuse-utils";
 
@@ -83,7 +83,7 @@ export class DynamoQueryScanProcessor {
       },
     });
 
-    return new Promise<IFusePagingResult<T[]>>((resolve, reject) => {
+    return new Promise<IMocodyPagingResult<T[]>>((resolve, reject) => {
       let returnedItems: any[] = [];
       let evaluationLimit01: number = 0;
 
@@ -128,7 +128,7 @@ export class DynamoQueryScanProcessor {
           }
 
           if (resultLimit && returnedItems.length >= resultLimit) {
-            const queryOutputResult: IFusePagingResult<T[]> = {
+            const queryOutputResult: IMocodyPagingResult<T[]> = {
               mainResult: returnedItems,
               nextPageHash: undefined,
             };

@@ -1,16 +1,16 @@
 export type {
-  IFuseQueryIndexOptions,
-  IFuseIndexDefinition,
-  IFuseFieldCondition,
-  IFuseKeyConditionParams,
-  IFusePagingParams,
-  IFuseQueryConditionParams,
-  IFusePagingResult,
-  IFuseQueryDefinition,
-  IFuseQueryIndexOptionsNoPaging,
+  IMocodyQueryIndexOptions,
+  IMocodyIndexDefinition,
+  IMocodyFieldCondition,
+  IMocodyKeyConditionParams,
+  IMocodyPagingParams,
+  IMocodyQueryConditionParams,
+  IMocodyPagingResult,
+  IMocodyQueryDefinition,
+  IMocodyQueryIndexOptionsNoPaging,
 } from "./type/types";
 
-export { IFuseCoreEntityModel } from "./core/base-schema";
+export { IMocodyCoreEntityModel } from "./core/base-schema";
 export { FuseGenericError } from "./helpers/errors";
 export { FuseUtil } from "./helpers/fuse-utils";
 //

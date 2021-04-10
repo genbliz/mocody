@@ -1,8 +1,8 @@
 import { LoggingService } from "../helpers/logging-service";
-import type { IFuseCoreEntityModel } from "../core/base-schema";
+import type { IMocodyCoreEntityModel } from "../core/base-schema";
 import Nano from "nano";
 
-type IBaseDef<T> = Omit<T & IFuseCoreEntityModel, "">;
+type IBaseDef<T> = Omit<T & IMocodyCoreEntityModel, "">;
 
 interface IOptions {
   //http://admin:mypassword@localhost:5984

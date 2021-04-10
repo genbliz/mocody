@@ -1,12 +1,12 @@
 import { DynamoDataOperation } from "./../dynamo/dynamo-data-operation";
-import type { IFuseIndexDefinition } from "../type/types";
+import type { IMocodyIndexDefinition } from "../type/types";
 import Joi from "joi";
 import { MyDynamoConnection } from "./connection";
 
 interface IBaseRepoOptions<T> {
   schemaSubDef: Joi.SchemaMap;
   featureEntityValue: string;
-  secondaryIndexOptions: IFuseIndexDefinition<T>[];
+  secondaryIndexOptions: IMocodyIndexDefinition<T>[];
 }
 
 export abstract class BaseRepository<T> extends DynamoDataOperation<T> {

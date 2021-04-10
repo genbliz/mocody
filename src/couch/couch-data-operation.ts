@@ -1,16 +1,16 @@
 import { UtilService } from "./../helpers/util-service";
 import { LoggingService } from "./../helpers/logging-service";
 import type {
-  IFuseFieldCondition,
-  IFuseIndexDefinition,
-  IFusePagingResult,
-  IFuseQueryIndexOptions,
-  IFuseQueryIndexOptionsNoPaging,
+  IMocodyFieldCondition,
+  IMocodyIndexDefinition,
+  IMocodyPagingResult,
+  IMocodyQueryIndexOptions,
+  IMocodyQueryIndexOptionsNoPaging,
 } from "../type/types";
 import { RepoModel } from "../model/repo-model";
 import Joi from "joi";
 import type { FuseInitializerCouch } from "./couch-initializer";
-import { coreSchemaDefinition, IFuseCoreEntityModel } from "../core/base-schema";
+import { coreSchemaDefinition, IMocodyCoreEntityModel } from "../core/base-schema";
 import { FuseErrorUtils, FuseGenericError } from "../helpers/errors";
 import { getJoiValidationErrors } from "../helpers/base-joi-helper";
 import { CouchFilterQueryOperation } from "./couch-filter-query-operation";
@@ -21,14 +21,14 @@ interface IOptions<T> {
   couchDb: () => FuseInitializerCouch;
   dataKeyGenerator: () => string;
   featureEntityValue: string;
-  secondaryIndexOptions: IFuseIndexDefinition<T>[];
+  secondaryIndexOptions: IMocodyIndexDefinition<T>[];
   baseTableName: string;
   strictRequiredFields: (keyof T)[] | string[];
 }
 
-type IModelBase = IFuseCoreEntityModel;
+type IModelBase = IMocodyCoreEntityModel;
 
-type IFullEntity<T> = IFuseCoreEntityModel & T;
+type IFullEntity<T> = IMocodyCoreEntityModel & T;
 
 export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> {
   private readonly _mocody_partitionKeyFieldName: keyof Pick<IModelBase, "id"> = "id";
@@ -42,7 +42,7 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   private readonly _mocody_tableFullName: string;
   private readonly _mocody_strictRequiredFields: string[];
   private readonly _mocody_featureEntityValue: string;
-  private readonly _mocody_secondaryIndexOptions: IFuseIndexDefinition<T>[];
+  private readonly _mocody_secondaryIndexOptions: IMocodyIndexDefinition<T>[];
   private readonly _mocody_errorHelper: FuseErrorUtils;
   private readonly _mocody_filterQueryOperation = new CouchFilterQueryOperation();
   //
@@ -152,7 +152,13 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     return dataMust;
   }
 
-  private _mocody_withConditionPassed({ item, withCondition }: { item: any; withCondition?: IFuseFieldCondition<T> }) {
+  private _mocody_withConditionPassed({
+    item,
+    withCondition,
+  }: {
+    item: any;
+    withCondition?: IMocodyFieldCondition<T>;
+  }) {
     if (item && typeof item === "object" && withCondition?.length) {
       const isPassed = withCondition.every(({ field, equals }) => {
         return item[field] !== undefined && item[field] === equals;
@@ -263,7 +269,7 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     withCondition,
   }: {
     dataId: string;
-    withCondition?: IFuseFieldCondition<T> | undefined;
+    withCondition?: IMocodyFieldCondition<T> | undefined;
   }): Promise<T | null> {
     this._mocody_errorHelper.mocody_helper_validateRequiredString({ dataId });
 
@@ -287,7 +293,7 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   }: {
     dataId: string;
     updateData: Partial<T>;
-    withCondition?: IFuseFieldCondition<T> | undefined;
+    withCondition?: IMocodyFieldCondition<T> | undefined;
   }): Promise<T> {
     this._mocody_errorHelper.mocody_helper_validateRequiredString({ dataId });
 
@@ -336,7 +342,7 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   }: {
     dataIds: string[];
     fields?: (keyof T)[];
-    withCondition?: IFuseFieldCondition<T> | undefined;
+    withCondition?: IMocodyFieldCondition<T> | undefined;
   }): Promise<T[]> {
     //
     const uniqueIds = this._mocody_removeDuplicateString(dataIds);
@@ -377,7 +383,7 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   }
 
   async mocody_getManyBySecondaryIndex<TData = T, TSortKeyField = string>(
-    paramOption: IFuseQueryIndexOptionsNoPaging<TData, TSortKeyField>,
+    paramOption: IMocodyQueryIndexOptionsNoPaging<TData, TSortKeyField>,
   ): Promise<T[]> {
     const result = await this._mocody_getManyBySecondaryIndexPaginateBase<TData, TSortKeyField>(paramOption, false);
     if (result?.mainResult?.length) {
@@ -387,15 +393,15 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   }
 
   async mocody_getManyBySecondaryIndexPaginate<TData = T, TSortKeyField = string>(
-    paramOption: IFuseQueryIndexOptions<TData, TSortKeyField>,
-  ): Promise<IFusePagingResult<T[]>> {
+    paramOption: IMocodyQueryIndexOptions<TData, TSortKeyField>,
+  ): Promise<IMocodyPagingResult<T[]>> {
     return this._mocody_getManyBySecondaryIndexPaginateBase<TData, TSortKeyField>(paramOption, true);
   }
 
   private async _mocody_getManyBySecondaryIndexPaginateBase<TData = T, TSortKeyField = string>(
-    paramOption: IFuseQueryIndexOptions<TData, TSortKeyField>,
+    paramOption: IMocodyQueryIndexOptions<TData, TSortKeyField>,
     canPaginate: boolean,
-  ): Promise<IFusePagingResult<T[]>> {
+  ): Promise<IMocodyPagingResult<T[]>> {
     const { secondaryIndexOptions } = this._mocody_getLocalVariables();
 
     if (!secondaryIndexOptions?.length) {
@@ -574,7 +580,7 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     withCondition,
   }: {
     dataId: string;
-    withCondition?: IFuseFieldCondition<T> | undefined;
+    withCondition?: IMocodyFieldCondition<T> | undefined;
   }): Promise<T> {
     const nativeId = this._mocody_getNativePouchId(dataId);
     const dataInDb = await this._mocody_couchDbInstance().get(nativeId);

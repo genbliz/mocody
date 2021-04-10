@@ -1,15 +1,15 @@
 import { UtilService } from "./../helpers/util-service";
 import { LoggingService } from "./../helpers/logging-service";
 import type {
-  IFuseFieldCondition,
-  IFuseIndexDefinition,
-  IFusePagingResult,
-  IFuseQueryIndexOptions,
-  IFuseQueryIndexOptionsNoPaging,
+  IMocodyFieldCondition,
+  IMocodyIndexDefinition,
+  IMocodyPagingResult,
+  IMocodyQueryIndexOptions,
+  IMocodyQueryIndexOptionsNoPaging,
 } from "../type/types";
 import { RepoModel } from "../model/repo-model";
 import Joi from "joi";
-import { coreSchemaDefinition, IFuseCoreEntityModel } from "../core/base-schema";
+import { coreSchemaDefinition, IMocodyCoreEntityModel } from "../core/base-schema";
 import { FuseErrorUtils, FuseGenericError } from "../helpers/errors";
 import { getJoiValidationErrors } from "../helpers/base-joi-helper";
 import { FuseInitializerMongo } from "./mongo-initializer";
@@ -21,14 +21,14 @@ interface IOptions<T> {
   mongoDb: () => FuseInitializerMongo;
   dataKeyGenerator: () => string;
   featureEntityValue: string;
-  secondaryIndexOptions: IFuseIndexDefinition<T>[];
+  secondaryIndexOptions: IMocodyIndexDefinition<T>[];
   baseTableName: string;
   strictRequiredFields: (keyof T)[] | string[];
 }
 
-type IModelBase = IFuseCoreEntityModel;
+type IModelBase = IMocodyCoreEntityModel;
 
-type IFullEntity<T> = IFuseCoreEntityModel & T;
+type IFullEntity<T> = IMocodyCoreEntityModel & T;
 
 export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> {
   private readonly _mocody_partitionKeyFieldName: keyof Pick<IModelBase, "id"> = "id";
@@ -42,7 +42,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   private readonly _mocody_tableFullName: string;
   private readonly _mocody_strictRequiredFields: string[];
   private readonly _mocody_featureEntityValue: string;
-  private readonly _mocody_secondaryIndexOptions: IFuseIndexDefinition<T>[];
+  private readonly _mocody_secondaryIndexOptions: IMocodyIndexDefinition<T>[];
   private readonly _mocody_errorHelper: FuseErrorUtils;
   private readonly _mocody_filterQueryOperation = new MongoFilterQueryOperation();
   //
@@ -136,7 +136,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     withCondition,
   }: {
     item: Record<keyof T, any>;
-    withCondition?: IFuseFieldCondition<T>;
+    withCondition?: IMocodyFieldCondition<T>;
   }) {
     if (item && typeof item === "object" && withCondition?.length) {
       const isPassed = withCondition.every(({ field, equals }) => {
@@ -205,7 +205,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     withCondition,
   }: {
     dataId: string;
-    withCondition?: IFuseFieldCondition<T> | undefined;
+    withCondition?: IMocodyFieldCondition<T> | undefined;
   }): Promise<T | null> {
     this._mocody_errorHelper.mocody_helper_validateRequiredString({ dataId });
 
@@ -232,7 +232,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   }: {
     dataIds: string[];
     fields?: (keyof T)[] | undefined;
-    withCondition?: IFuseFieldCondition<T> | undefined;
+    withCondition?: IMocodyFieldCondition<T> | undefined;
   }): Promise<T[]> {
     const uniqueIds = this._mocody_removeDuplicateString(dataIds);
     const fullUniqueIds = uniqueIds.map((id) => this._mocody_getNativeMongoId(id));
@@ -313,7 +313,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   }: {
     dataId: string;
     updateData: Partial<T>;
-    withCondition?: IFuseFieldCondition<T> | undefined;
+    withCondition?: IMocodyFieldCondition<T> | undefined;
   }): Promise<T> {
     this._mocody_errorHelper.mocody_helper_validateRequiredString({ dataId });
 
@@ -352,7 +352,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   }
 
   async mocody_getManyBySecondaryIndex<TData = T, TSortKeyField = string>(
-    paramOption: IFuseQueryIndexOptionsNoPaging<TData, TSortKeyField>,
+    paramOption: IMocodyQueryIndexOptionsNoPaging<TData, TSortKeyField>,
   ): Promise<T[]> {
     const result = await this._mocody_getManyBySecondaryIndexPaginateBase<TData, TSortKeyField>(paramOption, false);
     if (result?.mainResult) {
@@ -362,15 +362,15 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   }
 
   mocody_getManyBySecondaryIndexPaginate<TData = T, TSortKeyField = string>(
-    paramOption: IFuseQueryIndexOptions<TData, TSortKeyField>,
-  ): Promise<IFusePagingResult<T[]>> {
+    paramOption: IMocodyQueryIndexOptions<TData, TSortKeyField>,
+  ): Promise<IMocodyPagingResult<T[]>> {
     return this._mocody_getManyBySecondaryIndexPaginateBase<TData, TSortKeyField>(paramOption, true);
   }
 
   private async _mocody_getManyBySecondaryIndexPaginateBase<TData = T, TSortKeyField = string>(
-    paramOption: IFuseQueryIndexOptions<TData, TSortKeyField>,
+    paramOption: IMocodyQueryIndexOptions<TData, TSortKeyField>,
     canPaginate: boolean,
-  ): Promise<IFusePagingResult<T[]>> {
+  ): Promise<IMocodyPagingResult<T[]>> {
     const { secondaryIndexOptions } = this._mocody_getLocalVariables();
 
     if (!secondaryIndexOptions?.length) {
@@ -408,7 +408,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
       index_SortKeyFieldName,
     ].includes(localVariables.sortKeyFieldName);
 
-    paramOption.query = (paramOption.query || {}) as any;
+    paramOption.query = paramOption.query || ({} as any);
 
     if (!hasFeatureEntity) {
       paramOption.query = {
@@ -529,7 +529,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     withCondition,
   }: {
     dataId: string;
-    withCondition?: IFuseFieldCondition<T> | undefined;
+    withCondition?: IMocodyFieldCondition<T> | undefined;
   }): Promise<T> {
     this._mocody_errorHelper.mocody_helper_validateRequiredString({ dataId });
 

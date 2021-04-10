@@ -2,11 +2,11 @@ import { UtilService } from "./../helpers/util-service";
 import { FuseUtil } from "./../helpers/fuse-utils";
 import { RepoModel } from "../model/repo-model";
 import type {
-  IFuseIndexDefinition,
-  IFuseFieldCondition,
-  IFuseQueryIndexOptions,
-  IFusePagingResult,
-  IFuseQueryIndexOptionsNoPaging,
+  IMocodyIndexDefinition,
+  IMocodyFieldCondition,
+  IMocodyQueryIndexOptions,
+  IMocodyPagingResult,
+  IMocodyQueryIndexOptionsNoPaging,
 } from "../type/types";
 import { FuseErrorUtils, FuseGenericError } from "./../helpers/errors";
 import type {
@@ -21,7 +21,7 @@ import type {
 } from "@aws-sdk/client-dynamodb";
 import Joi from "joi";
 import { getJoiValidationErrors } from "../helpers/base-joi-helper";
-import { coreSchemaDefinition, IFuseCoreEntityModel } from "../core/base-schema";
+import { coreSchemaDefinition, IMocodyCoreEntityModel } from "../core/base-schema";
 import { DynamoManageTable } from "./dynamo-manage-table";
 import { LoggingService } from "../helpers/logging-service";
 import { FuseInitializerDynamo } from "./dynamo-initializer";
@@ -33,7 +33,7 @@ interface IOptions<T> {
   dynamoDb: () => FuseInitializerDynamo;
   dataKeyGenerator: () => string;
   featureEntityValue: string;
-  secondaryIndexOptions: IFuseIndexDefinition<T>[];
+  secondaryIndexOptions: IMocodyIndexDefinition<T>[];
   baseTableName: string;
   strictRequiredFields: (keyof T)[] | string[];
 }
@@ -45,7 +45,7 @@ function createTenantSchema(schemaMapDef: Joi.SchemaMap) {
   });
 }
 
-type IModelBase = IFuseCoreEntityModel;
+type IModelBase = IMocodyCoreEntityModel;
 
 export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T> {
   private readonly _mocody_partitionKeyFieldName: keyof Pick<IModelBase, "id"> = "id";
@@ -59,7 +59,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
   private readonly _mocody_tableFullName: string;
   private readonly _mocody_strictRequiredFields: string[];
   private readonly _mocody_featureEntityValue: string;
-  private readonly _mocody_secondaryIndexOptions: IFuseIndexDefinition<T>[];
+  private readonly _mocody_secondaryIndexOptions: IMocodyIndexDefinition<T>[];
   private readonly _mocody_queryFilter: DynamoFilterQueryOperation;
   private readonly _mocody_queryScanProcessor: DynamoQueryScanProcessor;
   private readonly _mocody_errorHelper: FuseErrorUtils;
@@ -157,7 +157,13 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     return new FuseGenericError(error);
   }
 
-  private _mocody_withConditionPassed({ item, withCondition }: { item: any; withCondition?: IFuseFieldCondition<T> }) {
+  private _mocody_withConditionPassed({
+    item,
+    withCondition,
+  }: {
+    item: any;
+    withCondition?: IMocodyFieldCondition<T>;
+  }) {
     if (item && typeof item === "object" && withCondition?.length) {
       const isPassed = withCondition.every(({ field, equals }) => {
         return item[field] !== undefined && item[field] === equals;
@@ -227,7 +233,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     withCondition,
   }: {
     dataId: string;
-    withCondition?: IFuseFieldCondition<T>;
+    withCondition?: IMocodyFieldCondition<T>;
   }): Promise<T | null> {
     const {
       //
@@ -268,7 +274,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
   }: {
     dataId: string;
     updateData: Partial<T>;
-    withCondition?: IFuseFieldCondition<T>;
+    withCondition?: IMocodyFieldCondition<T>;
   }) {
     this._mocody_checkValidateStrictRequiredFields(updateData);
 
@@ -315,7 +321,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
   }
 
   /*
-  async mocody_getManyByCondition(paramOptions: IFuseQueryParamOptions<T>) {
+  async mocody_getManyByCondition(paramOptions: IMocodyQueryParamOptions<T>) {
     paramOptions.pagingParams = undefined;
     const result = await this.mocody_getManyByConditionPaginate(paramOptions);
     if (result?.mainResult?.length) {
@@ -324,7 +330,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     return [];
   }
 
-  async mocody_getManyByConditionPaginate(paramOptions: IFuseQueryParamOptions<T>) {
+  async mocody_getManyByConditionPaginate(paramOptions: IMocodyQueryParamOptions<T>) {
     const { tableFullName, sortKeyFieldName, partitionKeyFieldName } = this._mocody_getLocalVariables();
     //
     if (!paramOptions?.partitionKeyQuery?.equals === undefined) {
@@ -419,7 +425,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
   }: {
     dataIds: string[];
     fields?: (keyof T)[];
-    withCondition?: IFuseFieldCondition<T>;
+    withCondition?: IMocodyFieldCondition<T>;
   }) {
     dataIds.forEach((dataId) => {
       this._mocody_errorHelper.mocody_helper_validateRequiredString({
@@ -462,7 +468,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
   }: {
     dataIds: string[];
     fields?: (keyof T)[];
-    withCondition?: IFuseFieldCondition<T>;
+    withCondition?: IMocodyFieldCondition<T>;
   }) {
     return new Promise<T[]>((resolve, reject) => {
       const getRandom = () =>
@@ -586,7 +592,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
   }
 
   async mocody_getManyBySecondaryIndex<TData = T, TSortKeyField = string>(
-    paramOption: IFuseQueryIndexOptionsNoPaging<TData, TSortKeyField>,
+    paramOption: IMocodyQueryIndexOptionsNoPaging<TData, TSortKeyField>,
   ): Promise<T[]> {
     const result = await this._mocody_getManyBySecondaryIndexPaginateBase<TData, TSortKeyField>(paramOption, false);
     if (result?.mainResult) {
@@ -596,15 +602,15 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
   }
 
   async mocody_getManyBySecondaryIndexPaginate<TData = T, TSortKeyField = string>(
-    paramOption: IFuseQueryIndexOptions<TData, TSortKeyField>,
-  ): Promise<IFusePagingResult<T[]>> {
+    paramOption: IMocodyQueryIndexOptions<TData, TSortKeyField>,
+  ): Promise<IMocodyPagingResult<T[]>> {
     return this._mocody_getManyBySecondaryIndexPaginateBase<TData, TSortKeyField>(paramOption, true);
   }
 
   private async _mocody_getManyBySecondaryIndexPaginateBase<TData = T, TSortKeyField = string>(
-    paramOption: IFuseQueryIndexOptions<TData, TSortKeyField>,
+    paramOption: IMocodyQueryIndexOptions<TData, TSortKeyField>,
     canPaginate: boolean,
-  ): Promise<IFusePagingResult<T[]>> {
+  ): Promise<IMocodyPagingResult<T[]>> {
     const { tableFullName, secondaryIndexOptions } = this._mocody_getLocalVariables();
 
     if (!secondaryIndexOptions?.length) {
@@ -727,7 +733,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     withCondition,
   }: {
     dataId: string;
-    withCondition?: IFuseFieldCondition<T>;
+    withCondition?: IMocodyFieldCondition<T>;
   }): Promise<T> {
     //
     this._mocody_errorHelper.mocody_helper_validateRequiredString({ Del1SortKey: dataId });

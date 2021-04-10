@@ -1,13 +1,13 @@
 import { QueryValidatorCheck } from "./../helpers/query-validator";
 import { LoggingService } from "../helpers/logging-service";
 import { UtilService } from "../helpers/util-service";
-import type { IFuseKeyConditionParams, IFuseQueryConditionParams, IFuseQueryDefinition } from "../type/types";
+import type { IMocodyKeyConditionParams, IMocodyQueryConditionParams, IMocodyQueryDefinition } from "../type/types";
 import { FuseErrorUtilsService } from "../helpers/errors";
 
 // https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.OperatorsAndFunctions.html
 
 type FieldPartial<T> = { [P in keyof T]-?: string };
-const keyConditionMap: FieldPartial<IFuseKeyConditionParams> = {
+const keyConditionMap: FieldPartial<IMocodyKeyConditionParams> = {
   $eq: "=",
   $lt: "<",
   $lte: "<=",
@@ -17,7 +17,7 @@ const keyConditionMap: FieldPartial<IFuseKeyConditionParams> = {
   $between: "",
 };
 
-const conditionMapPre: FieldPartial<Omit<IFuseQueryConditionParams, keyof IFuseKeyConditionParams>> = {
+const conditionMapPre: FieldPartial<Omit<IMocodyQueryConditionParams, keyof IMocodyKeyConditionParams>> = {
   $ne: "<>",
   $exists: "",
   $in: "",
@@ -163,7 +163,7 @@ export class DynamoFilterQueryOperation {
 
       Object.entries(_queryValue).forEach(([condKey, val]) => {
         //
-        const conditionKey = condKey as keyof IFuseKeyConditionParams;
+        const conditionKey = condKey as keyof IMocodyKeyConditionParams;
         //
         if (!Object.keys(keyConditionMap).includes(conditionKey)) {
           throw FuseErrorUtilsService.mocody_helper_createFriendlyError(
@@ -256,13 +256,13 @@ export class DynamoFilterQueryOperation {
     selectorValues: any;
   }): IQueryConditions[] {
     //
-    const selector: Record<keyof IFuseKeyConditionParams, any> = { ...selectorValues };
+    const selector: Record<keyof IMocodyKeyConditionParams, any> = { ...selectorValues };
 
     const mConditions: IQueryConditions[] = [];
 
     Object.entries(selector).forEach(([conditionKey, conditionValue]) => {
       if (hasQueryConditionValue(conditionKey)) {
-        const _conditionKey01 = conditionKey as keyof IFuseKeyConditionParams;
+        const _conditionKey01 = conditionKey as keyof IMocodyKeyConditionParams;
 
         if (_conditionKey01 === "$beginsWith") {
           QueryValidatorCheck.beginWith(conditionValue);
@@ -350,7 +350,7 @@ export class DynamoFilterQueryOperation {
     const orConditions: IQueryConditions[] = [];
     //
     Object.entries(queryObject).forEach(([condKey, conditionValue]) => {
-      const conditionKey = condKey as keyof IFuseQueryConditionParams;
+      const conditionKey = condKey as keyof IMocodyQueryConditionParams;
       if (conditionValue !== undefined) {
         if (conditionKey === "$between") {
           QueryValidatorCheck.between(conditionValue);
@@ -476,7 +476,7 @@ export class DynamoFilterQueryOperation {
     queryDefs,
     projectionFields,
   }: {
-    queryDefs: IFuseQueryDefinition<any>["query"];
+    queryDefs: IMocodyQueryDefinition<any>["query"];
     projectionFields: any[] | undefined | null;
   }) {
     let AND_queryConditions: IQueryConditions[] = [];

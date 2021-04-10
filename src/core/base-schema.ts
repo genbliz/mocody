@@ -1,6 +1,6 @@
 import Joi from "joi";
 
-export interface IFuseCoreEntityModel {
+export interface IMocodyCoreEntityModel {
   id: string;
   featureEntity: string;
 }

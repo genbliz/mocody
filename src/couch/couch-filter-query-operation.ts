@@ -1,6 +1,6 @@
 import { FuseErrorUtilsService } from "../helpers/errors";
 import { QueryValidatorCheck } from "../helpers/query-validator";
-import type { IFuseKeyConditionParams, IFuseQueryConditionParams, IFuseQueryDefinition } from "../type/types";
+import type { IMocodyKeyConditionParams, IMocodyQueryConditionParams, IMocodyQueryDefinition } from "../type/types";
 // https://docs.couchdb.org/en/latest/api/database/find.html
 
 interface ISelectedQueryConditionsKeys {
@@ -20,7 +20,7 @@ interface ISelectedQueryConditionsKeys {
 
 type FieldPartial<T> = { [P in keyof T]-?: string };
 
-const keyConditionMap: FieldPartial<IFuseKeyConditionParams> = {
+const keyConditionMap: FieldPartial<IMocodyKeyConditionParams> = {
   $eq: "$eq",
   $lt: "$lt",
   $lte: "$lte",
@@ -30,7 +30,7 @@ const keyConditionMap: FieldPartial<IFuseKeyConditionParams> = {
   $beginsWith: "",
 };
 
-const conditionMapPre: FieldPartial<Omit<IFuseQueryConditionParams, keyof IFuseKeyConditionParams>> = {
+const conditionMapPre: FieldPartial<Omit<IMocodyQueryConditionParams, keyof IMocodyKeyConditionParams>> = {
   $ne: "$ne",
   $exists: "",
   $in: "",
@@ -133,13 +133,13 @@ export class CouchFilterQueryOperation {
     fieldName: string;
     selectorObjValues: any;
   }): IQueryConditions | null {
-    const selector: Record<keyof IFuseKeyConditionParams, any> = { ...selectorObjValues };
+    const selector: Record<keyof IMocodyKeyConditionParams, any> = { ...selectorObjValues };
 
     const mConditions: IQueryConditions[] = [];
 
     Object.entries(selector).forEach(([conditionKey, conditionValue]) => {
       if (hasQueryKeyCondition(conditionKey)) {
-        const _conditionKey01 = conditionKey as keyof IFuseKeyConditionParams;
+        const _conditionKey01 = conditionKey as keyof IMocodyKeyConditionParams;
 
         if (_conditionKey01 === "$beginsWith") {
           QueryValidatorCheck.beginWith(conditionValue);
@@ -256,7 +256,7 @@ export class CouchFilterQueryOperation {
 
       Object.entries(_queryValue).forEach(([condKey, val]) => {
         //
-        const conditionKey = condKey as keyof IFuseKeyConditionParams;
+        const conditionKey = condKey as keyof IMocodyKeyConditionParams;
         //
         if (!Object.keys(keyConditionMap).includes(conditionKey)) {
           throw FuseErrorUtilsService.mocody_helper_createFriendlyError(
@@ -308,7 +308,7 @@ export class CouchFilterQueryOperation {
   }) {
     const queryConditions: IQueryConditions[] = [];
     Object.entries(queryObject).forEach(([condKey, conditionValue]) => {
-      const conditionKey = condKey as keyof IFuseQueryConditionParams;
+      const conditionKey = condKey as keyof IMocodyQueryConditionParams;
       if (conditionValue !== undefined) {
         if (conditionKey === "$between") {
           QueryValidatorCheck.between(conditionValue);
@@ -422,7 +422,7 @@ export class CouchFilterQueryOperation {
     return _queryConditions;
   }
 
-  processQueryFilter({ queryDefs }: { queryDefs: IFuseQueryDefinition<any>["query"] }) {
+  processQueryFilter({ queryDefs }: { queryDefs: IMocodyQueryDefinition<any>["query"] }) {
     let queryMainConditions: IQueryConditions[] = [];
     let queryAndConditions: IQueryConditions[] = [];
     let queryOrConditions: IQueryConditions[] = [];
