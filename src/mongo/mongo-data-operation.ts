@@ -448,16 +448,6 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     //   limit: paramOption.limit ? Number(paramOption.limit) : undefined,
     // });
 
-    const cursorFind = db.find(queryDefData);
-
-    if (sort01?.length) {
-      cursorFind.sort(sort01);
-    }
-
-    if (projection) {
-      cursorFind.project(projection);
-    }
-
     let nextPageHash: string | undefined = undefined;
 
     type IPaging = {
@@ -465,9 +455,19 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
       limit: number;
     };
 
+    type IMoreFindOption = {
+      skip: number | undefined;
+      limit: number | undefined;
+    };
+
     const pagingOptions: IPaging = {
       pageNo: 0,
       limit: 50,
+    };
+
+    const moreFindOption: IMoreFindOption = {
+      limit: undefined,
+      skip: undefined,
     };
 
     if (canPaginate) {
@@ -489,34 +489,34 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
       } catch (error) {
         LoggingService.log(error?.message);
       }
-      cursorFind.limit(pagingOptions.limit);
-      //
+
       const skipValue = pagingOptions.limit * (pagingOptions.pageNo || 0);
       //
       if (skipValue) {
-        cursorFind.skip(skipValue);
+        moreFindOption.skip = skipValue;
       }
+      moreFindOption.limit = pagingOptions.limit;
+      //
     } else {
       if (paramOption.limit && UtilService.isNumberic(paramOption.limit)) {
-        cursorFind.limit(Number(paramOption.limit));
+        moreFindOption.limit = Number(paramOption.limit);
       }
     }
 
-    const results = await cursorFind.hint(paramOption.indexName).toArray();
+    const results = await db
+      .find(queryDefData, {
+        projection,
+        sort: sort01.length ? sort01 : undefined,
+        limit: moreFindOption.limit,
+        skip: moreFindOption.skip,
+      })
+      .hint(paramOption.indexName)
+      .toArray();
 
     if (canPaginate && results.length && results.length >= pagingOptions.limit) {
       pagingOptions.pageNo = pagingOptions.pageNo + 1;
       nextPageHash = UtilService.encodeStringToBase64(JSON.stringify(pagingOptions));
     }
-
-    // const results = await db
-    //   .find(queryDefData, {
-    //     projection,
-    //     sort: sort01.length ? sort01 : undefined,
-    //     limit: paramOption.limit ? Number(paramOption.limit) : undefined,
-    //   })
-    //   .hint(paramOption.indexName)
-    //   .toArray();
 
     return {
       mainResult: results,
