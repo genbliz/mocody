@@ -136,8 +136,31 @@ class UtilServiceBase {
     return Buffer.from(str, "base64").toString();
   }
 
-  isNumberic(val: any) {
-    return !isNaN(Number(val));
+  isNumeric(n: string | number | null | undefined) {
+    if (n === null || typeof n === "undefined" || typeof n === "boolean") {
+      return false;
+    }
+    const nn = String(n);
+    if (nn.trim() && !isNaN(Number(nn)) && isFinite(Number(nn)) && !isNaN(parseFloat(nn))) {
+      return true;
+    }
+    return false;
+  }
+
+  isNumericInteger(n: string | number | null | undefined) {
+    const nn = String(n);
+    const numberOnly = /^\d+$/.test(nn);
+    if (!numberOnly) {
+      return false;
+    }
+    if (!this.isNumeric(n)) {
+      return false;
+    }
+    const mInt = parseInt(Number(n).toString());
+    if (mInt >= 1) {
+      return true;
+    }
+    return false;
   }
 }
 

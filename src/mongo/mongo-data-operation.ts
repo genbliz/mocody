@@ -1,3 +1,4 @@
+import { SettingDefaults } from "./../helpers/constants";
 import { UtilService } from "./../helpers/util-service";
 import { LoggingService } from "./../helpers/logging-service";
 import type {
@@ -354,7 +355,10 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   async mocody_getManyBySecondaryIndex<TData = T, TSortKeyField = string>(
     paramOption: IMocodyQueryIndexOptionsNoPaging<TData, TSortKeyField>,
   ): Promise<T[]> {
-    const result = await this._mocody_getManyBySecondaryIndexPaginateBase<TData, TSortKeyField>(paramOption, false);
+    const result = await this._mocody_getManyBySecondaryIndexPaginateBase<TData, TSortKeyField>({
+      paramOption,
+      canPaginate: false,
+    });
     if (result?.mainResult) {
       return result.mainResult;
     }
@@ -364,13 +368,19 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   mocody_getManyBySecondaryIndexPaginate<TData = T, TSortKeyField = string>(
     paramOption: IMocodyQueryIndexOptions<TData, TSortKeyField>,
   ): Promise<IMocodyPagingResult<T[]>> {
-    return this._mocody_getManyBySecondaryIndexPaginateBase<TData, TSortKeyField>(paramOption, true);
+    return this._mocody_getManyBySecondaryIndexPaginateBase<TData, TSortKeyField>({
+      paramOption,
+      canPaginate: true,
+    });
   }
 
-  private async _mocody_getManyBySecondaryIndexPaginateBase<TData = T, TSortKeyField = string>(
-    paramOption: IMocodyQueryIndexOptions<TData, TSortKeyField>,
-    canPaginate: boolean,
-  ): Promise<IMocodyPagingResult<T[]>> {
+  private async _mocody_getManyBySecondaryIndexPaginateBase<TData = T, TSortKeyField = string>({
+    paramOption,
+    canPaginate,
+  }: {
+    paramOption: IMocodyQueryIndexOptions<TData, TSortKeyField>;
+    canPaginate: boolean;
+  }): Promise<IMocodyPagingResult<T[]>> {
     const { secondaryIndexOptions } = this._mocody_getLocalVariables();
 
     if (!secondaryIndexOptions?.length) {
@@ -462,7 +472,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
 
     const pagingOptions: IPaging = {
       pageNo: 0,
-      limit: 50,
+      limit: SettingDefaults.PAGE_SIZE,
     };
 
     const moreFindOption: IMoreFindOption = {
@@ -471,7 +481,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     };
 
     if (canPaginate) {
-      if (paramOption.limit && UtilService.isNumberic(paramOption.limit)) {
+      if (paramOption.limit && UtilService.isNumericInteger(paramOption.limit)) {
         pagingOptions.limit = Number(paramOption.limit);
       }
 
@@ -479,11 +489,11 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
         const nextPageHash01 = paramOption?.pagingParams?.nextPageHash;
         if (nextPageHash01) {
           const param01: IPaging = JSON.parse(UtilService.decodeStringFromBase64(nextPageHash01));
-          if (param01.limit) {
-            pagingOptions.limit = param01.limit;
+          if (UtilService.isNumericInteger(param01.limit)) {
+            pagingOptions.limit = Number(param01.limit);
           }
-          if (param01.pageNo) {
-            pagingOptions.pageNo = param01.pageNo;
+          if (UtilService.isNumericInteger(param01.pageNo)) {
+            pagingOptions.pageNo = Number(param01.pageNo);
           }
         }
       } catch (error) {
@@ -498,7 +508,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
       moreFindOption.limit = pagingOptions.limit;
       //
     } else {
-      if (paramOption.limit && UtilService.isNumberic(paramOption.limit)) {
+      if (paramOption.limit && UtilService.isNumericInteger(paramOption.limit)) {
         moreFindOption.limit = Number(paramOption.limit);
       }
     }

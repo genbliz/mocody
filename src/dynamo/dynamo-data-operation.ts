@@ -594,7 +594,10 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
   async mocody_getManyBySecondaryIndex<TData = T, TSortKeyField = string>(
     paramOption: IMocodyQueryIndexOptionsNoPaging<TData, TSortKeyField>,
   ): Promise<T[]> {
-    const result = await this._mocody_getManyBySecondaryIndexPaginateBase<TData, TSortKeyField>(paramOption, false);
+    const result = await this._mocody_getManyBySecondaryIndexPaginateBase<TData, TSortKeyField>({
+      paramOption,
+      canPaginate: false,
+    });
     if (result?.mainResult) {
       return result.mainResult;
     }
@@ -604,13 +607,19 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
   async mocody_getManyBySecondaryIndexPaginate<TData = T, TSortKeyField = string>(
     paramOption: IMocodyQueryIndexOptions<TData, TSortKeyField>,
   ): Promise<IMocodyPagingResult<T[]>> {
-    return this._mocody_getManyBySecondaryIndexPaginateBase<TData, TSortKeyField>(paramOption, true);
+    return this._mocody_getManyBySecondaryIndexPaginateBase<TData, TSortKeyField>({
+      paramOption,
+      canPaginate: true,
+    });
   }
 
-  private async _mocody_getManyBySecondaryIndexPaginateBase<TData = T, TSortKeyField = string>(
-    paramOption: IMocodyQueryIndexOptions<TData, TSortKeyField>,
-    canPaginate: boolean,
-  ): Promise<IMocodyPagingResult<T[]>> {
+  private async _mocody_getManyBySecondaryIndexPaginateBase<TData = T, TSortKeyField = string>({
+    paramOption,
+    canPaginate,
+  }: {
+    paramOption: IMocodyQueryIndexOptions<TData, TSortKeyField>;
+    canPaginate: boolean;
+  }): Promise<IMocodyPagingResult<T[]>> {
     const { tableFullName, secondaryIndexOptions } = this._mocody_getLocalVariables();
 
     if (!secondaryIndexOptions?.length) {
@@ -722,7 +731,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       partitionAndSortKey,
       evaluationLimit: paramOption.pagingParams?.evaluationLimit,
       nextPageHash: paramOption.pagingParams?.nextPageHash,
-      resultLimit: UtilService.isNumberic(paramOption.limit) ? Number(paramOption.limit) : undefined,
+      resultLimit: UtilService.isNumericInteger(paramOption.limit) ? Number(paramOption.limit) : undefined,
       canPaginate,
     });
     return result;
