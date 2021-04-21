@@ -162,6 +162,12 @@ class UtilServiceBase {
     }
     return false;
   }
+
+  getEpochTime(date: string | Date) {
+    /* https://www.epochconverter.com/ */
+    const epoc = Math.floor(new Date(date).getTime() / 1000.0);
+    return epoc;
+  }
 }
 
 export const UtilService = new UtilServiceBase();

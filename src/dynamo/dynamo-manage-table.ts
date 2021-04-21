@@ -1,3 +1,4 @@
+import { IMocodyCoreEntityModel } from "../core/base-schema";
 import { IMocodyIndexDefinition } from "../type/types";
 import { UtilService } from "../helpers/util-service";
 import { LoggingService } from "../helpers/logging-service";
@@ -63,13 +64,13 @@ export class DynamoManageTable<T> {
     return listOfTables?.TableNames;
   }
 
-  async mocody_tbl_tableSettingUpdateTTL({ attrName, isEnabled }: { attrName: keyof T; isEnabled: boolean }) {
+  async mocody_updateTTL({ isEnabled }: { isEnabled: boolean }) {
     const { tableFullName } = this._tbl_getLocalVariables();
-
+    const fieldName: keyof IMocodyCoreEntityModel = "dangerouslyExpireAtTTL";
     const params: UpdateTimeToLiveInput = {
       TableName: tableFullName,
       TimeToLiveSpecification: {
-        AttributeName: attrName as string,
+        AttributeName: fieldName,
         Enabled: isEnabled,
       },
     };

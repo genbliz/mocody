@@ -1,3 +1,4 @@
+import { IMocodyCoreEntityModel } from "../core/base-schema";
 import { LoggingService } from "./../helpers/logging-service";
 import type { IMocodyIndexDefinition } from "./../type/types";
 import type { MocodyInitializerMongo } from "./mongo-initializer";
@@ -82,6 +83,12 @@ export class MongoManageTable<T> {
     const db = await this._mocody_getInstance();
     const indexes: IIndexModel[] = await db.indexes();
     return indexes;
+  }
+
+  async mocody_createTTL(): Promise<string> {
+    const db = await this._mocody_getInstance();
+    const fieldName: keyof IMocodyCoreEntityModel = "dangerouslyExpireAtTTL";
+    return await db.createIndex({ [fieldName]: 1 }, { expireAfterSeconds: 1 });
   }
 
   async mocody_createDefinedIndexes(): Promise<string[]> {

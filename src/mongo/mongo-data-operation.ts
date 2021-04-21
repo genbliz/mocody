@@ -293,18 +293,28 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
       throw this._mocody_createGenericError("FeatureEntity mismatched");
     }
 
-    const validated = await this._mocody_allHelpValidateGetValue(fullData);
+    const { validatedData } = await this._mocody_allHelpValidateGetValue(fullData);
 
     const db = await this._mocody_getDbInstance();
 
-    const result = await db.insertOne(validated.validatedData);
+    const validatedData01: any = this._mocody_formatTTL(validatedData);
+    const result = await db.insertOne(validatedData01);
 
     if (!result?.insertedCount) {
       throw this._mocody_createGenericError(this._mocody_operationNotSuccessful);
     }
-    const final = { ...validated.validatedData };
+    const final = { ...validatedData };
     delete final._id;
     return final;
+  }
+
+  private _mocody_formatTTL(fullData: IFullEntity<T>) {
+    if (fullData?.dangerouslyExpireAt) {
+      fullData.dangerouslyExpireAtTTL = new Date(fullData.dangerouslyExpireAt);
+    } else {
+      delete fullData.dangerouslyExpireAtTTL;
+    }
+    return fullData;
   }
 
   async mocody_updateOne({

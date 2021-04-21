@@ -38,13 +38,6 @@ interface IOptions<T> {
   strictRequiredFields: (keyof T)[] | string[];
 }
 
-function createTenantSchema(schemaMapDef: Joi.SchemaMap) {
-  return Joi.object().keys({
-    ...schemaMapDef,
-    ...coreSchemaDefinition,
-  });
-}
-
 type IModelBase = IMocodyCoreEntityModel;
 
 export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T> {
@@ -78,7 +71,6 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     super();
     this._mocody_dynamoDb = dynamoDb;
     this._mocody_dataKeyGenerator = dataKeyGenerator;
-    this._mocody_schema = createTenantSchema(schemaDef);
     this._mocody_tableFullName = baseTableName;
     this._mocody_featureEntityValue = featureEntityValue;
     this._mocody_secondaryIndexOptions = secondaryIndexOptions;
@@ -87,6 +79,13 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     this._mocody_queryScanProcessor = new DynamoQueryScanProcessor();
     this._mocody_errorHelper = new MocodyErrorUtils();
     this._mocody_featureEntity_Key_Value = { featureEntity: featureEntityValue };
+
+    const fullSchemaMapDef = {
+      ...schemaDef,
+      ...coreSchemaDefinition,
+    };
+
+    this._mocody_schema = Joi.object().keys(fullSchemaMapDef);
   }
 
   mocody_tableManager() {
@@ -177,7 +176,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     return Array.from(new Set([...strArray]));
   }
 
-  private async _mocody_allHelpValidateMarshallAndGetValue(data: any) {
+  private async _mocody_allHelpValidateAndGetValue(data: any) {
     const { error, value } = this._mocody_schema.validate(data, {
       stripUnknown: true,
     });
@@ -187,11 +186,16 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       throw this._mocody_errorHelper.mocody_helper_createFriendlyError(msg);
     }
 
-    const marshalledData = MocodyUtil.mocody_marshallFromJson(value);
-    return await Promise.resolve({
-      validatedData: value,
-      marshalled: marshalledData,
-    });
+    return await Promise.resolve({ validatedData: value });
+  }
+
+  private _mocody_formatTTL(fullData: IMocodyCoreEntityModel & T) {
+    if (fullData?.dangerouslyExpireAt) {
+      fullData.dangerouslyExpireAtTTL = UtilService.getEpochTime(fullData.dangerouslyExpireAt);
+    } else {
+      delete fullData.dangerouslyExpireAtTTL;
+    }
+    return fullData;
   }
 
   async mocody_createOne({ data }: { data: T }) {
@@ -210,17 +214,19 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     }
 
     const dataMust = this._mocody_getBaseObject({ dataId });
-    const fullData = { ...data, ...dataMust };
+    const fullData = { ...data, ...dataMust } as IMocodyCoreEntityModel & T;
 
     if (fullData.featureEntity !== featureEntityValue) {
       throw this._mocody_createGenericError("FeatureEntity mismatched");
     }
 
-    const { validatedData, marshalled } = await this._mocody_allHelpValidateMarshallAndGetValue(fullData);
+    const { validatedData } = await this._mocody_allHelpValidateAndGetValue(fullData);
+
+    const validatedData01 = this._mocody_formatTTL(validatedData);
 
     const params: PutItemInput = {
       TableName: tableFullName,
-      Item: marshalled,
+      Item: MocodyUtil.mocody_marshallFromJson(validatedData01),
     };
 
     await this._mocody_dynamoDbInstance().putItem(params);
@@ -308,11 +314,13 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       ...dataMust,
     };
 
-    const { validatedData, marshalled } = await this._mocody_allHelpValidateMarshallAndGetValue(fullData);
+    const { validatedData } = await this._mocody_allHelpValidateAndGetValue(fullData);
+
+    const validatedData01 = this._mocody_formatTTL(validatedData);
 
     const params: PutItemInput = {
       TableName: tableFullName,
-      Item: marshalled,
+      Item: MocodyUtil.mocody_marshallFromJson(validatedData01),
     };
 
     await this._mocody_dynamoDbInstance().putItem(params);

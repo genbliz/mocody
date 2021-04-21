@@ -68,7 +68,10 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     this._mocody_errorHelper = new MocodyErrorUtils();
     this._mocody_entityResultFieldKeysMap = new Map();
 
-    const fullSchemaMapDef = { ...schemaDef, ...coreSchemaDefinition };
+    const fullSchemaMapDef = {
+      ...schemaDef,
+      ...coreSchemaDefinition,
+    };
 
     Object.keys(fullSchemaMapDef).forEach((key) => {
       this._mocody_entityResultFieldKeysMap.set(key, key);
