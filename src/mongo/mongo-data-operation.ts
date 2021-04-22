@@ -162,7 +162,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     if (strictRequiredFields?.length) {
       for (const field of strictRequiredFields) {
         if (onDataObj[field] === null || onDataObj[field] === undefined) {
-          throw this._mocody_createGenericError(`Strict required field NOT defined`);
+          throw this._mocody_createGenericError(`Strict required field: '${field}', NOT defined`);
         }
       }
     }
@@ -351,13 +351,13 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
       ...dataMust,
     };
 
-    const validated = await this._mocody_allHelpValidateGetValue(data);
+    const { validatedData } = await this._mocody_allHelpValidateGetValue(data);
 
-    const result = await db.replaceOne(query, validated.validatedData);
+    const result = await db.replaceOne(query, validatedData);
     if (!result.modifiedCount) {
       throw this._mocody_createGenericError(this._mocody_operationNotSuccessful);
     }
-    const final = { ...validated.validatedData };
+    const final = { ...validatedData };
     delete final._id;
     return final;
   }

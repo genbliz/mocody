@@ -146,7 +146,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     if (strictRequiredFields?.length) {
       for (const field of strictRequiredFields) {
         if (onDataObj[field] === null || onDataObj[field] === undefined) {
-          throw this._mocody_createGenericError(`Strict required field NOT defined`);
+          throw this._mocody_createGenericError(`Strict required field: '${field}', NOT defined`);
         }
       }
     }
@@ -176,7 +176,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     return Array.from(new Set([...strArray]));
   }
 
-  private async _mocody_allHelpValidateAndGetValue(data: any) {
+  private async _mocody_allHelpValidateGetValue(data: any) {
     const { error, value } = this._mocody_schema.validate(data, {
       stripUnknown: true,
     });
@@ -220,7 +220,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       throw this._mocody_createGenericError("FeatureEntity mismatched");
     }
 
-    const { validatedData } = await this._mocody_allHelpValidateAndGetValue(fullData);
+    const { validatedData } = await this._mocody_allHelpValidateGetValue(fullData);
 
     const validatedData01 = this._mocody_formatTTL(validatedData);
 
@@ -230,7 +230,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     };
 
     await this._mocody_dynamoDbInstance().putItem(params);
-    const result: T = validatedData;
+    const result: T = { ...validatedData };
     return result;
   }
 
@@ -314,7 +314,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       ...dataMust,
     };
 
-    const { validatedData } = await this._mocody_allHelpValidateAndGetValue(fullData);
+    const { validatedData } = await this._mocody_allHelpValidateGetValue(fullData);
 
     const validatedData01 = this._mocody_formatTTL(validatedData);
 

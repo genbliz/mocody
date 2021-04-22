@@ -186,7 +186,7 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     if (strictRequiredFields?.length) {
       for (const field of strictRequiredFields) {
         if (onDataObj[field] === null || onDataObj[field] === undefined) {
-          throw this._mocody_createGenericError(`Strict required field NOT defined`);
+          throw this._mocody_createGenericError(`Strict required field: '${field}', NOT defined`);
         }
       }
     }
@@ -239,14 +239,14 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
       throw this._mocody_createGenericError("FeatureEntity mismatched");
     }
 
-    const validated = await this._mocody_allHelpValidateGetValue(fullData);
+    const { validatedData } = await this._mocody_allHelpValidateGetValue(fullData);
 
-    const result = await this._mocody_couchDbInstance().insert(validated.validatedData);
+    const result = await this._mocody_couchDbInstance().insert(validatedData);
     if (!result.ok) {
       throw this._mocody_createGenericError(this._mocody_operationNotSuccessful);
     }
     return this._mocody_stripNonRequiredOutputData({
-      dataObj: validated.validatedData,
+      dataObj: validatedData,
     });
   }
 
