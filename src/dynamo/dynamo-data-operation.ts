@@ -199,8 +199,6 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
   }
 
   async mocody_createOne({ data }: { data: T }) {
-    this._mocody_checkValidateStrictRequiredFields(data);
-
     const { tableFullName, partitionKeyFieldName, featureEntityValue } = this._mocody_getLocalVariables();
 
     let dataId: string | undefined = data[partitionKeyFieldName];
@@ -221,6 +219,8 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     }
 
     const { validatedData } = await this._mocody_allHelpValidateGetValue(fullData);
+
+    this._mocody_checkValidateStrictRequiredFields(validatedData);
 
     const validatedData01 = this._mocody_formatTTL(validatedData);
 
@@ -282,8 +282,6 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     updateData: Partial<T>;
     withCondition?: IMocodyFieldCondition<T>;
   }) {
-    this._mocody_checkValidateStrictRequiredFields(updateData);
-
     const { tableFullName, partitionKeyFieldName, sortKeyFieldName } = this._mocody_getLocalVariables();
 
     this._mocody_errorHelper.mocody_helper_validateRequiredString({ Update1DataId: dataId });
@@ -315,6 +313,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     };
 
     const { validatedData } = await this._mocody_allHelpValidateGetValue(fullData);
+    this._mocody_checkValidateStrictRequiredFields(validatedData);
 
     const validatedData01 = this._mocody_formatTTL(validatedData);
 

@@ -268,8 +268,6 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   }
 
   async mocody_createOne({ data }: { data: T }): Promise<T> {
-    this._mocody_checkValidateStrictRequiredFields(data);
-
     const { partitionKeyFieldName, featureEntityValue } = this._mocody_getLocalVariables();
 
     let dataId: string | undefined = data[partitionKeyFieldName];
@@ -294,6 +292,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     }
 
     const { validatedData } = await this._mocody_allHelpValidateGetValue(fullData);
+    this._mocody_checkValidateStrictRequiredFields(validatedData);
 
     const db = await this._mocody_getDbInstance();
 
