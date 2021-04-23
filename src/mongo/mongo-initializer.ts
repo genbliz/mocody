@@ -1,4 +1,6 @@
 import { MongoClient, MongoClientOptions } from "mongodb";
+import throat from "throat";
+const concurrency = throat(1);
 
 interface IDbOptions {
   uri: string;
@@ -8,12 +10,11 @@ interface IDbOptions {
 }
 
 export class MocodyInitializerMongo {
-  private _mongoClient: MongoClient;
+  private _mongoClient!: MongoClient;
   private readonly _inits: IDbOptions;
 
   constructor(inits: IDbOptions) {
     this._inits = inits;
-    this._mongoClient = new MongoClient(inits.uri, inits.options);
   }
 
   private async getInstance() {
@@ -27,9 +28,8 @@ export class MocodyInitializerMongo {
   }
 
   async getDbInstance<T = any>() {
-    const client = await this.getInstance();
-    const database = client.db(this._inits.databaseName);
-    const collection = database.collection<T>(this._inits.collectionName);
+    const client = await concurrency(() => this.getInstance());
+    const collection = client.db(this._inits.databaseName).collection<T>(this._inits.collectionName);
     return collection;
   }
 
