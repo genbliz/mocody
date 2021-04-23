@@ -14,7 +14,7 @@ import type {
 } from "@aws-sdk/client-dynamodb";
 
 interface ITableOptions<T> {
-  dynamoDb: () => DynamoDB;
+  dynamoDb: () => Promise<DynamoDB>;
   secondaryIndexOptions: IMocodyIndexDefinition<T>[];
   tableFullName: string;
   partitionKeyFieldName: string;
@@ -24,7 +24,7 @@ interface ITableOptions<T> {
 export class DynamoManageTable<T> {
   private readonly partitionKeyFieldName: string;
   private readonly sortKeyFieldName: string;
-  private readonly dynamoDb: () => DynamoDB;
+  private readonly dynamoDb: () => Promise<DynamoDB>;
   private readonly tableFullName: string;
   private readonly secondaryIndexOptions: IMocodyIndexDefinition<T>[];
 
@@ -52,7 +52,7 @@ export class DynamoManageTable<T> {
     } as const;
   }
 
-  private _tbl_dynamoDb(): DynamoDB {
+  private _tbl_dynamoDb(): Promise<DynamoDB> {
     return this.dynamoDb();
   }
 
@@ -60,7 +60,8 @@ export class DynamoManageTable<T> {
     const params: ListTablesInput = {
       Limit: 99,
     };
-    const listOfTables = await this._tbl_dynamoDb().listTables(params);
+    const dynamo = await this._tbl_dynamoDb();
+    const listOfTables = await dynamo.listTables(params);
     return listOfTables?.TableNames;
   }
 
@@ -74,7 +75,8 @@ export class DynamoManageTable<T> {
         Enabled: isEnabled,
       },
     };
-    const result = await this._tbl_dynamoDb().updateTimeToLive(params);
+    const dynamo = await this._tbl_dynamoDb();
+    const result = await dynamo.updateTimeToLive(params);
     if (result?.TimeToLiveSpecification) {
       return result.TimeToLiveSpecification;
     }
@@ -88,7 +90,8 @@ export class DynamoManageTable<T> {
       const params: DescribeTableInput = {
         TableName: tableFullName,
       };
-      const result = await this._tbl_dynamoDb().describeTable(params);
+      const dynamo = await this._tbl_dynamoDb();
+      const result = await dynamo.describeTable(params);
       if (result?.Table?.TableName === tableFullName) {
         return result.Table;
       }
@@ -189,7 +192,8 @@ export class DynamoManageTable<T> {
             });
           });
 
-          const result = await this._tbl_dynamoDb().updateTable(params);
+          const dynamo = await this._tbl_dynamoDb();
+          const result = await dynamo.updateTable(params);
           if (result?.TableDescription) {
             updateResults.push(result?.TableDescription);
           }
@@ -230,7 +234,8 @@ export class DynamoManageTable<T> {
             },
           });
 
-          const result = await this._tbl_dynamoDb().updateTable(params);
+          const dynamo = await this._tbl_dynamoDb();
+          const result = await dynamo.updateTable(params);
           if (result?.TableDescription) {
             updateResults.push(result?.TableDescription);
           }
@@ -440,7 +445,8 @@ export class DynamoManageTable<T> {
       "@allCreateTableBase, table: ": tableFullName,
     });
 
-    const result = await this._tbl_dynamoDb().createTable(params);
+    const dynamo = await this._tbl_dynamoDb();
+    const result = await dynamo.createTable(params);
 
     if (result?.TableDescription) {
       LoggingService.log(
@@ -468,7 +474,8 @@ export class DynamoManageTable<T> {
         },
       ],
     };
-    const result = await this._tbl_dynamoDb().updateTable(params);
+    const dynamo = await this._tbl_dynamoDb();
+    const result = await dynamo.updateTable(params);
     if (result?.TableDescription) {
       return result.TableDescription?.TableName;
     }

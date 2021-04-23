@@ -1,4 +1,4 @@
-import type { DynamoDB, QueryInput, QueryCommandOutput } from "@aws-sdk/client-dynamodb";
+import type { DynamoDB, QueryInput } from "@aws-sdk/client-dynamodb";
 import { marshall } from "@aws-sdk/util-dynamodb";
 import type { IMocodyPagingResult } from "../type/types";
 import { LoggingService } from "../helpers/logging-service";
@@ -16,7 +16,7 @@ export class DynamoQueryScanProcessor {
     dynamoDb,
     canPaginate,
   }: {
-    dynamoDb: () => DynamoDB;
+    dynamoDb: () => Promise<DynamoDB>;
     evaluationLimit?: number;
     params: QueryInput;
     resultLimit?: number;
@@ -46,7 +46,7 @@ export class DynamoQueryScanProcessor {
     return results;
   }
 
-  private __helperDynamoQueryScanProcessor<T>({
+  private async __helperDynamoQueryScanProcessor<T>({
     evaluationLimit,
     params,
     resultLimit,
@@ -56,7 +56,7 @@ export class DynamoQueryScanProcessor {
     dynamoDb,
     canPaginate,
   }: {
-    dynamoDb: () => DynamoDB;
+    dynamoDb: () => Promise<DynamoDB>;
     evaluationLimit?: number;
     params: QueryInput;
     resultLimit?: number;
@@ -68,8 +68,6 @@ export class DynamoQueryScanProcessor {
     const xDefaultEvaluationLimit = 10;
     const xMinEvaluationLimit = 5;
     const xMaxEvaluationLimit = 500;
-
-    type IResult = QueryCommandOutput | undefined;
 
     LoggingService.log({
       processorParamsInit: {
@@ -83,126 +81,114 @@ export class DynamoQueryScanProcessor {
       },
     });
 
-    return new Promise<IMocodyPagingResult<T[]>>((resolve, reject) => {
-      let returnedItems: any[] = [];
-      let evaluationLimit01: number = 0;
+    let returnedItems: any[] = [];
+    let evaluationLimit01: number = 0;
 
-      if (evaluationLimit) {
-        //
-        evaluationLimit01 = xDefaultEvaluationLimit;
-        if (evaluationLimit) {
-          evaluationLimit01 = evaluationLimit;
-        }
-
-        if (evaluationLimit01 < xMinEvaluationLimit) {
-          evaluationLimit01 = xMinEvaluationLimit;
-          //
-        } else if (evaluationLimit01 > xMaxEvaluationLimit) {
-          evaluationLimit01 = xMaxEvaluationLimit;
-        }
-
-        if (resultLimit) {
-          if (resultLimit > evaluationLimit01) {
-            evaluationLimit01 = resultLimit + 1;
-            //
-          } else if (resultLimit === evaluationLimit01) {
-            //
-          }
-        }
-      }
-
-      const queryScanUntilDone = (err: any, dataOutput: IResult) => {
-        if (err) {
-          LoggingService.log(err, err?.stack);
-          if (returnedItems?.length) {
-            resolve({
-              mainResult: returnedItems,
-              nextPageHash: undefined,
-            });
-          } else {
-            reject(err.stack);
-          }
-        } else {
-          if (dataOutput?.Items?.length) {
-            returnedItems = [...returnedItems, ...dataOutput.Items];
-          }
-
-          if (resultLimit && returnedItems.length >= resultLimit) {
-            const queryOutputResult: IMocodyPagingResult<T[]> = {
-              mainResult: returnedItems,
-              nextPageHash: undefined,
-            };
-
-            if (partitionAndSortKey?.length === 2 && returnedItems.length > resultLimit) {
-              //
-              queryOutputResult.mainResult = returnedItems.slice(0, resultLimit);
-
-              if (canPaginate) {
-                const itemObject = queryOutputResult.mainResult.slice(-1)[0];
-                const customLastEvaluationKey = this.__createCustomLastEvaluationKey({
-                  itemObject,
-                  partitionAndSortKey,
-                });
-                //
-                LoggingService.log({ customLastEvaluationKey });
-                if (customLastEvaluationKey) {
-                  queryOutputResult.nextPageHash = this.__encodeLastKey(customLastEvaluationKey);
-                }
-              }
-            } else if (dataOutput?.LastEvaluatedKey && Object.keys(dataOutput.LastEvaluatedKey).length) {
-              if (canPaginate) {
-                queryOutputResult.nextPageHash = this.__encodeLastKey(dataOutput.LastEvaluatedKey);
-              }
-            }
-
-            resolve(queryOutputResult);
-            //
-          } else if (dataOutput?.LastEvaluatedKey && Object.keys(dataOutput.LastEvaluatedKey).length) {
-            //
-            const paramsDef01 = { ...params };
-            //
-            paramsDef01.ExclusiveStartKey = dataOutput.LastEvaluatedKey;
-            if (evaluationLimit01) {
-              paramsDef01.Limit = evaluationLimit01;
-            }
-
-            LoggingService.log({ dynamoProcessorParams: paramsDef01 });
-
-            dynamoDb().query(paramsDef01, (err, resultData) => {
-              queryScanUntilDone(err, resultData);
-            });
-          } else {
-            resolve({
-              mainResult: returnedItems,
-              nextPageHash: undefined,
-            });
-          }
-        }
-      };
-
-      const params01 = { ...params };
-
-      if (evaluationLimit01) {
-        params01.Limit = evaluationLimit01;
-      }
-
-      if (nextPageHash) {
-        const lastEvaluatedKey01 = this.__decodeLastKey(nextPageHash);
-        if (lastEvaluatedKey01) {
-          params01.ExclusiveStartKey = lastEvaluatedKey01;
-        }
-      }
-
-      if (orderDesc === true) {
-        params01.ScanIndexForward = false;
-      }
-
-      LoggingService.log({ dynamoProcessorParams: params01 });
+    if (evaluationLimit) {
       //
-      dynamoDb().query(params01, (err, resultData) => {
-        queryScanUntilDone(err, resultData);
-      });
-    });
+      evaluationLimit01 = xDefaultEvaluationLimit;
+      if (evaluationLimit) {
+        evaluationLimit01 = evaluationLimit;
+      }
+
+      if (evaluationLimit01 < xMinEvaluationLimit) {
+        evaluationLimit01 = xMinEvaluationLimit;
+        //
+      } else if (evaluationLimit01 > xMaxEvaluationLimit) {
+        evaluationLimit01 = xMaxEvaluationLimit;
+      }
+
+      if (resultLimit) {
+        if (resultLimit > evaluationLimit01) {
+          evaluationLimit01 = resultLimit + 1;
+          //
+        } else if (resultLimit === evaluationLimit01) {
+          //
+        }
+      }
+    }
+
+    if (orderDesc === true) {
+      params.ScanIndexForward = false;
+    }
+
+    const params01 = { ...params };
+
+    if (evaluationLimit01) {
+      params01.Limit = evaluationLimit01;
+    }
+
+    if (nextPageHash) {
+      const lastEvaluatedKey01 = this.__decodeLastKey(nextPageHash);
+      if (lastEvaluatedKey01) {
+        params01.ExclusiveStartKey = lastEvaluatedKey01;
+      }
+    }
+
+    const outResult: IMocodyPagingResult<T[]> = {
+      mainResult: returnedItems,
+      nextPageHash: undefined,
+    };
+
+    let hasNext = true;
+
+    const dynamo = await dynamoDb();
+
+    while (hasNext) {
+      try {
+        const { Items, LastEvaluatedKey } = await dynamo.query(params01);
+
+        if (Items?.length) {
+          returnedItems = [...returnedItems, ...Items];
+        }
+
+        if (resultLimit && returnedItems.length >= resultLimit) {
+          outResult.mainResult = returnedItems;
+          outResult.nextPageHash = undefined;
+
+          hasNext = false;
+
+          if (partitionAndSortKey?.length === 2 && returnedItems.length > resultLimit) {
+            //
+            outResult.mainResult = returnedItems.slice(0, resultLimit);
+
+            if (canPaginate) {
+              const itemObject = outResult.mainResult.slice(-1)[0];
+              const customLastEvaluationKey = this.__createCustomLastEvaluationKey({
+                itemObject,
+                partitionAndSortKey,
+              });
+              //
+              LoggingService.log({ customLastEvaluationKey });
+              if (customLastEvaluationKey) {
+                outResult.nextPageHash = this.__encodeLastKey(customLastEvaluationKey);
+              }
+            }
+          } else if (LastEvaluatedKey && Object.keys(LastEvaluatedKey).length) {
+            if (canPaginate) {
+              outResult.nextPageHash = this.__encodeLastKey(LastEvaluatedKey);
+            }
+          }
+        } else if (LastEvaluatedKey && Object.keys(LastEvaluatedKey).length) {
+          params01.ExclusiveStartKey = LastEvaluatedKey;
+          LoggingService.log({ dynamoProcessorParams: params01 });
+        } else {
+          outResult.mainResult = returnedItems;
+          outResult.nextPageHash = undefined;
+          hasNext = false;
+        }
+      } catch (error) {
+        hasNext = false;
+        if (returnedItems?.length) {
+          outResult.mainResult = returnedItems;
+          outResult.nextPageHash = undefined;
+        } else {
+          throw error;
+        }
+      }
+    }
+
+    return { ...outResult };
   }
 
   private __unmarshallToJson(items: any[]) {

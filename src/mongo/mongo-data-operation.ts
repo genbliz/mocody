@@ -210,11 +210,11 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   }): Promise<T | null> {
     this._mocody_errorHelper.mocody_helper_validateRequiredString({ dataId });
 
-    const db = await this._mocody_getDbInstance();
+    const mongo = await this._mocody_getDbInstance();
 
     const nativeId = this._mocody_getNativeMongoId(dataId);
     const query: any = { _id: nativeId };
-    const dataInDb = await db.findOne(query, { projection: { _id: 0 } });
+    const dataInDb = await mongo.findOne(query, { projection: { _id: 0 } });
 
     if (!(dataInDb?.id === dataId && dataInDb.featureEntity === this._mocody_featureEntityValue)) {
       return null;
@@ -238,7 +238,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     const uniqueIds = this._mocody_removeDuplicateString(dataIds);
     const fullUniqueIds = uniqueIds.map((id) => this._mocody_getNativeMongoId(id));
 
-    const db = await this._mocody_getDbInstance();
+    const mongo = await this._mocody_getDbInstance();
 
     if (withCondition?.length && fields?.length) {
       withCondition.forEach((item) => {
@@ -250,7 +250,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
 
     const query: any = { _id: { $in: fullUniqueIds } };
 
-    const dataListInDb = await db.find(query, { projection: projection }).toArray();
+    const dataListInDb = await mongo.find(query, { projection: projection }).toArray();
 
     if (!dataListInDb?.length) {
       return [];
@@ -294,10 +294,10 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     const { validatedData } = await this._mocody_allHelpValidateGetValue(fullData);
     this._mocody_checkValidateStrictRequiredFields(validatedData);
 
-    const db = await this._mocody_getDbInstance();
+    const mongo = await this._mocody_getDbInstance();
 
     const validatedData01: any = this._mocody_formatTTL(validatedData);
-    const result = await db.insertOne(validatedData01);
+    const result = await mongo.insertOne(validatedData01);
 
     if (!result?.insertedCount) {
       throw this._mocody_createGenericError(this._mocody_operationNotSuccessful);
@@ -330,9 +330,9 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     const nativeId = this._mocody_getNativeMongoId(dataId);
     const query: any = { _id: nativeId };
 
-    const db = await this._mocody_getDbInstance();
+    const mongo = await this._mocody_getDbInstance();
 
-    const dataInDb = await db.findOne(query);
+    const dataInDb = await mongo.findOne(query);
     if (!(dataInDb?.id === dataId && dataInDb.featureEntity === this._mocody_featureEntityValue)) {
       throw this._mocody_createGenericError("Record does not exists");
     }
@@ -352,7 +352,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
 
     const { validatedData } = await this._mocody_allHelpValidateGetValue(data);
 
-    const result = await db.replaceOne(query, validatedData);
+    const result = await mongo.replaceOne(query, validatedData);
     if (!result.modifiedCount) {
       throw this._mocody_createGenericError(this._mocody_operationNotSuccessful);
     }
@@ -447,8 +447,6 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
 
     const queryDefData: any = this._mocody_filterQueryOperation.processQueryFilter({ queryDefs });
 
-    const db = await this._mocody_getDbInstance();
-
     const projection = this._mocody_toMongoProjection(paramOption.fields as any[]) ?? { _id: 0 };
 
     const sort01: Array<[string, number]> = [];
@@ -522,7 +520,9 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
       }
     }
 
-    const results = await db
+    const mongo = await this._mocody_getDbInstance();
+
+    const results = await mongo
       .find(queryDefData, {
         projection,
         sort: sort01.length ? sort01 : undefined,

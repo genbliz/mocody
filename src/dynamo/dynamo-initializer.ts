@@ -1,18 +1,23 @@
 import { DynamoDB, DynamoDBClientConfig } from "@aws-sdk/client-dynamodb";
+import throat from "throat";
+const concurrency = throat(1);
 
 export class MocodyInitializerDynamo {
-  private _dynamoDb: DynamoDB;
+  private _dynamoDb!: DynamoDB;
   private readonly _inits: DynamoDBClientConfig;
 
   constructor(inits: DynamoDBClientConfig) {
     this._inits = inits;
-    this._dynamoDb = new DynamoDB(inits);
   }
 
-  getInstance() {
+  async getInstance() {
+    return await concurrency(() => this.getInstanceBase());
+  }
+
+  private async getInstanceBase() {
     if (!this._dynamoDb) {
       this._dynamoDb = new DynamoDB(this._inits);
     }
-    return this._dynamoDb;
+    return await Promise.resolve(this._dynamoDb);
   }
 }

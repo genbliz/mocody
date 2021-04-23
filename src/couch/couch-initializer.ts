@@ -2,6 +2,9 @@ import { LoggingService } from "../helpers/logging-service";
 import type { IMocodyCoreEntityModel } from "../core/base-schema";
 import Nano from "nano";
 
+import throat from "throat";
+const concurrency = throat(1);
+
 type IBaseDef<T> = Omit<T & IMocodyCoreEntityModel, "">;
 
 interface IOptions {
@@ -78,7 +81,8 @@ export class MocodyInitializerCouch {
       }[];
       total_rows: number;
     };
-    const result: IIndexList = await this.getInstance().request({
+    const instance = await this.getInstance();
+    const result: IIndexList = await instance.request({
       db: this.couchConfig.databaseName,
       method: "GET",
       path: "_index",
@@ -89,9 +93,9 @@ export class MocodyInitializerCouch {
     //GET /{db}/_index
   }
 
-  getDocInstance<T>(): Nano.DocumentScope<IBaseDef<T>> {
+  async getDocInstance<T>(): Promise<Nano.DocumentScope<IBaseDef<T>>> {
     if (!this._documentScope) {
-      const n = this.getInstance();
+      const n = await this.getInstance();
       const db = n.db.use<IBaseDef<T>>(this.couchConfig.databaseName);
       this._documentScope = db;
     }
@@ -99,7 +103,8 @@ export class MocodyInitializerCouch {
   }
 
   async checkDatabaseExists(databaseName?: string) {
-    const checkDbExistResult = await this.getInstance().request({
+    const instance = await this.getInstance();
+    const checkDbExistResult = await instance.request({
       db: databaseName || this.couchConfig.databaseName,
       method: "HEAD",
       content_type: "application/json",
@@ -109,13 +114,18 @@ export class MocodyInitializerCouch {
   }
 
   async createDatabase() {
-    return await this.getInstance().db.create(this.couchConfig.databaseName, { partitioned: true });
+    const instance = await this.getInstance();
+    return instance.db.create(this.couchConfig.databaseName, { partitioned: true });
   }
 
-  getInstance() {
+  async getInstance() {
+    return await concurrency(() => this.getInstanceBase());
+  }
+
+  private async getInstanceBase() {
     if (!this._databaseInstance) {
       this._databaseInstance = Nano(this.getFullDbUrl(this.couchConfig));
     }
-    return this._databaseInstance;
+    return await Promise.resolve(this._databaseInstance);
   }
 }

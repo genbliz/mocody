@@ -16,7 +16,6 @@ import type {
   QueryInput,
   BatchGetItemInput,
   AttributeValue,
-  BatchGetItemOutput,
   GetItemCommandInput,
 } from "@aws-sdk/client-dynamodb";
 import Joi from "joi";
@@ -101,7 +100,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     return this._mocody_tableManager;
   }
 
-  private _mocody_dynamoDbInstance(): DynamoDB {
+  private _mocody_dynamoDbInstance(): Promise<DynamoDB> {
     return this._mocody_dynamoDb().getInstance();
   }
 
@@ -229,7 +228,8 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       Item: MocodyUtil.mocody_marshallFromJson(validatedData01),
     };
 
-    await this._mocody_dynamoDbInstance().putItem(params);
+    const dynamo = await this._mocody_dynamoDbInstance();
+    await dynamo.putItem(params);
     const result: T = { ...validatedData };
     return result;
   }
@@ -261,7 +261,8 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
         [sortKeyFieldName]: { S: featureEntityValue },
       },
     };
-    const result = await this._mocody_dynamoDbInstance().getItem(params);
+    const dynamo = await this._mocody_dynamoDbInstance();
+    const result = await dynamo.getItem(params);
     const item = result.Item as any;
     if (!item) {
       return null;
@@ -321,8 +322,8 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       TableName: tableFullName,
       Item: MocodyUtil.mocody_marshallFromJson(validatedData01),
     };
-
-    await this._mocody_dynamoDbInstance().putItem(params);
+    const dynamo = await this._mocody_dynamoDbInstance();
+    await dynamo.putItem(params);
     const result: T = validatedData;
     return result;
   }
@@ -477,125 +478,123 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     fields?: (keyof T)[];
     withCondition?: IMocodyFieldCondition<T>;
   }) {
-    return new Promise<T[]>((resolve, reject) => {
-      const getRandom = () =>
-        [
-          "rand",
-          Math.round(Math.random() * 99999),
-          Math.round(Math.random() * 88888),
-          Math.round(Math.random() * 99),
-        ].join("");
+    const getRandom = () =>
+      [
+        "rand",
+        Math.round(Math.random() * 99999),
+        Math.round(Math.random() * 88888),
+        Math.round(Math.random() * 99),
+      ].join("");
 
-      const {
-        //
-        tableFullName,
-        partitionKeyFieldName,
-        sortKeyFieldName,
-        featureEntityValue,
-      } = this._mocody_getLocalVariables();
+    const {
+      //
+      tableFullName,
+      partitionKeyFieldName,
+      sortKeyFieldName,
+      featureEntityValue,
+    } = this._mocody_getLocalVariables();
 
-      const dataIdsNoDup = this._mocody_removeDuplicateString(dataIds);
+    const dataIdsNoDup = this._mocody_removeDuplicateString(dataIds);
 
-      type IKey = Record<string, AttributeValue>;
+    type IKey = Record<string, AttributeValue>;
 
-      const getArray: IKey[] = dataIdsNoDup.map((dataId) => {
-        const params01 = {
-          [partitionKeyFieldName]: { S: dataId },
-          [sortKeyFieldName]: { S: featureEntityValue },
-        };
-        return params01;
-      });
+    const getArray: IKey[] = dataIdsNoDup.map((dataId) => {
+      const params01 = {
+        [partitionKeyFieldName]: { S: dataId },
+        [sortKeyFieldName]: { S: featureEntityValue },
+      };
+      return params01;
+    });
 
-      let projectionExpression: string | undefined = undefined;
-      let expressionAttributeNames: Record<string, string> | undefined = undefined;
+    let projectionExpression: string | undefined = undefined;
+    let expressionAttributeNames: Record<string, string> | undefined = undefined;
 
-      if (fields?.length) {
-        const fieldKeys = this._mocody_removeDuplicateString(fields);
-        if (withCondition?.length) {
-          /** Add excluded condition */
-          withCondition.forEach((condition) => {
-            if (!fieldKeys.includes(condition.field)) {
-              fieldKeys.push(condition.field);
-            }
-          });
-        }
-        expressionAttributeNames = {};
-        fieldKeys.forEach((fieldName) => {
-          if (typeof fieldName === "string") {
-            if (expressionAttributeNames) {
-              const attrKeyHash = `#attrKey${getRandom()}k`.toLowerCase();
-              expressionAttributeNames[attrKeyHash] = fieldName;
-            }
+    if (fields?.length) {
+      const fieldKeys = this._mocody_removeDuplicateString(fields);
+      if (withCondition?.length) {
+        /** Add excluded condition */
+        withCondition.forEach((condition) => {
+          if (!fieldKeys.includes(condition.field)) {
+            fieldKeys.push(condition.field);
           }
         });
-        if (Object.keys(expressionAttributeNames)?.length) {
-          projectionExpression = Object.keys(expressionAttributeNames).join(",");
+      }
+      expressionAttributeNames = {};
+      fieldKeys.forEach((fieldName) => {
+        if (typeof fieldName === "string") {
+          if (expressionAttributeNames) {
+            const attrKeyHash = `#attrKey${getRandom()}k`.toLowerCase();
+            expressionAttributeNames[attrKeyHash] = fieldName;
+          }
+        }
+      });
+      if (Object.keys(expressionAttributeNames)?.length) {
+        projectionExpression = Object.keys(expressionAttributeNames).join(",");
+      } else {
+        projectionExpression = undefined;
+        expressionAttributeNames = undefined;
+      }
+    }
+
+    const params: BatchGetItemInput = {
+      RequestItems: {
+        [tableFullName]: {
+          Keys: [...getArray],
+          ConsistentRead: true,
+          ProjectionExpression: projectionExpression,
+          ExpressionAttributeNames: expressionAttributeNames,
+        },
+      },
+    };
+
+    let returnedItems: any[] = [];
+
+    const resolveItemResults = (resultItems: any[]) => {
+      if (resultItems?.length && withCondition?.length) {
+        return resultItems.filter((item) => {
+          return withCondition.every((condition) => {
+            return item[condition.field] === condition.equals;
+          });
+        });
+      }
+      return resultItems || [];
+    };
+
+    let hasNext = true;
+    let params01 = { ...params };
+
+    const dynamo = await this._mocody_dynamoDbInstance();
+
+    while (hasNext) {
+      try {
+        const { Responses, UnprocessedKeys } = await dynamo.batchGetItem(params01);
+
+        if (Responses) {
+          const itemListRaw = Responses[tableFullName];
+          if (itemListRaw?.length) {
+            const itemList = itemListRaw.map((item) => {
+              return MocodyUtil.mocody_unmarshallToJson(item);
+            });
+            returnedItems = [...returnedItems, ...itemList];
+          }
+        }
+
+        if (UnprocessedKeys && Object.keys(UnprocessedKeys).length) {
+          params01 = {
+            RequestItems: UnprocessedKeys,
+          };
+          LoggingService.log({ dynamoBatchGetParams: params01 });
         } else {
-          projectionExpression = undefined;
-          expressionAttributeNames = undefined;
+          hasNext = false;
+        }
+      } catch (error) {
+        hasNext = false;
+        if (!returnedItems?.length) {
+          throw error;
         }
       }
-
-      const params: BatchGetItemInput = {
-        RequestItems: {
-          [tableFullName]: {
-            Keys: [...getArray],
-            ConsistentRead: true,
-            ProjectionExpression: projectionExpression,
-            ExpressionAttributeNames: expressionAttributeNames,
-          },
-        },
-      };
-
-      let returnedItems: any[] = [];
-
-      const resolveItemResults = (resultItems: any[]) => {
-        if (resultItems?.length && withCondition?.length) {
-          return resultItems.filter((item) => {
-            return withCondition.every((condition) => {
-              return item[condition.field] === condition.equals;
-            });
-          });
-        }
-        return resultItems || [];
-      };
-
-      const batchGetUntilDone = (err: any, data: BatchGetItemOutput | undefined) => {
-        if (err) {
-          if (returnedItems?.length) {
-            resolve(resolveItemResults(returnedItems));
-          } else {
-            reject(err?.stack);
-          }
-        } else {
-          if (data?.Responses) {
-            const itemListRaw = data.Responses[tableFullName];
-            if (itemListRaw?.length) {
-              const itemList = itemListRaw.map((item) => {
-                return MocodyUtil.mocody_unmarshallToJson(item);
-              });
-              returnedItems = [...returnedItems, ...itemList];
-            }
-          }
-
-          if (data?.UnprocessedKeys && Object.keys(data.UnprocessedKeys).length) {
-            const _params: BatchGetItemInput = {
-              RequestItems: data.UnprocessedKeys,
-            };
-            LoggingService.log({ dynamoBatchGetParams: _params });
-
-            this._mocody_dynamoDbInstance().batchGetItem(params, (err, resultData) => {
-              batchGetUntilDone(err, resultData);
-            });
-          } else {
-            resolve(resolveItemResults(returnedItems));
-          }
-        }
-      };
-      this._mocody_dynamoDbInstance().batchGetItem(params, (err, resultData) => {
-        batchGetUntilDone(err, resultData);
-      });
-    });
+    }
+    return resolveItemResults(returnedItems);
   }
 
   async mocody_getManyBySecondaryIndex<TData = T, TSortKeyField = string>(
@@ -776,7 +775,8 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     };
 
     try {
-      await this._mocody_dynamoDbInstance().deleteItem(params);
+      const dynamo = await this._mocody_dynamoDbInstance();
+      await dynamo.deleteItem(params);
     } catch (err) {
       if (err && err.code === "ResourceNotFoundException") {
         throw this._mocody_errorHelper.mocody_helper_createFriendlyError("Table not found");

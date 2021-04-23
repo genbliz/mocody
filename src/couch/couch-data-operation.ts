@@ -240,7 +240,9 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     const { validatedData } = await this._mocody_allHelpValidateGetValue(fullData);
     this._mocody_checkValidateStrictRequiredFields(validatedData);
 
-    const result = await this._mocody_couchDbInstance().insert(validatedData);
+    const couch = await this._mocody_couchDbInstance();
+
+    const result = await couch.insert(validatedData);
     if (!result.ok) {
       throw this._mocody_createGenericError(this._mocody_operationNotSuccessful);
     }
@@ -250,7 +252,8 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   }
 
   async mocody_getAll({ size, skip }: { size?: number; skip?: number } = {}): Promise<T[]> {
-    const data = await this._mocody_couchDbInstance().list({
+    const couch = await this._mocody_couchDbInstance();
+    const data = await couch.list({
       include_docs: true,
       startkey: this._mocody_featureEntityValue,
       endkey: `${this._mocody_featureEntityValue}\ufff0`,
@@ -278,7 +281,8 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
 
     const nativeId = this._mocody_getNativePouchId(dataId);
 
-    const dataInDb = await this._mocody_couchDbInstance().get(nativeId);
+    const couch = await this._mocody_couchDbInstance();
+    const dataInDb = await couch.get(nativeId);
     if (!(dataInDb?.id === dataId && dataInDb.featureEntity === this._mocody_featureEntityValue)) {
       return null;
     }
@@ -302,7 +306,8 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
 
     const nativeId = this._mocody_getNativePouchId(dataId);
 
-    const dataInDb = await this._mocody_couchDbInstance().get(nativeId);
+    const couch = await this._mocody_couchDbInstance();
+    const dataInDb = await couch.get(nativeId);
     if (!(dataInDb?.id === dataId && dataInDb.featureEntity === this._mocody_featureEntityValue && dataInDb._rev)) {
       throw this._mocody_createGenericError("Record does not exists");
     }
@@ -327,7 +332,7 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
 
     this._mocody_checkValidateStrictRequiredFields(validatedData);
 
-    const result = await this._mocody_couchDbInstance().insert({
+    const result = await couch.insert({
       ...validatedData,
       _rev: dataInDb._rev,
     });
@@ -353,7 +358,8 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     const uniqueIds = this._mocody_removeDuplicateString(dataIds);
     const fullUniqueIds = uniqueIds.map((id) => this._mocody_getNativePouchId(id));
 
-    const data = await this._mocody_couchDbInstance().list({
+    const couch = await this._mocody_couchDbInstance();
+    const data = await couch.list({
       keys: fullUniqueIds,
       include_docs: true,
     });
@@ -564,7 +570,8 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
       }
     }
 
-    const data = await this._mocody_couchDbInstance().partitionedFind(this._mocody_featureEntityValue, {
+    const couch = await this._mocody_couchDbInstance();
+    const data = await couch.partitionedFind(this._mocody_featureEntityValue, {
       selector: { ...queryDefDataOrdered },
       fields: projection,
       use_index: paramOption.indexName,
@@ -597,7 +604,8 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     withCondition?: IMocodyFieldCondition<T> | undefined;
   }): Promise<T> {
     const nativeId = this._mocody_getNativePouchId(dataId);
-    const dataInDb = await this._mocody_couchDbInstance().get(nativeId);
+    const couch = await this._mocody_couchDbInstance();
+    const dataInDb = await couch.get(nativeId);
 
     if (!(dataInDb?.id === dataId && dataInDb.featureEntity === this._mocody_featureEntityValue)) {
       throw this._mocody_createGenericError("Record does not exists");
@@ -606,7 +614,7 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     if (!passed) {
       throw this._mocody_createGenericError("Record with conditions does not exists for deletion");
     }
-    const result = await this._mocody_couchDbInstance().destroy(dataInDb._id, dataInDb._rev);
+    const result = await couch.destroy(dataInDb._id, dataInDb._rev);
     if (!result.ok) {
       throw this._mocody_createGenericError(this._mocody_operationNotSuccessful);
     }
