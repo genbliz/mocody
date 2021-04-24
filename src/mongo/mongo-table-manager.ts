@@ -47,7 +47,7 @@ export class MongoManageTable<T> {
   }
 
   private _mocody_getInstance() {
-    return this.mongoDb().getDbInstance();
+    return this.mongoDb().getCollectionInstance();
   }
 
   async mocody_createIndex({ indexName, fields }: { indexName: string; fields: string[] }): Promise<string> {

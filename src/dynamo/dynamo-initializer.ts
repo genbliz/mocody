@@ -3,7 +3,7 @@ import throat from "throat";
 const concurrency = throat(1);
 
 export class MocodyInitializerDynamo {
-  private _dynamoDb!: DynamoDB;
+  private _dynamoDb!: DynamoDB | null;
   private readonly _inits: DynamoDBClientConfig;
 
   constructor(inits: DynamoDBClientConfig) {

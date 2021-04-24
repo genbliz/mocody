@@ -26,8 +26,8 @@ interface IOptions {
 }
 
 export class MocodyInitializerCouch {
-  private _databaseInstance!: Nano.ServerScope;
-  private _documentScope!: Nano.DocumentScope<any>;
+  private _databaseInstance!: Nano.ServerScope | null;
+  private _documentScope!: Nano.DocumentScope<any> | null;
 
   private readonly couchConfig: IOptions["couchConfig"];
   // private readonly sqliteConfig: IOptions["sqliteConfig"];
@@ -57,7 +57,8 @@ export class MocodyInitializerCouch {
 
   async deleteIndex({ ddoc, name }: { ddoc: string; name: string }) {
     const path = ["_index", ddoc, "json", name].join("/");
-    const result: { ok: boolean } = await this._databaseInstance.relax({
+    const instance = await this.getInstance();
+    const result: { ok: boolean } = await instance.relax({
       db: this.couchConfig.databaseName,
       method: "DELETE",
       path,

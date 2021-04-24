@@ -101,7 +101,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   }
 
   private async _mocody_getDbInstance() {
-    return await this._mocody_mongoDb().getDbInstance<IFullEntity<T>>();
+    return await this._mocody_mongoDb().getCollectionInstance<IFullEntity<T>>();
   }
 
   private _mocody_getLocalVariables() {
