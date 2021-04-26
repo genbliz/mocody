@@ -19,7 +19,7 @@ import { CouchManageTable } from "./couch-manage-table";
 
 interface IOptions<T> {
   schemaDef: Joi.SchemaMap;
-  couchDb: () => MocodyInitializerCouch;
+  couchDbInitializer: () => MocodyInitializerCouch;
   dataKeyGenerator: () => string;
   featureEntityValue: string;
   secondaryIndexOptions: IMocodyIndexDefinition<T>[];
@@ -51,7 +51,7 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
 
   constructor({
     schemaDef,
-    couchDb,
+    couchDbInitializer,
     secondaryIndexOptions,
     featureEntityValue,
     baseTableName,
@@ -59,7 +59,7 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     dataKeyGenerator,
   }: IOptions<T>) {
     super();
-    this._mocody_couchDb = couchDb;
+    this._mocody_couchDb = couchDbInitializer;
     this._mocody_dataKeyGenerator = dataKeyGenerator;
     this._mocody_tableFullName = baseTableName;
     this._mocody_featureEntityValue = featureEntityValue;

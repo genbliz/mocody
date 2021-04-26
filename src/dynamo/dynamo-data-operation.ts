@@ -29,7 +29,7 @@ import { DynamoQueryScanProcessor } from "./dynamo-query-scan-processor";
 
 interface IOptions<T> {
   schemaDef: Joi.SchemaMap;
-  dynamoDb: () => MocodyInitializerDynamo;
+  dynamoDbInitializer: () => MocodyInitializerDynamo;
   dataKeyGenerator: () => string;
   featureEntityValue: string;
   secondaryIndexOptions: IMocodyIndexDefinition<T>[];
@@ -60,7 +60,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
 
   constructor({
     schemaDef,
-    dynamoDb,
+    dynamoDbInitializer,
     secondaryIndexOptions,
     featureEntityValue,
     baseTableName,
@@ -68,7 +68,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     dataKeyGenerator,
   }: IOptions<T>) {
     super();
-    this._mocody_dynamoDb = dynamoDb;
+    this._mocody_dynamoDb = dynamoDbInitializer;
     this._mocody_dataKeyGenerator = dataKeyGenerator;
     this._mocody_tableFullName = baseTableName;
     this._mocody_featureEntityValue = featureEntityValue;

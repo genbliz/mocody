@@ -19,7 +19,7 @@ import { MongoManageTable } from "./mongo-table-manager";
 
 interface IOptions<T> {
   schemaDef: Joi.SchemaMap;
-  mongoDb: () => MocodyInitializerMongo;
+  mongoDbInitializer: () => MocodyInitializerMongo;
   dataKeyGenerator: () => string;
   featureEntityValue: string;
   secondaryIndexOptions: IMocodyIndexDefinition<T>[];
@@ -51,7 +51,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
 
   constructor({
     schemaDef,
-    mongoDb,
+    mongoDbInitializer,
     secondaryIndexOptions,
     featureEntityValue,
     baseTableName,
@@ -59,7 +59,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     dataKeyGenerator,
   }: IOptions<T>) {
     super();
-    this._mocody_mongoDb = mongoDb;
+    this._mocody_mongoDb = mongoDbInitializer;
     this._mocody_dataKeyGenerator = dataKeyGenerator;
     this._mocody_tableFullName = baseTableName;
     this._mocody_featureEntityValue = featureEntityValue;

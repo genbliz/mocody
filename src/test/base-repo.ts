@@ -12,7 +12,7 @@ interface IBaseRepoOptions<T> {
 export abstract class BaseRepository<T> extends DynamoDataOperation<T> {
   constructor({ schemaSubDef, secondaryIndexOptions, featureEntityValue }: IBaseRepoOptions<T>) {
     super({
-      dynamoDb: () => MyDynamoConnection.getDynamoConnection(),
+      dynamoDbInitializer: () => MyDynamoConnection.getDynamoConnection(),
       baseTableName: "mocody_dynamo_test_table_01",
       schemaDef: { ...schemaSubDef },
       secondaryIndexOptions,
