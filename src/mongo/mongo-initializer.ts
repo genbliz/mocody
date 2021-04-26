@@ -33,6 +33,12 @@ export class MocodyInitializerMongo {
     return col;
   }
 
+  async getCustomCollectionInstance<T = any>(collectionName: string) {
+    const client = await concurrency(() => this.getInstance());
+    const col: Collection<T> = client.db(this._inits.databaseName).collection<T>(collectionName);
+    return col;
+  }
+
   async close() {
     if (this._mongoClient) {
       await this._mongoClient.close();
