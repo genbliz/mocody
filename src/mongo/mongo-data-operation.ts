@@ -101,7 +101,9 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   }
 
   private async _mocody_getDbInstance() {
-    return await this._mocody_mongoDb().getCollectionInstance<IFullEntity<T>>();
+    return await this._mocody_mongoDb()
+      //
+      .getCustomCollectionInstance<IFullEntity<T>>(this._mocody_tableFullName);
   }
 
   private _mocody_getLocalVariables() {
@@ -111,7 +113,6 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
       //
       featureEntityValue: this._mocody_featureEntityValue,
       //
-      // tableFullName: this._mocody_tableFullName,
       secondaryIndexOptions: this._mocody_secondaryIndexOptions,
       strictRequiredFields: this._mocody_strictRequiredFields,
     } as const;

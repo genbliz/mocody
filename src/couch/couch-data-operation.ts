@@ -111,7 +111,6 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
       //
       featureEntityValue: this._mocody_featureEntityValue,
       //
-      // tableFullName: this._mocody_tableFullName,
       secondaryIndexOptions: this._mocody_secondaryIndexOptions,
       strictRequiredFields: this._mocody_strictRequiredFields,
     } as const;

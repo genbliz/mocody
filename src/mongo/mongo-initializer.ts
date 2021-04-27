@@ -5,7 +5,7 @@ const concurrency = throat(1);
 interface IDbOptions {
   uri: string;
   databaseName: string;
-  collectionName: string;
+  // collectionName: string;
   options?: MongoClientOptions;
 }
 
@@ -27,11 +27,11 @@ export class MocodyInitializerMongo {
     return this._mongoClient;
   }
 
-  async getCollectionInstance<T = any>() {
-    const client = await concurrency(() => this.getInstance());
-    const col: Collection<T> = client.db(this._inits.databaseName).collection<T>(this._inits.collectionName);
-    return col;
-  }
+  // async getCollectionInstance<T = any>() {
+  //   const client = await concurrency(() => this.getInstance());
+  //   const col: Collection<T> = client.db(this._inits.databaseName).collection<T>(this._inits.collectionName);
+  //   return col;
+  // }
 
   async getCustomCollectionInstance<T = any>(collectionName: string) {
     const client = await concurrency(() => this.getInstance());
