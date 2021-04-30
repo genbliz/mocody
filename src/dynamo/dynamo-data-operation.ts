@@ -26,6 +26,7 @@ import { LoggingService } from "../helpers/logging-service";
 import { MocodyInitializerDynamo } from "./dynamo-initializer";
 import { DynamoFilterQueryOperation } from "./dynamo-filter-query-operation";
 import { DynamoQueryScanProcessor } from "./dynamo-query-scan-processor";
+import lodash from "lodash";
 
 interface IOptions<T> {
   schemaDef: Joi.SchemaMap;
@@ -236,9 +237,15 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
         },
       });
     }
-    const bulkData = {
-      [tableFullName]: bulkItem,
-    } as IBulkDataDynamoDb;
+    const bulkItemChunked = lodash.chunk(bulkItem, 20);
+    const bulkData: IBulkDataDynamoDb[] = [];
+
+    for (const chunkedData of bulkItemChunked) {
+      const bulkData01 = {
+        [tableFullName]: chunkedData,
+      } as IBulkDataDynamoDb;
+      bulkData.push(bulkData01);
+    }
     return JSON.stringify(bulkData);
   }
 
