@@ -37,6 +37,16 @@ interface IOptions<T> {
   strictRequiredFields: (keyof T)[] | string[];
 }
 
+export interface IBulkDataDynamoDb {
+  [tableName: string]: {
+    PutRequest: {
+      Item: {
+        [key: string]: AttributeValue;
+      };
+    };
+  }[];
+}
+
 type IModelBase = IMocodyCoreEntityModel;
 
 export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T> {
@@ -198,7 +208,42 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
   }
 
   async mocody_createOne({ data }: { data: T }) {
-    const { tableFullName, partitionKeyFieldName, featureEntityValue } = this._mocody_getLocalVariables();
+    const { tableFullName } = this._mocody_getLocalVariables();
+
+    const { marshalled, validatedData } = await this._mocody_validateReady({ data });
+
+    const params: PutItemInput = {
+      TableName: tableFullName,
+      Item: marshalled,
+    };
+
+    const dynamo = await this._mocody_dynamoDbInstance();
+    await dynamo.putItem(params);
+    const result: T = { ...validatedData };
+    return result;
+  }
+
+  async mocody_formatDump({ dataList }: { dataList: T[] }): Promise<string> {
+    const { tableFullName } = this._mocody_getLocalVariables();
+
+    const bulkItem: IBulkDataDynamoDb["tableFullName"] = [];
+
+    for (const data of dataList) {
+      const { marshalled } = await this._mocody_validateReady({ data });
+      bulkItem.push({
+        PutRequest: {
+          Item: marshalled,
+        },
+      });
+    }
+    const bulkData = {
+      [tableFullName]: bulkItem,
+    } as IBulkDataDynamoDb;
+    return JSON.stringify(bulkData);
+  }
+
+  private async _mocody_validateReady({ data }: { data: T }) {
+    const { partitionKeyFieldName, featureEntityValue } = this._mocody_getLocalVariables();
 
     let dataId: string | undefined = data[partitionKeyFieldName];
 
@@ -221,17 +266,13 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
 
     this._mocody_checkValidateStrictRequiredFields(validatedData);
 
-    const validatedData01 = this._mocody_formatTTL(validatedData);
+    const validatedDataTTL = this._mocody_formatTTL(validatedData);
 
-    const params: PutItemInput = {
-      TableName: tableFullName,
-      Item: MocodyUtil.mocody_marshallFromJson(validatedData01),
+    const ready = {
+      validatedData,
+      marshalled: MocodyUtil.mocody_marshallFromJson(validatedDataTTL),
     };
-
-    const dynamo = await this._mocody_dynamoDbInstance();
-    await dynamo.putItem(params);
-    const result: T = { ...validatedData };
-    return result;
+    return ready;
   }
 
   async mocody_getOneById({

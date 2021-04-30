@@ -213,6 +213,29 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   }
 
   async mocody_createOne({ data }: { data: T }): Promise<T> {
+    const { validatedData } = await this._mocody_validateReady({ data });
+
+    const couch = await this._mocody_couchDbInstance();
+    const result = await couch.insert(validatedData);
+    if (!result.ok) {
+      throw this._mocody_createGenericError(this._mocody_operationNotSuccessful);
+    }
+    return this._mocody_stripNonRequiredOutputData({
+      dataObj: validatedData,
+    });
+  }
+
+  async mocody_formatDump({ dataList }: { dataList: T[] }): Promise<string> {
+    const bulkData: any[] = [];
+
+    for (const data of dataList) {
+      const { validatedData } = await this._mocody_validateReady({ data });
+      bulkData.push(validatedData);
+    }
+    return JSON.stringify(bulkData);
+  }
+
+  private async _mocody_validateReady({ data }: { data: T }) {
     const { partitionKeyFieldName, featureEntityValue } = this._mocody_getLocalVariables();
 
     let dataId: string | undefined = data[partitionKeyFieldName];
@@ -239,15 +262,7 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     const { validatedData } = await this._mocody_allHelpValidateGetValue(fullData);
     this._mocody_checkValidateStrictRequiredFields(validatedData);
 
-    const couch = await this._mocody_couchDbInstance();
-
-    const result = await couch.insert(validatedData);
-    if (!result.ok) {
-      throw this._mocody_createGenericError(this._mocody_operationNotSuccessful);
-    }
-    return this._mocody_stripNonRequiredOutputData({
-      dataObj: validatedData,
-    });
+    return { validatedData };
   }
 
   async mocody_getAll({ size, skip }: { size?: number; skip?: number } = {}): Promise<T[]> {

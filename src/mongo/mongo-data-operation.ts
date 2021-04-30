@@ -268,7 +268,31 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     return dataListInDb;
   }
 
+  async mocody_formatDump({ dataList }: { dataList: T[] }): Promise<string> {
+    const bulkData: string[] = [];
+
+    for (const data of dataList) {
+      const { validatedDataTTL } = await this._mocody_validateReady({ data });
+      bulkData.push(JSON.stringify(validatedDataTTL));
+    }
+    return bulkData.join("\n");
+  }
+
   async mocody_createOne({ data }: { data: T }): Promise<T> {
+    const { validatedData, validatedDataTTL } = await this._mocody_validateReady({ data });
+
+    const mongo = await this._mocody_getDbInstance();
+    const result = await mongo.insertOne(validatedDataTTL);
+
+    if (!result?.insertedCount) {
+      throw this._mocody_createGenericError(this._mocody_operationNotSuccessful);
+    }
+    const final = { ...validatedData };
+    delete final._id;
+    return final;
+  }
+
+  async _mocody_validateReady({ data }: { data: T }) {
     const { partitionKeyFieldName, featureEntityValue } = this._mocody_getLocalVariables();
 
     let dataId: string | undefined = data[partitionKeyFieldName];
@@ -295,17 +319,9 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     const { validatedData } = await this._mocody_allHelpValidateGetValue(fullData);
     this._mocody_checkValidateStrictRequiredFields(validatedData);
 
-    const mongo = await this._mocody_getDbInstance();
+    const validatedDataTTL: any = this._mocody_formatTTL(validatedData);
 
-    const validatedData01: any = this._mocody_formatTTL(validatedData);
-    const result = await mongo.insertOne(validatedData01);
-
-    if (!result?.insertedCount) {
-      throw this._mocody_createGenericError(this._mocody_operationNotSuccessful);
-    }
-    const final = { ...validatedData };
-    delete final._id;
-    return final;
+    return { validatedData, validatedDataTTL };
   }
 
   private _mocody_formatTTL(fullData: IFullEntity<T>) {
