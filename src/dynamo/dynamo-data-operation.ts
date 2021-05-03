@@ -311,10 +311,11 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     };
     const dynamo = await this._mocody_dynamoDbInstance();
     const result = await dynamo.getItem(params);
-    const item = result.Item as any;
-    if (!item) {
+    const item01 = result.Item as any;
+    if (!item01) {
       return null;
     }
+    const item: any = MocodyUtil.mocody_unmarshallToJson(item01);
     const isPassed = this._mocody_withConditionPassed({ withCondition, item });
     if (!isPassed) {
       return null;
@@ -495,8 +496,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     const batchIds: string[][] = [];
 
     while (originalIds.length > 0) {
-      const ids = originalIds.splice(0, BATCH_SIZE);
-      batchIds.push(ids);
+      batchIds.push(originalIds.splice(0, BATCH_SIZE));
     }
 
     LoggingService.log("@mocody_getManyByIds batchIds: ", batchIds.length);
@@ -595,8 +595,6 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       },
     };
 
-    let returnedItems: any[] = [];
-
     const resolveItemResults = (resultItems: any[]) => {
       if (resultItems?.length && withCondition?.length) {
         return resultItems.filter((item) => {
@@ -610,6 +608,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
 
     let hasNext = true;
     let params01 = { ...params };
+    let returnedItems: any[] = [];
 
     const dynamo = await this._mocody_dynamoDbInstance();
 
@@ -620,9 +619,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
         if (Responses) {
           const itemListRaw = Responses[tableFullName];
           if (itemListRaw?.length) {
-            const itemList = itemListRaw.map((item) => {
-              return MocodyUtil.mocody_unmarshallToJson(item);
-            });
+            const itemList = itemListRaw.map((item) => MocodyUtil.mocody_unmarshallToJson(item));
             returnedItems = [...returnedItems, ...itemList];
           }
         }

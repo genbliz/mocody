@@ -193,10 +193,7 @@ export class DynamoQueryScanProcessor {
 
   private __unmarshallToJson(items: any[]) {
     if (items?.length) {
-      const itemList = items.map((item) => {
-        return MocodyUtil.mocody_unmarshallToJson(item);
-      });
-      return itemList;
+      return items.map((item) => MocodyUtil.mocody_unmarshallToJson(item));
     }
     return items;
   }
