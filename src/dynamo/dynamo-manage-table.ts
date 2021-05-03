@@ -276,6 +276,24 @@ export class DynamoManageTable<T> {
     }
   }
 
+  async mocody_createOrUpdateDefinedIndexes() {
+    const { secondaryIndexOptions } = this._tbl_getLocalVariables();
+
+    const existingTableInfo = await this.mocody_tbl_getTableInfo();
+    if (existingTableInfo) {
+      if (secondaryIndexOptions?.length) {
+        const result01 = await this._allUpdateGlobalSecondaryIndexBase({
+          secondaryIndexOptions,
+          existingTableInfo,
+        });
+        LoggingService.log(result01);
+        return result01;
+      }
+    }
+    LoggingService.log("Table does not exists");
+    return null;
+  }
+
   async mocody_tbl_createTableIfNotExists() {
     const { secondaryIndexOptions } = this._tbl_getLocalVariables();
 
