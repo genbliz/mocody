@@ -527,12 +527,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     withCondition?: IMocodyFieldCondition<T>;
   }) {
     const getRandom = () =>
-      [
-        "rand",
-        Math.round(Math.random() * 99999),
-        Math.round(Math.random() * 88888),
-        Math.round(Math.random() * 99),
-      ].join("");
+      [Math.round(Math.random() * 999), Math.round(Math.random() * 88), Math.round(Math.random() * 99)].join("");
 
     const {
       //
@@ -558,20 +553,18 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     let expressionAttributeNames: Record<string, string> | undefined = undefined;
 
     if (fields?.length) {
-      const fieldKeys = this._mocody_removeDuplicateString(fields);
+      const fieldKeys = new Set(fields);
       if (withCondition?.length) {
         /** Add excluded condition */
         withCondition.forEach((condition) => {
-          if (!fieldKeys.includes(condition.field)) {
-            fieldKeys.push(condition.field);
-          }
+          fieldKeys.add(condition.field);
         });
       }
       expressionAttributeNames = {};
       fieldKeys.forEach((fieldName) => {
         if (typeof fieldName === "string") {
           if (expressionAttributeNames) {
-            const attrKeyHash = `#attrKey${getRandom()}k`.toLowerCase();
+            const attrKeyHash = `#hk${getRandom()}`.toLowerCase();
             expressionAttributeNames[attrKeyHash] = fieldName;
           }
         }

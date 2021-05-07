@@ -48,14 +48,14 @@ function hasQueryConditionValue(key: string) {
 const getRandom = () =>
   [
     //
-    Math.round(Math.random() * 99999),
-    Math.round(Math.random() * 88888),
-    Math.round(Math.random() * 77777),
+    Math.round(Math.random() * 299),
+    Math.round(Math.random() * 88),
+    Math.round(Math.random() * 777),
   ].join("");
 
 export class DynamoFilterQueryOperation {
   private operation__filterFieldExist({ fieldName }: { fieldName: string }): IQueryConditions {
-    const attrKeyHash = `#attrKey1${getRandom()}`.toLowerCase();
+    const attrKeyHash = `#r1a${getRandom()}`.toLowerCase();
     const result = {
       xExpressionAttributeNames: {
         [attrKeyHash]: fieldName,
@@ -66,7 +66,7 @@ export class DynamoFilterQueryOperation {
   }
 
   private operation__filterFieldNotExist({ fieldName }: { fieldName: string }): IQueryConditions {
-    const attrKeyHash = `#attrKey2${getRandom()}`.toLowerCase();
+    const attrKeyHash = `#r2a${getRandom()}`.toLowerCase();
     const result = {
       xExpressionAttributeNames: {
         [attrKeyHash]: fieldName,
@@ -85,8 +85,8 @@ export class DynamoFilterQueryOperation {
     conditionExpr: string;
     val: string | number;
   }): IQueryConditions {
-    const keyAttr = `:attr${fieldName}${getRandom()}`.toLowerCase();
-    const attrKeyHash = `#attrKey3${getRandom()}`.toLowerCase();
+    const keyAttr = `:r3a${getRandom()}`.toLowerCase();
+    const attrKeyHash = `#r4a${getRandom()}`.toLowerCase();
     const result: IQueryConditions = {
       xExpressionAttributeValues: {
         [keyAttr]: val,
@@ -104,11 +104,11 @@ export class DynamoFilterQueryOperation {
     const expressAttrName: { [key: string]: string } = {};
     const filterExpress: string[] = [];
 
-    const _attrKeyHash = `#attrKey4${getRandom()}`.toLowerCase();
+    const _attrKeyHash = `#r5a${getRandom()}`.toLowerCase();
     expressAttrName[_attrKeyHash] = fieldName;
 
     attrValues.forEach((item) => {
-      const keyAttr = `:attr${fieldName}${getRandom()}`.toLowerCase();
+      const keyAttr = `:r6a${getRandom()}`.toLowerCase();
       expressAttrVal[keyAttr] = item;
       filterExpress.push(`${_attrKeyHash} = ${keyAttr}`);
     });
@@ -172,9 +172,9 @@ export class DynamoFilterQueryOperation {
         }
         const conditionExpr = keyConditionMap[conditionKey];
         //
-        const attrValue = `:attr${getRandom()}`.toLowerCase();
-        const attrKeyHash = `#attrKey${subFieldName}${getRandom()}`.toLowerCase();
-        const parentFieldName = `#attrKey${fieldName}${getRandom()}`.toLowerCase();
+        const attrValue = `:r7a${getRandom()}`.toLowerCase();
+        const attrKeyHash = `#r8a${subFieldName}${getRandom()}`.toLowerCase();
+        const parentFieldName = `#r9a${fieldName}${getRandom()}`.toLowerCase();
         //
         if (conditionExpr) {
           const result: IQueryConditions = {
@@ -190,8 +190,8 @@ export class DynamoFilterQueryOperation {
           results.push(result);
         } else {
           if (conditionKey === "$between") {
-            const fromKey = `:fromKey0${getRandom()}`.toLowerCase();
-            const toKey = `:toKey0${getRandom()}`.toLowerCase();
+            const fromKey = `:r10a${getRandom()}`.toLowerCase();
+            const toKey = `:r11a${getRandom()}`.toLowerCase();
             if (!(Array.isArray(val) && val.length === 2)) {
               throw MocodyErrorUtilsService.mocody_helper_createFriendlyError(
                 "$between query must be an array of length 2",
@@ -234,8 +234,8 @@ export class DynamoFilterQueryOperation {
   }
 
   private operation__filterContains({ fieldName, term }: { fieldName: string; term: any }): IQueryConditions {
-    const attrKeyHash = `#attrKey5${getRandom()}`.toLowerCase();
-    const keyAttr = `:attr${fieldName}${getRandom()}`.toLowerCase();
+    const attrKeyHash = `#r12a${getRandom()}`.toLowerCase();
+    const keyAttr = `:r13a${getRandom()}`.toLowerCase();
     const result: IQueryConditions = {
       xExpressionAttributeValues: {
         [keyAttr]: term,
@@ -307,9 +307,9 @@ export class DynamoFilterQueryOperation {
     from: any;
     to: any;
   }): IQueryConditions {
-    const _attrKeyHash = `#attrKey6${getRandom()}`.toLowerCase();
-    const _fromKey = `:fromKey${getRandom()}`.toLowerCase();
-    const _toKey = `:toKey${getRandom()}`.toLowerCase();
+    const _attrKeyHash = `#r13a${getRandom()}`.toLowerCase();
+    const _fromKey = `:r14a${getRandom()}`.toLowerCase();
+    const _toKey = `:r15a${getRandom()}`.toLowerCase();
     const result: IQueryConditions = {
       xExpressionAttributeValues: {
         [_fromKey]: from,
@@ -324,8 +324,8 @@ export class DynamoFilterQueryOperation {
   }
 
   private operation__filterBeginsWith({ fieldName, term }: { fieldName: string; term: any }): IQueryConditions {
-    const _attrKeyHash = `#attrKey7${getRandom()}`.toLowerCase();
-    const keyAttr = `:attr${fieldName}${getRandom()}`.toLowerCase();
+    const _attrKeyHash = `#r16a${getRandom()}`.toLowerCase();
+    const keyAttr = `:r17a${fieldName}${getRandom()}`.toLowerCase();
     const result: IQueryConditions = {
       xExpressionAttributeValues: {
         [keyAttr]: term,
@@ -668,7 +668,7 @@ export class DynamoFilterQueryOperation {
       const _projection_expressionAttributeNames: IDictionaryAttr = {};
       projectionFields.forEach((field) => {
         if (field && typeof field === "string") {
-          const attrKeyHash = `#attrKey8${getRandom()}`.toLowerCase();
+          const attrKeyHash = `#r18a${getRandom()}`.toLowerCase();
           _projection_expressionAttributeNames[attrKeyHash] = field;
         }
       });
