@@ -664,35 +664,54 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     paramOption: IMocodyQueryIndexOptions<TData, TSortKeyField>;
     canPaginate: boolean;
   }): Promise<IMocodyPagingResult<T[]>> {
-    const { tableFullName, secondaryIndexOptions } = this._mocody_getLocalVariables();
+    const {
+      tableFullName,
+      secondaryIndexOptions,
+      partitionKeyFieldName,
+      sortKeyFieldName,
+      featureEntityValue,
+    } = this._mocody_getLocalVariables();
 
     if (!secondaryIndexOptions?.length) {
       throw this._mocody_createGenericError("Invalid secondary index definitions");
     }
 
-    if (!paramOption?.indexName) {
+    const paramOption01 = { ...paramOption };
+
+    if (!paramOption01?.indexName) {
       throw this._mocody_createGenericError("Invalid index name input");
     }
 
     const secondaryIndex = secondaryIndexOptions.find((item) => {
-      return item.indexName === paramOption.indexName;
+      return item.indexName === paramOption01.indexName;
     });
 
     if (!secondaryIndex) {
       throw this._mocody_createGenericError("Secondary index not named/defined");
     }
 
+    if (canPaginate && paramOption01.fields?.length) {
+      const fieldSet01 = new Set(paramOption01.fields);
+      fieldSet01.add(partitionKeyFieldName as any);
+      paramOption01.fields = Array.from(fieldSet01);
+    }
+
     const index_PartitionKeyFieldName = secondaryIndex.partitionKeyFieldName as string;
     const index_SortKeyFieldName = secondaryIndex.sortKeyFieldName as string;
 
-    const partitionSortKeyQuery = paramOption.sortKeyQuery
-      ? {
-          ...{ [index_SortKeyFieldName]: paramOption.sortKeyQuery },
-          ...{ [index_PartitionKeyFieldName]: paramOption.partitionKeyValue },
-        }
-      : { [index_PartitionKeyFieldName]: paramOption.partitionKeyValue };
+    const main_partitionAndSortKey: [string, string] = [partitionKeyFieldName, sortKeyFieldName];
+    const index_partitionAndSortKey: [string, string] = [index_PartitionKeyFieldName, index_SortKeyFieldName];
 
-    const fieldKeys = paramOption.fields?.length ? this._mocody_removeDuplicateString(paramOption.fields) : undefined;
+    const partitionSortKeyQuery = paramOption01.sortKeyQuery
+      ? {
+          ...{ [index_SortKeyFieldName]: paramOption01.sortKeyQuery },
+          ...{ [index_PartitionKeyFieldName]: paramOption01.partitionKeyValue },
+        }
+      : { [index_PartitionKeyFieldName]: paramOption01.partitionKeyValue };
+
+    const fieldKeys = paramOption01.fields?.length
+      ? this._mocody_removeDuplicateString(paramOption01.fields)
+      : undefined;
 
     const localVariables = this._mocody_getLocalVariables();
 
@@ -704,10 +723,10 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     ].includes(localVariables.sortKeyFieldName);
 
     if (!hasFeatureEntity) {
-      paramOption.query = (paramOption.query || {}) as any;
+      paramOption01.query = (paramOption01.query || {}) as any;
 
-      paramOption.query = {
-        ...paramOption.query,
+      paramOption01.query = {
+        ...paramOption01.query,
         ...this._mocody_featureEntity_Key_Value,
       } as any;
     } else if (index_PartitionKeyFieldName !== localVariables.sortKeyFieldName) {
@@ -725,9 +744,9 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     let otherExpressionAttributeValues: any = undefined;
     let otherExpressionAttributeNames: any = undefined;
 
-    if (paramOption.query) {
+    if (paramOption01.query) {
       const otherFilter = this._mocody_queryFilter.processQueryFilter({
-        queryDefs: paramOption.query,
+        queryDefs: paramOption01.query,
         projectionFields: null,
       });
 
@@ -741,7 +760,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
 
     const params: QueryInput = {
       TableName: tableFullName,
-      IndexName: paramOption.indexName,
+      IndexName: paramOption01.indexName,
       KeyConditionExpression: mainFilter.filterExpression,
       ExpressionAttributeValues: {
         ...otherExpressionAttributeValues,
@@ -754,7 +773,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       },
     };
 
-    const orderDesc = paramOption?.sort === "desc";
+    const orderDesc = paramOption01?.sort === "desc";
 
     if (orderDesc) {
       params.ScanIndexForward = false;
@@ -766,17 +785,18 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       params.ProjectionExpression = mainFilter.projectionExpressionAttr;
     }
 
-    const partitionAndSortKey: [string, string] = [index_PartitionKeyFieldName, index_SortKeyFieldName];
-
     const result = await this._mocody_queryScanProcessor.mocody__helperDynamoQueryProcessor<T>({
       dynamoDb: () => this._mocody_dynamoDbInstance(),
       params,
       orderDesc,
-      partitionAndSortKey,
-      evaluationLimit: paramOption.pagingParams?.evaluationLimit,
-      nextPageHash: paramOption.pagingParams?.nextPageHash,
-      resultLimit: UtilService.isNumericInteger(paramOption.limit) ? Number(paramOption.limit) : undefined,
       canPaginate,
+      tableFullName,
+      featureEntityValue,
+      main_partitionAndSortKey,
+      index_partitionAndSortKey,
+      evaluationLimit: paramOption01.pagingParams?.evaluationLimit,
+      nextPageHash: paramOption01.pagingParams?.nextPageHash,
+      resultLimit: UtilService.isNumericInteger(paramOption01.limit) ? Number(paramOption01.limit) : undefined,
     });
     return result;
   }

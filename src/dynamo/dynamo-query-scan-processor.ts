@@ -1,4 +1,5 @@
-import type { DynamoDB, QueryInput } from "@aws-sdk/client-dynamodb";
+import { UtilService } from "./../helpers/util-service";
+import type { DynamoDB, GetItemCommandInput, QueryInput } from "@aws-sdk/client-dynamodb";
 import { marshall } from "@aws-sdk/util-dynamodb";
 import type { IMocodyPagingResult } from "../type/types";
 import { LoggingService } from "../helpers/logging-service";
@@ -12,9 +13,12 @@ export class DynamoQueryScanProcessor {
     resultLimit,
     nextPageHash,
     orderDesc,
-    partitionAndSortKey,
+    index_partitionAndSortKey,
+    main_partitionAndSortKey,
     dynamoDb,
     canPaginate,
+    featureEntityValue,
+    tableFullName,
   }: {
     dynamoDb: () => Promise<DynamoDB>;
     evaluationLimit?: number;
@@ -23,7 +27,10 @@ export class DynamoQueryScanProcessor {
     nextPageHash?: string;
     orderDesc?: boolean;
     canPaginate: boolean;
-    partitionAndSortKey: [string, string];
+    featureEntityValue: string;
+    tableFullName: string;
+    index_partitionAndSortKey: [string, string];
+    main_partitionAndSortKey: [string, string];
   }) {
     if (params?.ExpressionAttributeValues) {
       const marshalled = marshall(params.ExpressionAttributeValues, {
@@ -40,7 +47,10 @@ export class DynamoQueryScanProcessor {
       nextPageHash,
       orderDesc,
       canPaginate,
-      partitionAndSortKey,
+      index_partitionAndSortKey,
+      main_partitionAndSortKey,
+      featureEntityValue,
+      tableFullName,
     });
     results.mainResult = this.__unmarshallToJson(results.mainResult);
     return results;
@@ -52,9 +62,12 @@ export class DynamoQueryScanProcessor {
     resultLimit,
     nextPageHash,
     orderDesc,
-    partitionAndSortKey,
+    index_partitionAndSortKey,
+    main_partitionAndSortKey,
     dynamoDb,
     canPaginate,
+    featureEntityValue,
+    tableFullName,
   }: {
     dynamoDb: () => Promise<DynamoDB>;
     evaluationLimit?: number;
@@ -63,7 +76,10 @@ export class DynamoQueryScanProcessor {
     nextPageHash?: string;
     orderDesc?: boolean;
     canPaginate: boolean;
-    partitionAndSortKey: [string, string];
+    featureEntityValue: string;
+    tableFullName: string;
+    index_partitionAndSortKey: [string, string];
+    main_partitionAndSortKey: [string, string];
   }) {
     const xDefaultEvaluationLimit = 10;
     const xMinEvaluationLimit = 5;
@@ -76,7 +92,9 @@ export class DynamoQueryScanProcessor {
         canPaginate,
         nextPageHash,
         evaluationLimit,
-        partitionAndSortKey,
+        featureEntityValue,
+        index_partitionAndSortKey,
+        main_partitionAndSortKey,
         params,
       },
     });
@@ -148,17 +166,21 @@ export class DynamoQueryScanProcessor {
 
           hasNext = false;
 
-          if (partitionAndSortKey?.length === 2 && returnedItems.length > resultLimit) {
+          if (index_partitionAndSortKey?.length === 2 && returnedItems.length > resultLimit) {
             //
             outResult.mainResult = returnedItems.slice(0, resultLimit);
 
             if (canPaginate) {
-              const itemObject = outResult.mainResult.slice(-1)[0];
-              const customLastEvaluationKey = this.__createCustomLastEvaluationKey({
-                itemObject,
-                partitionAndSortKey,
+              const lastKeyRawObject = outResult.mainResult.slice(-1)[0];
+              const customLastEvaluationKey = await this.__createCustomLastEvaluationKey({
+                lastKeyRawObject,
+                featureEntityValue,
+                index_partitionAndSortKey,
+                main_partitionAndSortKey,
+                dynamo,
+                tableFullName,
               });
-              //
+
               LoggingService.log({ customLastEvaluationKey });
               if (customLastEvaluationKey) {
                 outResult.nextPageHash = this.__encodeLastKey(customLastEvaluationKey);
@@ -198,30 +220,94 @@ export class DynamoQueryScanProcessor {
     return items;
   }
 
-  private __createCustomLastEvaluationKey({
-    itemObject,
-    partitionAndSortKey,
+  private async __createCustomLastEvaluationKey({
+    lastKeyRawObject,
+    index_partitionAndSortKey,
+    main_partitionAndSortKey,
+    dynamo,
+    tableFullName,
+    featureEntityValue,
   }: {
-    itemObject: Record<string, any>;
-    partitionAndSortKey: [string, string];
+    lastKeyRawObject: Record<string, any>;
+    index_partitionAndSortKey: [string, string];
+    main_partitionAndSortKey: [string, string];
+    dynamo: DynamoDB;
+    tableFullName: string;
+    featureEntityValue: string;
   }) {
+    if (!(lastKeyRawObject && typeof lastKeyRawObject === "object")) {
+      return null;
+    }
+
+    const [partitionKeyFieldName, sortKeyFieldName] = main_partitionAndSortKey;
+    const [index_PartitionKeyFieldName, index_SortKeyFieldName] = index_partitionAndSortKey;
+
+    /*
+     ExclusiveStartKey: {
+      createdAtDate: [Object],
+      id: [Object],
+      featureEntity: [Object],
+      featureEntityTenantId: [Object]
+    }
+    */
+
+    const fields = [
+      //
+      partitionKeyFieldName,
+      sortKeyFieldName,
+      index_PartitionKeyFieldName,
+      index_SortKeyFieldName,
+    ];
+
     const obj: Record<string, any> = {};
-    partitionAndSortKey.forEach((key) => {
-      if (typeof itemObject[key] !== "undefined") {
-        obj[key] = itemObject[key];
+    fields.forEach((key) => {
+      if (typeof lastKeyRawObject[key] !== "undefined") {
+        obj[key] = lastKeyRawObject[key];
       }
     });
-    return Object.keys(obj).length > 0 ? obj : null;
+
+    if (Object.keys(obj).length === 4) {
+      return obj;
+    }
+
+    const itemJson = MocodyUtil.mocody_unmarshallToJson(lastKeyRawObject);
+
+    const dataId: string | undefined = itemJson[partitionKeyFieldName];
+
+    if (!dataId) {
+      return null;
+    }
+
+    const params01: GetItemCommandInput = {
+      TableName: tableFullName,
+      Key: {
+        [partitionKeyFieldName]: { S: dataId },
+        [sortKeyFieldName]: { S: featureEntityValue },
+      },
+    };
+    const result = await dynamo.getItem(params01);
+
+    if (result.Item && result.Item[partitionKeyFieldName]) {
+      const itemObject = { ...result.Item };
+      const obj: Record<string, any> = {};
+      fields.forEach((key) => {
+        if (typeof itemObject[key] !== "undefined") {
+          obj[key] = itemObject[key];
+        }
+      });
+      return Object.keys(obj).length === 4 ? obj : null;
+    }
+    return null;
   }
 
   private __encodeLastKey(lastEvaluatedKey: Record<string, any>) {
-    return Buffer.from(JSON.stringify(lastEvaluatedKey)).toString("base64");
+    return UtilService.encodeBase64(JSON.stringify(lastEvaluatedKey));
   }
 
   private __decodeLastKey(lastKeyHash: string) {
     let _lastEvaluatedKey: any;
     try {
-      const _lastKeyHashStr = Buffer.from(lastKeyHash, "base64").toString();
+      const _lastKeyHashStr = UtilService.decodeBase64(lastKeyHash);
       _lastEvaluatedKey = JSON.parse(_lastKeyHashStr);
     } catch (error) {
       _lastEvaluatedKey = undefined;

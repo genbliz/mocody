@@ -168,6 +168,14 @@ class UtilServiceBase {
     const epoc = Math.floor(new Date(date).getTime() / 1000.0);
     return epoc;
   }
+
+  encodeBase64(str: string) {
+    return Buffer.from(JSON.stringify(str)).toString("base64");
+  }
+
+  decodeBase64(str: string) {
+    return Buffer.from(str, "base64").toString();
+  }
 }
 
 export const UtilService = new UtilServiceBase();
