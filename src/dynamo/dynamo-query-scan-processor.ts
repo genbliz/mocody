@@ -154,10 +154,10 @@ export class DynamoQueryScanProcessor {
 
     while (hasNext) {
       try {
-        const { Items, LastEvaluatedKey } = await dynamo.query(params01);
+        const resultDynamo = await dynamo.query(params01);
 
-        if (Items?.length) {
-          returnedItems = [...returnedItems, ...Items];
+        if (resultDynamo?.Items?.length) {
+          returnedItems = [...returnedItems, ...resultDynamo.Items];
         }
 
         if (resultLimit && returnedItems.length >= resultLimit) {
@@ -187,13 +187,13 @@ export class DynamoQueryScanProcessor {
                 }
               }
             }
-          } else if (LastEvaluatedKey && Object.keys(LastEvaluatedKey).length) {
+          } else if (resultDynamo?.LastEvaluatedKey && Object.keys(resultDynamo.LastEvaluatedKey).length) {
             if (canPaginate) {
-              outResult.nextPageHash = this.__encodeLastKey(LastEvaluatedKey);
+              outResult.nextPageHash = this.__encodeLastKey(resultDynamo.LastEvaluatedKey);
             }
           }
-        } else if (LastEvaluatedKey && Object.keys(LastEvaluatedKey).length) {
-          params01.ExclusiveStartKey = LastEvaluatedKey;
+        } else if (resultDynamo.LastEvaluatedKey && Object.keys(resultDynamo.LastEvaluatedKey).length) {
+          params01.ExclusiveStartKey = resultDynamo.LastEvaluatedKey;
           LoggingService.log({ dynamoProcessorParams: params01 });
         } else {
           outResult.mainResult = returnedItems;
