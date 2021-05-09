@@ -166,30 +166,40 @@ export class DynamoQueryScanProcessor {
 
           hasNext = false;
 
-          if (returnedItems?.length && returnedItems.length > resultLimit) {
-            //
-            outResult.mainResult = returnedItems.slice(0, resultLimit);
-
-            if (canPaginate && outResult?.mainResult?.length) {
-              const [lastKeyRawObject] = outResult.mainResult.slice(-1);
-              if (lastKeyRawObject) {
-                const customLastEvaluationKey = await this.__createCustomLastEvaluationKey({
-                  lastKeyRawObject,
-                  featureEntityValue,
-                  index_partitionAndSortKey,
-                  main_partitionAndSortKey,
-                  dynamo,
-                  tableFullName,
-                });
-                LoggingService.log({ customLastEvaluationKey });
-                if (customLastEvaluationKey) {
-                  outResult.nextPageHash = this.__encodeLastKey(customLastEvaluationKey);
-                }
-              }
-            }
-          } else if (resultDynamo?.LastEvaluatedKey && Object.keys(resultDynamo.LastEvaluatedKey).length) {
+          if (resultDynamo?.LastEvaluatedKey && Object.keys(resultDynamo.LastEvaluatedKey).length) {
             if (canPaginate) {
               outResult.nextPageHash = this.__encodeLastKey(resultDynamo.LastEvaluatedKey);
+            }
+          }
+
+          const ccns = false;
+
+          if (ccns) {
+            if (returnedItems?.length && returnedItems.length > resultLimit) {
+              //
+              outResult.mainResult = returnedItems.slice(0, resultLimit);
+
+              if (canPaginate && outResult?.mainResult?.length) {
+                const [lastKeyRawObject] = outResult.mainResult.slice(-1);
+                if (lastKeyRawObject) {
+                  const customLastEvaluationKey = await this.__createCustomLastEvaluationKey({
+                    lastKeyRawObject,
+                    featureEntityValue,
+                    index_partitionAndSortKey,
+                    main_partitionAndSortKey,
+                    dynamo,
+                    tableFullName,
+                  });
+                  LoggingService.log({ customLastEvaluationKey });
+                  if (customLastEvaluationKey) {
+                    outResult.nextPageHash = this.__encodeLastKey(customLastEvaluationKey);
+                  }
+                }
+              }
+            } else if (resultDynamo?.LastEvaluatedKey && Object.keys(resultDynamo.LastEvaluatedKey).length) {
+              if (canPaginate) {
+                outResult.nextPageHash = this.__encodeLastKey(resultDynamo.LastEvaluatedKey);
+              }
             }
           }
         } else if (resultDynamo.LastEvaluatedKey && Object.keys(resultDynamo.LastEvaluatedKey).length) {
@@ -305,14 +315,11 @@ export class DynamoQueryScanProcessor {
     return UtilService.encodeBase64(JSON.stringify(lastEvaluatedKey));
   }
 
-  private __decodeLastKey(lastKeyHash: string) {
-    let _lastEvaluatedKey: any;
+  private __decodeLastKey(lastKeyHash: string): any {
     try {
-      const _lastKeyHashStr = UtilService.decodeBase64(lastKeyHash);
-      _lastEvaluatedKey = JSON.parse(_lastKeyHashStr);
+      return JSON.parse(UtilService.decodeBase64(lastKeyHash));
     } catch (error) {
-      _lastEvaluatedKey = undefined;
+      return undefined;
     }
-    return _lastEvaluatedKey;
   }
 }
