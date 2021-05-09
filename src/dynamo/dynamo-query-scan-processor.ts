@@ -166,24 +166,25 @@ export class DynamoQueryScanProcessor {
 
           hasNext = false;
 
-          if (index_partitionAndSortKey?.length === 2 && returnedItems.length > resultLimit) {
+          if (returnedItems?.length && returnedItems.length > resultLimit) {
             //
             outResult.mainResult = returnedItems.slice(0, resultLimit);
 
-            if (canPaginate) {
-              const lastKeyRawObject = outResult.mainResult.slice(-1)[0];
-              const customLastEvaluationKey = await this.__createCustomLastEvaluationKey({
-                lastKeyRawObject,
-                featureEntityValue,
-                index_partitionAndSortKey,
-                main_partitionAndSortKey,
-                dynamo,
-                tableFullName,
-              });
-
-              LoggingService.log({ customLastEvaluationKey });
-              if (customLastEvaluationKey) {
-                outResult.nextPageHash = this.__encodeLastKey(customLastEvaluationKey);
+            if (canPaginate && outResult?.mainResult?.length) {
+              const [lastKeyRawObject] = outResult.mainResult.slice(-1);
+              if (lastKeyRawObject) {
+                const customLastEvaluationKey = await this.__createCustomLastEvaluationKey({
+                  lastKeyRawObject,
+                  featureEntityValue,
+                  index_partitionAndSortKey,
+                  main_partitionAndSortKey,
+                  dynamo,
+                  tableFullName,
+                });
+                LoggingService.log({ customLastEvaluationKey });
+                if (customLastEvaluationKey) {
+                  outResult.nextPageHash = this.__encodeLastKey(customLastEvaluationKey);
+                }
               }
             }
           } else if (LastEvaluatedKey && Object.keys(LastEvaluatedKey).length) {
@@ -272,7 +273,7 @@ export class DynamoQueryScanProcessor {
 
     const itemJson = MocodyUtil.mocody_unmarshallToJson(lastKeyRawObject);
 
-    const dataId: string | undefined = itemJson[partitionKeyFieldName];
+    const dataId: string | undefined = itemJson?.[partitionKeyFieldName];
 
     if (!dataId) {
       return null;
