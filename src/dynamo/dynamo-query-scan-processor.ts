@@ -335,9 +335,24 @@ export class DynamoQueryScanProcessor {
     return UtilService.encodeBase64(JSON.stringify(lastEvaluatedKey));
   }
 
-  private __decodeLastKey(lastKeyHash: string): any {
+  private __decodeLastKey(lastKeyHash: string | undefined): any {
     try {
-      const lastKeyHash01 = JSON.parse(UtilService.decodeBase64(lastKeyHash));
+      if (!lastKeyHash) {
+        return undefined;
+      }
+      let lastKeyHash01: any = JSON.parse(UtilService.decodeBase64(lastKeyHash));
+
+      if (typeof lastKeyHash01 === "string") {
+        lastKeyHash01 = JSON.parse(lastKeyHash01);
+      }
+
+      if (typeof lastKeyHash01 === "string") {
+        lastKeyHash01 = JSON.parse(lastKeyHash01);
+      }
+
+      if (typeof lastKeyHash01 === "string") {
+        lastKeyHash01 = JSON.parse(lastKeyHash01);
+      }
 
       LoggingService.log({
         lastKeyHash,
@@ -345,6 +360,7 @@ export class DynamoQueryScanProcessor {
       });
       return lastKeyHash01;
     } catch (error) {
+      LoggingService.error(error);
       return undefined;
     }
   }

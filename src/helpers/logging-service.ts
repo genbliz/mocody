@@ -10,10 +10,24 @@ class LoggingServiceBase {
     }
   }
 
+  error(message: any) {
+    try {
+      if (this.mode) {
+        console.error(message);
+      }
+    } catch (error) {
+      //
+    }
+  }
+
   log(message: any, ...optionalParams: any[]) {
     try {
       if (this.mode) {
-        console.log(message, optionalParams);
+        if (optionalParams?.length) {
+          console.log(message, optionalParams);
+        } else {
+          console.log(message);
+        }
       }
     } catch (error) {
       //
