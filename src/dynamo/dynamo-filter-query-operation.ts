@@ -325,7 +325,7 @@ export class DynamoFilterQueryOperation {
 
   private operation__filterBeginsWith({ fieldName, term }: { fieldName: string; term: any }): IQueryConditions {
     const _attrKeyHash = `#r16a${getRandom()}`.toLowerCase();
-    const keyAttr = `:r17a${fieldName}${getRandom()}`.toLowerCase();
+    const keyAttr = `:r17a${getRandom()}`.toLowerCase();
     const result: IQueryConditions = {
       xExpressionAttributeValues: {
         [keyAttr]: term,

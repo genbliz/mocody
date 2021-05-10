@@ -152,10 +152,13 @@ export class DynamoQueryScanProcessor {
     let hasNext = true;
 
     const dynamo = await dynamoDb();
+    let loopCount = 0;
 
     while (hasNext) {
       try {
         const resultDynamo = await dynamo.query(params01);
+
+        loopCount++;
 
         params01.ExclusiveStartKey = undefined;
 
@@ -163,7 +166,7 @@ export class DynamoQueryScanProcessor {
           returnedItems = [...returnedItems, ...resultDynamo.Items];
         }
 
-        LoggingService.log({ returnedItems__length: returnedItems.length });
+        LoggingService.log({ dynamicReturnedItems__length: returnedItems.length });
 
         if (resultLimit01 && returnedItems.length >= resultLimit01) {
           outResult.mainResult = returnedItems;
@@ -230,6 +233,14 @@ export class DynamoQueryScanProcessor {
         }
       }
     }
+    LoggingService.log({
+      queryStatistics: {
+        loopCount,
+        realReturnedItemsCount: returnedItems.length,
+        actualReturnedItemsCount: outResult.mainResult.length,
+        nextPageHash: outResult.nextPageHash,
+      },
+    });
     return { ...outResult };
   }
 
