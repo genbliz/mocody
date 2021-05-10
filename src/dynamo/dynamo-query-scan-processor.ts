@@ -153,17 +153,19 @@ export class DynamoQueryScanProcessor {
 
     const dynamo = await dynamoDb();
     let loopCount = 0;
+    const itemsLoopedOrderedLength: number[] = [];
 
     while (hasNext) {
       try {
-        const resultDynamo = await dynamo.query(params01);
+        const { Items, LastEvaluatedKey } = await dynamo.query(params01);
 
         loopCount++;
 
         params01.ExclusiveStartKey = undefined;
 
-        if (resultDynamo?.Items?.length) {
-          returnedItems = [...returnedItems, ...resultDynamo.Items];
+        if (Items?.length) {
+          itemsLoopedOrderedLength.push(Items.length);
+          returnedItems = [...returnedItems, ...Items];
         }
 
         LoggingService.log({ dynamicReturnedItems__length: returnedItems.length });
@@ -174,47 +176,43 @@ export class DynamoQueryScanProcessor {
 
           hasNext = false;
 
-          if (resultDynamo?.LastEvaluatedKey && Object.keys(resultDynamo.LastEvaluatedKey).length) {
+          if (LastEvaluatedKey && Object.keys(LastEvaluatedKey).length) {
             if (canPaginate) {
-              outResult.nextPageHash = this.__encodeLastKey(resultDynamo.LastEvaluatedKey);
+              outResult.nextPageHash = this.__encodeLastKey(LastEvaluatedKey);
             }
           }
 
-          const ccns = false;
+          if (returnedItems?.length && returnedItems.length > resultLimit01) {
+            //
+            outResult.mainResult = returnedItems.slice(0, resultLimit01);
 
-          if (ccns) {
-            if (returnedItems?.length && returnedItems.length > resultLimit01) {
-              //
-              outResult.mainResult = returnedItems.slice(0, resultLimit01);
-
-              if (canPaginate && outResult?.mainResult?.length) {
-                const [lastKeyRawObject] = outResult.mainResult.slice(-1);
-                if (lastKeyRawObject) {
-                  const customLastEvaluationKey = await this.__createCustomLastEvaluationKey({
-                    lastKeyRawObject,
-                    featureEntityValue,
-                    index_partitionAndSortKey,
-                    main_partitionAndSortKey,
-                    dynamo,
-                    tableFullName,
-                  });
-                  LoggingService.log({ customLastEvaluationKey });
-                  if (customLastEvaluationKey) {
-                    outResult.nextPageHash = this.__encodeLastKey(customLastEvaluationKey);
-                  }
+            if (canPaginate && outResult?.mainResult?.length) {
+              const [lastKeyRawObject] = outResult.mainResult.slice(-1);
+              if (lastKeyRawObject) {
+                const customLastEvaluationKey = await this.__createCustomLastEvaluationKey({
+                  lastKeyRawObject,
+                  featureEntityValue,
+                  index_partitionAndSortKey,
+                  main_partitionAndSortKey,
+                  dynamo,
+                  tableFullName,
+                });
+                LoggingService.log({ customLastEvaluationKey });
+                if (customLastEvaluationKey) {
+                  outResult.nextPageHash = this.__encodeLastKey(customLastEvaluationKey);
                 }
               }
-              break;
-            } else if (resultDynamo?.LastEvaluatedKey && Object.keys(resultDynamo.LastEvaluatedKey).length) {
-              if (canPaginate) {
-                outResult.nextPageHash = this.__encodeLastKey(resultDynamo.LastEvaluatedKey);
-              }
+            }
+            break;
+          } else if (LastEvaluatedKey && Object.keys(LastEvaluatedKey).length) {
+            if (canPaginate) {
+              outResult.nextPageHash = this.__encodeLastKey(LastEvaluatedKey);
             }
           }
-        } else if (resultDynamo.LastEvaluatedKey && Object.keys(resultDynamo.LastEvaluatedKey).length) {
-          params01.ExclusiveStartKey = resultDynamo.LastEvaluatedKey;
+        } else if (LastEvaluatedKey && Object.keys(LastEvaluatedKey).length) {
+          params01.ExclusiveStartKey = LastEvaluatedKey;
           LoggingService.log({
-            LastEvaluatedKey: resultDynamo.LastEvaluatedKey,
+            LastEvaluatedKey_RAW: LastEvaluatedKey,
             dynamoProcessorParams: params01,
           });
         } else {
@@ -236,6 +234,7 @@ export class DynamoQueryScanProcessor {
     LoggingService.log({
       queryStatistics: {
         loopCount,
+        itemsLoopedOrderedLength,
         realReturnedItemsCount: returnedItems.length,
         actualReturnedItemsCount: outResult.mainResult.length,
         nextPageHash: outResult.nextPageHash,
