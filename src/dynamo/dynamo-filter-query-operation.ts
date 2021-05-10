@@ -496,10 +496,9 @@ export class DynamoFilterQueryOperation {
         QueryValidatorCheck.or_query(orArray);
         if (orArray && Array.isArray(orArray)) {
           orArray.forEach((orQuery) => {
-            Object.keys(orQuery).forEach((fieldName) => {
-              //
-              const orQueryObjectOrValue = orQuery[fieldName];
-              //
+            Object.entries(orQuery).forEach(([fieldName, orQueryObjectOrValue]) => {
+              LoggingService.log({ orQuery, orQueryObjectOrValue });
+
               if (orQueryObjectOrValue !== undefined) {
                 if (orQueryObjectOrValue && typeof orQueryObjectOrValue === "object") {
                   const _orQueryCond = this.operation__translateAdvancedQueryOperation({
@@ -507,7 +506,11 @@ export class DynamoFilterQueryOperation {
                     queryObject: orQueryObjectOrValue,
                   });
                   OR_queryConditions = [...OR_queryConditions, ..._orQueryCond.queryConditions];
-                  NOT_inside_OR_queryConditions = [...NOT_inside_OR_queryConditions, ..._orQueryCond.notConditions];
+                  NOT_inside_OR_queryConditions = [
+                    ...NOT_inside_OR_queryConditions,
+                    ..._orQueryCond.notConditions,
+                    //
+                  ];
                 } else {
                   const _orQueryConditions = this.operation_translateBasicQueryOperation({
                     fieldName,
