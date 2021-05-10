@@ -337,7 +337,13 @@ export class DynamoQueryScanProcessor {
 
   private __decodeLastKey(lastKeyHash: string): any {
     try {
-      return JSON.parse(UtilService.decodeBase64(lastKeyHash));
+      const lastKeyHash01 = JSON.parse(UtilService.decodeBase64(lastKeyHash));
+
+      LoggingService.log({
+        lastKeyHash,
+        slastKeyHash_decoded: lastKeyHash01,
+      });
+      return lastKeyHash01;
     } catch (error) {
       return undefined;
     }
