@@ -203,12 +203,12 @@ export class DynamoQueryScanProcessor {
                 }
               }
             }
-            break;
           } else if (LastEvaluatedKey && Object.keys(LastEvaluatedKey).length) {
             if (canPaginate) {
               outResult.nextPageHash = this.__encodeLastKey(LastEvaluatedKey);
             }
           }
+          break;
         } else if (LastEvaluatedKey && Object.keys(LastEvaluatedKey).length) {
           params01.ExclusiveStartKey = LastEvaluatedKey;
           LoggingService.log({
