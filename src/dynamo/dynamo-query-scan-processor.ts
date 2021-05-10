@@ -152,19 +152,16 @@ export class DynamoQueryScanProcessor {
     let hasNext = true;
 
     const dynamo = await dynamoDb();
-    let loopCount = 0;
     const itemsLoopedOrderedLength: number[] = [];
 
     while (hasNext) {
       try {
         const { Items, LastEvaluatedKey } = await dynamo.query(params01);
 
-        loopCount++;
-
         params01.ExclusiveStartKey = undefined;
 
+        itemsLoopedOrderedLength.push(Items?.length || 0);
         if (Items?.length) {
-          itemsLoopedOrderedLength.push(Items.length);
           returnedItems = [...returnedItems, ...Items];
         }
 
@@ -229,11 +226,12 @@ export class DynamoQueryScanProcessor {
         } else {
           throw error;
         }
+        break;
       }
     }
     LoggingService.log({
       queryStatistics: {
-        loopCount,
+        loopCount: itemsLoopedOrderedLength.length,
         itemsLoopedOrderedLength,
         realReturnedItemsCount: returnedItems.length,
         actualReturnedItemsCount: outResult.mainResult.length,
