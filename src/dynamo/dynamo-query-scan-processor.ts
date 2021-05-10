@@ -81,7 +81,7 @@ export class DynamoQueryScanProcessor {
     index_partitionAndSortKey: [string, string];
     main_partitionAndSortKey: [string, string];
   }) {
-    const xDefaultEvaluationLimit = 200;
+    const xDefaultEvaluationLimit = 20;
     const xMinEvaluationLimit = 5;
     const xMaxEvaluationLimit = 500;
 

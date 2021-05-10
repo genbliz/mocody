@@ -696,6 +696,19 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       paramOption01.fields = Array.from(fieldSet01);
     }
 
+    let evaluationLimit01: number | undefined = undefined;
+    let resultLimit01: number | undefined = undefined;
+
+    if (paramOption01.limit && UtilService.isNumericInteger(paramOption01.limit)) {
+      resultLimit01 = Number(paramOption01.limit);
+    }
+
+    if (paramOption01?.pagingParams?.evaluationLimit) {
+      evaluationLimit01 = paramOption01?.pagingParams?.evaluationLimit;
+    } else if (!paramOption01.query && resultLimit01) {
+      evaluationLimit01 = resultLimit01;
+    }
+
     const index_PartitionKeyFieldName = secondaryIndex.partitionKeyFieldName as string;
     const index_SortKeyFieldName = secondaryIndex.sortKeyFieldName as string;
 
@@ -794,9 +807,9 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       featureEntityValue,
       main_partitionAndSortKey,
       index_partitionAndSortKey,
-      evaluationLimit: paramOption01.pagingParams?.evaluationLimit,
+      evaluationLimit: evaluationLimit01,
       nextPageHash: paramOption01.pagingParams?.nextPageHash,
-      resultLimit: UtilService.isNumericInteger(paramOption01.limit) ? Number(paramOption01.limit) : undefined,
+      resultLimit: resultLimit01,
     });
     return result;
   }
