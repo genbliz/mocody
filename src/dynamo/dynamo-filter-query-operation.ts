@@ -481,11 +481,13 @@ export class DynamoFilterQueryOperation {
   }) {
     let AND_queryConditions: IQueryConditions[] = [];
     let OR_queryConditions: IQueryConditions[] = [];
+    const OR_queryConditions_multiFields: IQueryConditions[][] = [];
     let NOT_queryConditions: IQueryConditions[] = [];
     let NOT_inside_OR_queryConditions: IQueryConditions[] = [];
     //
     const AND_FilterExpressionArray: string[] = [];
     const OR_FilterExpressionArray: string[] = [];
+    const OR_FilterExpressionMultiFieldsArray: string[][] = [];
     const NOT_FilterExpressionArray: string[] = [];
     const NOT_inside_OR_FilterExpressionArray: string[] = [];
 
@@ -496,6 +498,8 @@ export class DynamoFilterQueryOperation {
         QueryValidatorCheck.or_query(orArray);
         if (orArray && Array.isArray(orArray)) {
           orArray.forEach((orQuery) => {
+            const hasMultiField = Object.keys(orQuery || {}).length > 1;
+            const OR_queryConditionsPrivate: IQueryConditions[] = [];
             Object.entries(orQuery).forEach(([fieldName, orQueryObjectOrValue]) => {
               LoggingService.log({ orQuery, orQueryObjectOrValue });
 
@@ -505,21 +509,34 @@ export class DynamoFilterQueryOperation {
                     fieldName,
                     queryObject: orQueryObjectOrValue,
                   });
-                  OR_queryConditions = [...OR_queryConditions, ..._orQueryCond.queryConditions];
-                  NOT_inside_OR_queryConditions = [
-                    ...NOT_inside_OR_queryConditions,
-                    ..._orQueryCond.notConditions,
-                    //
-                  ];
+                  if (_orQueryCond?.queryConditions?.length) {
+                    if (hasMultiField) {
+                      OR_queryConditionsPrivate.push(..._orQueryCond.queryConditions);
+                    } else {
+                      OR_queryConditions = [...OR_queryConditions, ..._orQueryCond.queryConditions];
+                      NOT_inside_OR_queryConditions = [
+                        ...NOT_inside_OR_queryConditions,
+                        ..._orQueryCond.notConditions,
+                        //
+                      ];
+                    }
+                  }
                 } else {
                   const _orQueryConditions = this.operation_translateBasicQueryOperation({
                     fieldName,
                     queryObject: orQueryObjectOrValue,
                   });
-                  OR_queryConditions = [...OR_queryConditions, _orQueryConditions];
+                  if (hasMultiField) {
+                    OR_queryConditionsPrivate.push(_orQueryConditions);
+                  } else {
+                    OR_queryConditions.push(_orQueryConditions);
+                  }
                 }
               }
             });
+            if (OR_queryConditionsPrivate.length) {
+              OR_queryConditions_multiFields.push(OR_queryConditionsPrivate);
+            }
           });
         }
       } else if (fieldName_Or_And === "$and") {
@@ -607,6 +624,22 @@ export class DynamoFilterQueryOperation {
       OR_FilterExpressionArray.push(item2.xFilterExpression);
     }
 
+    for (const item2 of OR_queryConditions_multiFields) {
+      const xFilterExpression: string[] = [];
+      item2.forEach((item01) => {
+        _expressionAttributeNames = {
+          ..._expressionAttributeNames,
+          ...item01.xExpressionAttributeNames,
+        };
+        _expressionAttributeValues = {
+          ..._expressionAttributeValues,
+          ...item01.xExpressionAttributeValues,
+        };
+        xFilterExpression.push(item01.xFilterExpression);
+      });
+      OR_FilterExpressionMultiFieldsArray.push(xFilterExpression);
+    }
+
     for (const item3 of NOT_queryConditions) {
       _expressionAttributeNames = {
         ..._expressionAttributeNames,
@@ -640,7 +673,15 @@ export class DynamoFilterQueryOperation {
       _andfilterExpression = AND_FilterExpressionArray.join(" AND ").trim();
     }
 
-    if (OR_FilterExpressionArray?.length) {
+    if (OR_FilterExpressionMultiFieldsArray?.length) {
+      const subQuery: string[] = [];
+      OR_FilterExpressionMultiFieldsArray.forEach((item01) => {
+        const val = item01.join(" AND ").trim();
+        subQuery.push(`(${val})`);
+      });
+      _orfilterExpression = [...OR_FilterExpressionArray, ...subQuery].join(" OR ").trim();
+      //
+    } else if (OR_FilterExpressionArray?.length) {
       _orfilterExpression = OR_FilterExpressionArray.join(" OR ").trim();
     }
 
