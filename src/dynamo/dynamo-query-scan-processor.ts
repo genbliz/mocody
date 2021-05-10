@@ -81,7 +81,7 @@ export class DynamoQueryScanProcessor {
     index_partitionAndSortKey: [string, string];
     main_partitionAndSortKey: [string, string];
   }) {
-    const xDefaultEvaluationLimit = 10;
+    const xDefaultEvaluationLimit = 200;
     const xMinEvaluationLimit = 5;
     const xMaxEvaluationLimit = 500;
 
@@ -101,6 +101,7 @@ export class DynamoQueryScanProcessor {
 
     let returnedItems: any[] = [];
     let evaluationLimit01: number = 0;
+    const resultLimit01 = resultLimit || 0;
 
     if (evaluationLimit) {
       //
@@ -116,21 +117,21 @@ export class DynamoQueryScanProcessor {
         evaluationLimit01 = xMaxEvaluationLimit;
       }
 
-      if (resultLimit) {
-        if (resultLimit > evaluationLimit01) {
-          evaluationLimit01 = resultLimit + 1;
+      if (resultLimit01) {
+        if (resultLimit01 > evaluationLimit01) {
+          evaluationLimit01 = resultLimit01 + 1;
           //
-        } else if (resultLimit === evaluationLimit01) {
+        } else if (resultLimit01 === evaluationLimit01) {
           //
         }
       }
     }
 
-    if (orderDesc === true) {
-      params.ScanIndexForward = false;
-    }
-
     const params01 = { ...params };
+
+    if (orderDesc === true) {
+      params01.ScanIndexForward = false;
+    }
 
     if (evaluationLimit01) {
       params01.Limit = evaluationLimit01;
@@ -144,7 +145,7 @@ export class DynamoQueryScanProcessor {
     }
 
     const outResult: IMocodyPagingResult<T[]> = {
-      mainResult: returnedItems,
+      mainResult: [],
       nextPageHash: undefined,
     };
 
@@ -156,11 +157,15 @@ export class DynamoQueryScanProcessor {
       try {
         const resultDynamo = await dynamo.query(params01);
 
+        params01.ExclusiveStartKey = undefined;
+
         if (resultDynamo?.Items?.length) {
           returnedItems = [...returnedItems, ...resultDynamo.Items];
         }
 
-        if (resultLimit && returnedItems.length >= resultLimit) {
+        LoggingService.log({ returnedItems__length: returnedItems.length });
+
+        if (resultLimit01 && returnedItems.length >= resultLimit01) {
           outResult.mainResult = returnedItems;
           outResult.nextPageHash = undefined;
 
@@ -175,9 +180,9 @@ export class DynamoQueryScanProcessor {
           const ccns = false;
 
           if (ccns) {
-            if (returnedItems?.length && returnedItems.length > resultLimit) {
+            if (returnedItems?.length && returnedItems.length > resultLimit01) {
               //
-              outResult.mainResult = returnedItems.slice(0, resultLimit);
+              outResult.mainResult = returnedItems.slice(0, resultLimit01);
 
               if (canPaginate && outResult?.mainResult?.length) {
                 const [lastKeyRawObject] = outResult.mainResult.slice(-1);
@@ -196,6 +201,7 @@ export class DynamoQueryScanProcessor {
                   }
                 }
               }
+              break;
             } else if (resultDynamo?.LastEvaluatedKey && Object.keys(resultDynamo.LastEvaluatedKey).length) {
               if (canPaginate) {
                 outResult.nextPageHash = this.__encodeLastKey(resultDynamo.LastEvaluatedKey);
@@ -204,11 +210,15 @@ export class DynamoQueryScanProcessor {
           }
         } else if (resultDynamo.LastEvaluatedKey && Object.keys(resultDynamo.LastEvaluatedKey).length) {
           params01.ExclusiveStartKey = resultDynamo.LastEvaluatedKey;
-          LoggingService.log({ dynamoProcessorParams: params01 });
+          LoggingService.log({
+            LastEvaluatedKey: resultDynamo.LastEvaluatedKey,
+            dynamoProcessorParams: params01,
+          });
         } else {
           outResult.mainResult = returnedItems;
           outResult.nextPageHash = undefined;
           hasNext = false;
+          break;
         }
       } catch (error) {
         hasNext = false;
@@ -220,7 +230,6 @@ export class DynamoQueryScanProcessor {
         }
       }
     }
-
     return { ...outResult };
   }
 
