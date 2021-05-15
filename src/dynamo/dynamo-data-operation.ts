@@ -493,28 +493,25 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     const originalIds = this._mocody_removeDuplicateString(dataIds);
     const BATCH_SIZE = 80;
 
-    const batchIds: string[][] = [];
-
-    while (originalIds.length > 0) {
-      batchIds.push(originalIds.splice(0, BATCH_SIZE));
-    }
+    const batchIds = lodash.chunk(originalIds, BATCH_SIZE);
 
     LoggingService.log("@mocody_getManyByIds batchIds: ", batchIds.length);
+    LoggingService.log({ batchIds });
 
-    let result: T[] = [];
+    let resultAll: T[] = [];
 
     const fieldKeys = fields?.length ? this._mocody_removeDuplicateString(fields) : fields;
 
     for (const batch of batchIds) {
-      const call = await this.mocody_batchGetManyByIdsBasePrivate({
+      const callByIds = await this.mocody_batchGetManyByIdsBasePrivate({
         dataIds: batch,
         fields: fieldKeys,
         withCondition,
       });
-      result = [...result, ...call];
+      resultAll = [...resultAll, ...callByIds];
     }
-    LoggingService.log("@mocody_getManyByIds batchIds result Out: ", result.length);
-    return result;
+    LoggingService.log("@mocody_getManyByIds batchIds result Out: ", resultAll.length);
+    return resultAll;
   }
 
   private async mocody_batchGetManyByIdsBasePrivate({
@@ -540,14 +537,6 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     const dataIdsNoDup = this._mocody_removeDuplicateString(dataIds);
 
     type IKey = Record<string, AttributeValue>;
-
-    const getArray: IKey[] = dataIdsNoDup.map((dataId) => {
-      const params01 = {
-        [partitionKeyFieldName]: { S: dataId },
-        [sortKeyFieldName]: { S: featureEntityValue },
-      };
-      return params01;
-    });
 
     let projectionExpression: string | undefined = undefined;
     let expressionAttributeNames: Record<string, string> | undefined = undefined;
@@ -577,6 +566,14 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       }
     }
 
+    const getArray: IKey[] = dataIdsNoDup.map((dataId) => {
+      const params01 = {
+        [partitionKeyFieldName]: { S: dataId },
+        [sortKeyFieldName]: { S: featureEntityValue },
+      };
+      return params01;
+    });
+
     const params: BatchGetItemInput = {
       RequestItems: {
         [tableFullName]: {
@@ -588,22 +585,15 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       },
     };
 
-    const resolveItemResults = (resultItems: any[]) => {
-      if (resultItems?.length && withCondition?.length) {
-        return resultItems.filter((item) => {
-          return withCondition.every((condition) => {
-            return item[condition.field] === condition.equals;
-          });
-        });
-      }
-      return resultItems || [];
-    };
+    LoggingService.log({ batchGetItemParams: params });
 
     let hasNext = true;
     let params01 = { ...params };
     let returnedItems: any[] = [];
 
     const dynamo = await this._mocody_dynamoDbInstance();
+
+    LoggingService.log({ fetchForDataIds: dataIds });
 
     while (hasNext) {
       try {
@@ -624,15 +614,30 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
           LoggingService.log({ dynamoBatchGetParams: params01 });
         } else {
           hasNext = false;
+          break;
         }
       } catch (error) {
         hasNext = false;
+        LoggingService.error(error);
         if (!returnedItems?.length) {
           throw error;
+        } else {
+          break;
         }
       }
     }
-    return resolveItemResults(returnedItems);
+
+    if (returnedItems?.length && withCondition?.length) {
+      const returnedItems01: any[] = [];
+      for (const item of returnedItems) {
+        const canInclude = withCondition.every((condition) => item[condition.field] === condition.equals);
+        if (canInclude) {
+          returnedItems01.push(item);
+        }
+      }
+      return returnedItems01;
+    }
+    return returnedItems;
   }
 
   async mocody_getManyBySecondaryIndex<TData = T, TSortKeyField = string>(
