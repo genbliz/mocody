@@ -803,6 +803,15 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       params.ProjectionExpression = mainFilter.projectionExpressionAttr;
     }
 
+    let nextPageHash01 = paramOption01?.pagingParams?.nextPageHash;
+
+    if (nextPageHash01 === "undefined") {
+      nextPageHash01 = undefined;
+    }
+    if (nextPageHash01 === "null") {
+      nextPageHash01 = undefined;
+    }
+
     const result = await this._mocody_queryScanProcessor.mocody__helperDynamoQueryProcessor<T>({
       dynamoDb: () => this._mocody_dynamoDbInstance(),
       params,
@@ -813,7 +822,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       main_partitionAndSortKey,
       index_partitionAndSortKey,
       evaluationLimit: evaluationLimit01,
-      nextPageHash: paramOption01.pagingParams?.nextPageHash,
+      nextPageHash: nextPageHash01,
       resultLimit: resultLimit01,
     });
     return result;
