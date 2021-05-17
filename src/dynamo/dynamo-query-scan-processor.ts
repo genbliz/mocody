@@ -101,7 +101,7 @@ export class DynamoQueryScanProcessor {
 
     let returnedItems: any[] = [];
     let evaluationLimit01: number = 0;
-    const resultLimit01 = resultLimit || 0;
+    const pageSize01 = resultLimit || 0;
 
     if (evaluationLimit) {
       //
@@ -117,12 +117,12 @@ export class DynamoQueryScanProcessor {
         evaluationLimit01 = xMaxEvaluationLimit;
       }
 
-      if (resultLimit01) {
-        if (resultLimit01 > evaluationLimit01) {
-          evaluationLimit01 = resultLimit01 + 1;
+      if (pageSize01) {
+        if (pageSize01 > evaluationLimit01) {
+          evaluationLimit01 = pageSize01 + 1;
           //
-        } else if (resultLimit01 === evaluationLimit01) {
-          //
+        } else if (pageSize01 === evaluationLimit01) {
+          evaluationLimit01 = pageSize01 + 2;
         }
       }
     }
@@ -131,6 +131,8 @@ export class DynamoQueryScanProcessor {
 
     if (orderDesc === true) {
       params01.ScanIndexForward = false;
+    } else {
+      params01.ScanIndexForward = true;
     }
 
     if (evaluationLimit01) {
@@ -168,17 +170,14 @@ export class DynamoQueryScanProcessor {
 
         LoggingService.log({ dynamicReturnedItems__length: returnedItems.length });
 
-        if (resultLimit01 && returnedItems.length >= resultLimit01) {
-          outResult.mainResult = returnedItems;
+        if (returnedItems.length >= pageSize01) {
+          const hasMoreResults = returnedItems.length > pageSize01;
+
+          outResult.mainResult = hasMoreResults ? returnedItems.slice(0, pageSize01) : returnedItems.slice(0);
           outResult.nextPageHash = undefined;
 
-          hasNext = false;
-
-          if (returnedItems.length > resultLimit01) {
-            //
-            outResult.mainResult = returnedItems.slice(0, resultLimit01);
-
-            if (canPaginate) {
+          if (canPaginate) {
+            if (hasMoreResults) {
               const [lastKeyRawObject] = outResult.mainResult.slice(-1);
               if (lastKeyRawObject) {
                 const customLastEvaluationKey = await this.__createCustomLastEvaluationKey({
@@ -194,12 +193,11 @@ export class DynamoQueryScanProcessor {
                   outResult.nextPageHash = this.__encodeLastKey(customLastEvaluationKey);
                 }
               }
-            }
-          } else if (LastEvaluatedKey && Object.keys(LastEvaluatedKey).length) {
-            if (canPaginate) {
+            } else if (LastEvaluatedKey && Object.keys(LastEvaluatedKey).length) {
               outResult.nextPageHash = this.__encodeLastKey(LastEvaluatedKey);
             }
           }
+          hasNext = false;
           break;
         } else if (LastEvaluatedKey && Object.keys(LastEvaluatedKey).length) {
           params01.ExclusiveStartKey = LastEvaluatedKey;
@@ -214,13 +212,13 @@ export class DynamoQueryScanProcessor {
           break;
         }
       } catch (error) {
-        hasNext = false;
         if (returnedItems?.length) {
           outResult.mainResult = returnedItems;
           outResult.nextPageHash = undefined;
         } else {
           throw error;
         }
+        hasNext = false;
         break;
       }
     }
