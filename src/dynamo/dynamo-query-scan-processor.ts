@@ -173,8 +173,14 @@ export class DynamoQueryScanProcessor {
         if (returnedItems.length >= pageSize01) {
           const hasMoreResults = returnedItems.length > pageSize01;
 
-          outResult.mainResult = hasMoreResults ? returnedItems.slice(0, pageSize01) : returnedItems.slice(0);
+          outResult.mainResult = hasMoreResults ? returnedItems.slice(0, pageSize01) : returnedItems;
           outResult.nextPageHash = undefined;
+
+          LoggingService.log({
+            hasMoreResults,
+            returnedItems_length: returnedItems.length,
+            outResult_mainResult_length: outResult.mainResult.length,
+          });
 
           if (canPaginate) {
             if (hasMoreResults) {
