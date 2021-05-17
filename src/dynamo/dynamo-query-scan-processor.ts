@@ -170,7 +170,7 @@ export class DynamoQueryScanProcessor {
 
         LoggingService.log({ dynamicReturnedItems__length: returnedItems.length });
 
-        if (returnedItems.length >= pageSize01) {
+        if (pageSize01 && pageSize01 > 1 && returnedItems.length >= pageSize01) {
           const hasMoreResults = returnedItems.length > pageSize01;
 
           outResult.mainResult = hasMoreResults ? returnedItems.slice(0, pageSize01) : returnedItems;
