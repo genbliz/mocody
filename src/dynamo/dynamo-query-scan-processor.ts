@@ -283,13 +283,15 @@ export class DynamoQueryScanProcessor {
     }
     */
 
-    const fields = [
+    const fields01 = [
       //
       partitionKeyFieldName,
       sortKeyFieldName,
       index_PartitionKeyFieldName,
       index_SortKeyFieldName,
     ];
+
+    const fields = Array.from(new Set(fields01));
 
     const obj: Record<string, any> = {};
     for (const key of fields) {
@@ -303,7 +305,7 @@ export class DynamoQueryScanProcessor {
       obj,
     });
 
-    if (Object.keys(obj).length === 4) {
+    if (Object.keys(obj).length === fields.length) {
       return obj;
     }
 
@@ -341,7 +343,7 @@ export class DynamoQueryScanProcessor {
       obj01,
       result,
     });
-    return Object.keys(obj01).length === 4 ? obj01 : null;
+    return Object.keys(obj01).length === fields.length ? obj01 : null;
   }
 
   private __encodeLastKey(lastEvaluatedKey: Record<string, any>) {
