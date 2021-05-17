@@ -161,6 +161,7 @@ export class DynamoQueryScanProcessor {
         params01.ExclusiveStartKey = undefined;
 
         itemsLoopedOrderedLength.push(Items?.length || 0);
+
         if (Items?.length) {
           returnedItems = [...returnedItems, ...Items];
         }
@@ -173,17 +174,11 @@ export class DynamoQueryScanProcessor {
 
           hasNext = false;
 
-          if (LastEvaluatedKey && Object.keys(LastEvaluatedKey).length) {
-            if (canPaginate) {
-              outResult.nextPageHash = this.__encodeLastKey(LastEvaluatedKey);
-            }
-          }
-
-          if (returnedItems?.length && returnedItems.length > resultLimit01) {
+          if (returnedItems.length > resultLimit01) {
             //
             outResult.mainResult = returnedItems.slice(0, resultLimit01);
 
-            if (canPaginate && outResult?.mainResult?.length) {
+            if (canPaginate) {
               const [lastKeyRawObject] = outResult.mainResult.slice(-1);
               if (lastKeyRawObject) {
                 const customLastEvaluationKey = await this.__createCustomLastEvaluationKey({
@@ -231,6 +226,7 @@ export class DynamoQueryScanProcessor {
     }
     LoggingService.log({
       queryStatistics: {
+        canPaginate,
         loopCount: itemsLoopedOrderedLength.length,
         itemsLoopedOrderedLength,
         realReturnedItemsCount: returnedItems.length,
