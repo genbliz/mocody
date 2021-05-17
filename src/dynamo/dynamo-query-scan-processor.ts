@@ -173,18 +173,22 @@ export class DynamoQueryScanProcessor {
         if (pageSize01 && pageSize01 > 1 && returnedItems.length >= pageSize01) {
           const hasMoreResults = returnedItems.length > pageSize01;
 
-          outResult.mainResult = hasMoreResults ? returnedItems.slice(0, pageSize01) : returnedItems;
+          const actualResult01 = hasMoreResults ? returnedItems.slice(0, pageSize01) : [...returnedItems];
+
+          outResult.mainResult = actualResult01;
           outResult.nextPageHash = undefined;
 
           LoggingService.log({
             hasMoreResults,
             returnedItems_length: returnedItems.length,
-            outResult_mainResult_length: outResult.mainResult.length,
+            outResult_mainResult_length: actualResult01.length,
+            canPaginate,
           });
 
           if (canPaginate) {
             if (hasMoreResults) {
-              const [lastKeyRawObject] = outResult.mainResult.slice(-1);
+              const [lastKeyRawObject] = actualResult01.slice(-1);
+              LoggingService.log({ hasMoreResults, lastKeyRawObject });
               if (lastKeyRawObject) {
                 const customLastEvaluationKey = await this.__createCustomLastEvaluationKey({
                   lastKeyRawObject,
@@ -212,14 +216,14 @@ export class DynamoQueryScanProcessor {
             dynamoProcessorParams: params01,
           });
         } else {
-          outResult.mainResult = returnedItems;
+          outResult.mainResult = [...returnedItems];
           outResult.nextPageHash = undefined;
           hasNext = false;
           break;
         }
       } catch (error) {
         if (returnedItems?.length) {
-          outResult.mainResult = returnedItems;
+          outResult.mainResult = [...returnedItems];
           outResult.nextPageHash = undefined;
         } else {
           throw error;
@@ -288,11 +292,11 @@ export class DynamoQueryScanProcessor {
     ];
 
     const obj: Record<string, any> = {};
-    fields.forEach((key) => {
+    for (const key of fields) {
       if (typeof lastKeyRawObject[key] !== "undefined") {
         obj[key] = lastKeyRawObject[key];
       }
-    });
+    }
 
     if (Object.keys(obj).length === 4) {
       return obj;
@@ -317,13 +321,13 @@ export class DynamoQueryScanProcessor {
 
     if (result.Item && result.Item[partitionKeyFieldName]) {
       const itemObject = { ...result.Item };
-      const obj: Record<string, any> = {};
-      fields.forEach((key) => {
+      const obj01: Record<string, any> = {};
+      for (const key of fields) {
         if (typeof itemObject[key] !== "undefined") {
-          obj[key] = itemObject[key];
+          obj01[key] = itemObject[key];
         }
-      });
-      return Object.keys(obj).length === 4 ? obj : null;
+      }
+      return Object.keys(obj01).length === 4 ? obj01 : null;
     }
     return null;
   }
