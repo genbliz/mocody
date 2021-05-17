@@ -188,7 +188,7 @@ export class DynamoQueryScanProcessor {
           if (canPaginate) {
             if (hasMoreResults) {
               const [lastKeyRawObject] = actualResult01.slice(-1);
-              LoggingService.log({ hasMoreResults, lastKeyRawObject });
+              LoggingService.log({ lastKeyRawObject });
               if (lastKeyRawObject) {
                 const customLastEvaluationKey = await this.__createCustomLastEvaluationKey({
                   lastKeyRawObject,
@@ -300,11 +300,6 @@ export class DynamoQueryScanProcessor {
       }
     }
 
-    LoggingService.log({
-      customLastEvaluationKey_fields: fields,
-      obj,
-    });
-
     if (Object.keys(obj).length === fields.length) {
       return obj;
     }
@@ -313,7 +308,6 @@ export class DynamoQueryScanProcessor {
 
     const dataId: string | undefined = itemJson?.[partitionKeyFieldName];
 
-    LoggingService.log({ itemJson, dataId });
     if (!dataId) {
       return null;
     }
@@ -330,19 +324,12 @@ export class DynamoQueryScanProcessor {
     const obj01: Record<string, any> = {};
     if (result.Item && result.Item[partitionKeyFieldName]) {
       const itemObject = { ...result.Item };
-      LoggingService.log({ itemObject });
       for (const key of fields) {
         if (typeof itemObject[key] !== "undefined") {
           obj01[key] = itemObject[key];
         }
       }
     }
-    LoggingService.log({
-      "@__createCustomLastEvaluationKey": true,
-      params01,
-      obj01,
-      result,
-    });
     return Object.keys(obj01).length === fields.length ? obj01 : null;
   }
 
