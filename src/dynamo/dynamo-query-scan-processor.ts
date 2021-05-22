@@ -52,7 +52,7 @@ export class DynamoQueryScanProcessor {
       featureEntityValue,
       tableFullName,
     });
-    results.mainResult = this.__unmarshallToJson(results.mainResult);
+    results.paginationResults = this.__unmarshallToJson(results.paginationResults);
     return results;
   }
 
@@ -147,7 +147,7 @@ export class DynamoQueryScanProcessor {
     }
 
     const outResult: IMocodyPagingResult<T[]> = {
-      mainResult: [],
+      paginationResults: [],
       nextPageHash: undefined,
     };
 
@@ -175,13 +175,13 @@ export class DynamoQueryScanProcessor {
 
           const actualResult01 = hasMoreResults ? returnedItems.slice(0, pageSize01) : [...returnedItems];
 
-          outResult.mainResult = actualResult01;
+          outResult.paginationResults = actualResult01;
           outResult.nextPageHash = undefined;
 
           LoggingService.log({
             hasMoreResults,
             returnedItems_length: returnedItems.length,
-            outResult_mainResult_length: actualResult01.length,
+            outResult_paginationResults_length: actualResult01.length,
             canPaginate,
           });
 
@@ -216,14 +216,14 @@ export class DynamoQueryScanProcessor {
             dynamoProcessorParams: params01,
           });
         } else {
-          outResult.mainResult = [...returnedItems];
+          outResult.paginationResults = [...returnedItems];
           outResult.nextPageHash = undefined;
           hasNext = false;
           break;
         }
       } catch (error) {
         if (returnedItems?.length) {
-          outResult.mainResult = [...returnedItems];
+          outResult.paginationResults = [...returnedItems];
           outResult.nextPageHash = undefined;
         } else {
           throw error;
@@ -238,7 +238,7 @@ export class DynamoQueryScanProcessor {
         loopCount: itemsLoopedOrderedLength.length,
         itemsLoopedOrderedLength,
         realReturnedItemsCount: returnedItems.length,
-        actualReturnedItemsCount: outResult.mainResult.length,
+        actualReturnedItemsCount: outResult.paginationResults.length,
         nextPageHash: outResult.nextPageHash,
       },
     });

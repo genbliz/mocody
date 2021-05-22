@@ -385,8 +385,8 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
       paramOption,
       canPaginate: false,
     });
-    if (result?.mainResult) {
-      return result.mainResult;
+    if (result?.paginationResults) {
+      return result.paginationResults;
     }
     return [];
   }
@@ -555,7 +555,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     }
 
     return {
-      mainResult: results,
+      paginationResults: results,
       nextPageHash: nextPageHash,
     };
   }

@@ -414,8 +414,8 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
       paramOption,
       canPaginate: false,
     });
-    if (result?.mainResult?.length) {
-      return result.mainResult;
+    if (result?.paginationResults?.length) {
+      return result.paginationResults;
     }
     return [];
   }
@@ -605,7 +605,7 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     }
 
     return {
-      mainResult: results,
+      paginationResults: results,
       nextPageHash: nextPageHash,
     };
   }

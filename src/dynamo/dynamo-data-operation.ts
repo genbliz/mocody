@@ -381,8 +381,8 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
   async mocody_getManyByCondition(paramOptions: IMocodyQueryParamOptions<T>) {
     paramOptions.pagingParams = undefined;
     const result = await this.mocody_getManyByConditionPaginate(paramOptions);
-    if (result?.mainResult?.length) {
-      return result.mainResult;
+    if (result?.paginationResults?.length) {
+      return result.paginationResults;
     }
     return [];
   }
@@ -647,8 +647,8 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       paramOption,
       canPaginate: false,
     });
-    if (result?.mainResult) {
-      return result.mainResult;
+    if (result?.paginationResults) {
+      return result.paginationResults;
     }
     return [];
   }

@@ -44,7 +44,7 @@ type QueryKeyConditionBasic<T> = {
 
 export interface IMocodyPagingResult<T> {
   nextPageHash: string | undefined;
-  mainResult: T;
+  paginationResults: T;
   // count: number | undefined;
 }
 
