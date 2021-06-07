@@ -1,5 +1,5 @@
 import { IMocodyCoreEntityModel } from "../core/base-schema";
-import { IMocodyIndexDefinition } from "../type/types";
+import { IMocodyIndexDefinition } from "../type";
 import { UtilService } from "../helpers/util-service";
 import { LoggingService } from "../helpers/logging-service";
 import type {

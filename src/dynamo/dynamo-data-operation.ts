@@ -7,7 +7,7 @@ import type {
   IMocodyQueryIndexOptions,
   IMocodyPagingResult,
   IMocodyQueryIndexOptionsNoPaging,
-} from "../type/types";
+} from "../type";
 import { MocodyErrorUtils, MocodyGenericError } from "./../helpers/errors";
 import type {
   DynamoDB,

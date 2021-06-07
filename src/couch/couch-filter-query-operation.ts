@@ -1,6 +1,6 @@
 import { MocodyErrorUtilsService } from "../helpers/errors";
 import { QueryValidatorCheck } from "../helpers/query-validator";
-import type { IMocodyKeyConditionParams, IMocodyQueryConditionParams, IMocodyQueryDefinition } from "../type/types";
+import type { IMocodyKeyConditionParams, IMocodyQueryConditionParams, IMocodyQueryDefinition } from "../type";
 // https://docs.couchdb.org/en/latest/api/database/find.html
 
 interface ISelectedQueryConditionsKeys {

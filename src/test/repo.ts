@@ -1,4 +1,4 @@
-import type { IMocodyQueryDefinition } from "../type/types";
+import type { IMocodyQueryDefinition } from "../type";
 import { BaseRepository } from "./base-repo";
 import Joi from "joi";
 import faker from "faker";

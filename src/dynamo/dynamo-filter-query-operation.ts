@@ -1,7 +1,7 @@
 import { QueryValidatorCheck } from "./../helpers/query-validator";
 import { LoggingService } from "../helpers/logging-service";
 import { UtilService } from "../helpers/util-service";
-import type { IMocodyKeyConditionParams, IMocodyQueryConditionParams, IMocodyQueryDefinition } from "../type/types";
+import type { IMocodyKeyConditionParams, IMocodyQueryConditionParams, IMocodyQueryDefinition } from "../type";
 import { MocodyErrorUtilsService } from "../helpers/errors";
 
 // https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.OperatorsAndFunctions.html

@@ -1,4 +1,4 @@
-import type { IMocodyFieldCondition, IMocodyPagingResult, IMocodyQueryIndexOptions } from "../type/types";
+import type { IMocodyFieldCondition, IMocodyPagingResult, IMocodyQueryIndexOptions } from "../type";
 
 export abstract class RepoModel<T> {
   abstract mocody_getOneById({

@@ -1,5 +1,5 @@
 import { LoggingService } from "./../helpers/logging-service";
-import type { IMocodyKeyConditionParams, IMocodyQueryConditionParams, IMocodyQueryDefinition } from "../type/types";
+import type { IMocodyKeyConditionParams, IMocodyQueryConditionParams, IMocodyQueryDefinition } from "../type";
 import { QueryValidatorCheck } from "../helpers/query-validator";
 import { MocodyErrorUtilsService } from "../helpers/errors";
 // https://docs.mongodb.com/drivers/node/fundamentals/crud/

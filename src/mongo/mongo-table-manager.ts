@@ -1,6 +1,6 @@
 import { IMocodyCoreEntityModel } from "../core/base-schema";
 import { LoggingService } from "./../helpers/logging-service";
-import type { IMocodyIndexDefinition } from "./../type/types";
+import type { IMocodyIndexDefinition } from "../type";
 import type { MocodyInitializerMongo } from "./mongo-initializer";
 
 interface ITableOptions<T> {

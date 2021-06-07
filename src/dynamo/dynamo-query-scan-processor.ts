@@ -1,7 +1,7 @@
 import { UtilService } from "./../helpers/util-service";
 import type { DynamoDB, GetItemCommandInput, QueryInput } from "@aws-sdk/client-dynamodb";
 import { marshall } from "@aws-sdk/util-dynamodb";
-import type { IMocodyPagingResult } from "../type/types";
+import type { IMocodyPagingResult } from "../type";
 import { LoggingService } from "../helpers/logging-service";
 import { MocodyUtil } from "../helpers/mocody-utils";
 

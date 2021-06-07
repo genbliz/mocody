@@ -1,5 +1,5 @@
 import { DynamoDataOperation } from "./../dynamo/dynamo-data-operation";
-import type { IMocodyIndexDefinition } from "../type/types";
+import type { IMocodyIndexDefinition } from "../type";
 import Joi from "joi";
 import { MyDynamoConnection } from "./connection";
 

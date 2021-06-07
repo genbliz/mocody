@@ -7,7 +7,7 @@ import type {
   IMocodyPagingResult,
   IMocodyQueryIndexOptions,
   IMocodyQueryIndexOptionsNoPaging,
-} from "../type/types";
+} from "../type";
 import { RepoModel } from "../model/repo-model";
 import Joi from "joi";
 import type { MocodyInitializerCouch } from "./couch-initializer";
