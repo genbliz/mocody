@@ -8,7 +8,7 @@ import type {
   IMocodyQueryIndexOptions,
   IMocodyQueryIndexOptionsNoPaging,
 } from "../type";
-import { RepoModel } from "../model/repo-model";
+import { RepoModel } from "../model";
 import Joi from "joi";
 import type { MocodyInitializerCouch } from "./couch-initializer";
 import { coreSchemaDefinition, IMocodyCoreEntityModel } from "../core/base-schema";

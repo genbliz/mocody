@@ -1,6 +1,6 @@
 import { UtilService } from "./../helpers/util-service";
 import { MocodyUtil } from "../helpers/mocody-utils";
-import { RepoModel } from "../model/repo-model";
+import { RepoModel } from "../model";
 import type {
   IMocodyIndexDefinition,
   IMocodyFieldCondition,
