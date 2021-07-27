@@ -182,9 +182,9 @@ export class MongoFilterQueryOperation {
 
     if (mConditions.length) {
       let selectorValuesAll: any = {};
-      for (const condition of mConditions) {
+      mConditions.forEach((condition) => {
         selectorValuesAll = { ...selectorValuesAll, ...condition[fieldName] };
-      }
+      });
       const result = {
         [fieldName]: { $not: selectorValuesAll },
       } as IQueryConditions;
@@ -360,9 +360,9 @@ export class MongoFilterQueryOperation {
             attrValues: conditionValue,
           });
           if (nestedMatchConditions?.length) {
-            for (const _queryCondition of nestedMatchConditions) {
-              queryConditions.push(_queryCondition);
-            }
+            nestedMatchConditions.forEach((cond) => {
+              queryConditions.push(cond);
+            });
           }
         } else if (conditionKey === "$not") {
           QueryValidatorCheck.not_query(conditionValue);
@@ -501,11 +501,11 @@ export class MongoFilterQueryOperation {
     let queryAllConditions: IQueryConditions & { $and: IQueryConditions[] } & { $or: IQueryConditions[] } = {} as any;
 
     if (queryMainConditions?.length) {
-      for (const item1 of queryMainConditions) {
+      queryMainConditions.forEach((item1) => {
         if (item1) {
           queryAllConditions = { ...queryAllConditions, ...item1 };
         }
-      }
+      });
     }
 
     if (queryAndConditions?.length) {

@@ -163,11 +163,11 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     const { strictRequiredFields } = this._mocody_getLocalVariables();
 
     if (strictRequiredFields?.length) {
-      for (const field of strictRequiredFields) {
+      strictRequiredFields.forEach((field) => {
         if (onDataObj[field] === null || onDataObj[field] === undefined) {
           throw this._mocody_createGenericError(`Strict required field: '${field}', NOT defined`);
         }
-      }
+      });
     }
   }
 

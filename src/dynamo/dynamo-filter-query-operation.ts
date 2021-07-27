@@ -397,9 +397,9 @@ export class DynamoFilterQueryOperation {
             attrValues: conditionValue,
           });
           if (elemMatchConditions?.length) {
-            for (const _queryCondition of elemMatchConditions) {
-              orConditions.push(_queryCondition);
-            }
+            elemMatchConditions.forEach((cond) => {
+              orConditions.push(cond);
+            });
           }
         } else if (conditionKey === "$nestedMatch") {
           QueryValidatorCheck.nestedMatch(conditionValue);
@@ -408,9 +408,9 @@ export class DynamoFilterQueryOperation {
             attrValues: conditionValue,
           });
           if (nestedMatchConditions?.length) {
-            for (const _queryCondition of nestedMatchConditions) {
-              queryConditions.push(_queryCondition);
-            }
+            nestedMatchConditions.forEach((cond) => {
+              queryConditions.push(cond);
+            });
           }
         } else if (conditionKey === "$not") {
           QueryValidatorCheck.not_query(conditionValue);
@@ -419,9 +419,9 @@ export class DynamoFilterQueryOperation {
             selectorValues: conditionValue,
           });
           if (_queryConditions?.length) {
-            for (const _queryCondition of _queryConditions) {
-              notConditions.push(_queryCondition);
-            }
+            _queryConditions.forEach((cond) => {
+              notConditions.push(cond);
+            });
           }
         } else if (conditionKey === "$notContains") {
           QueryValidatorCheck.notContains(conditionValue);
@@ -600,7 +600,7 @@ export class DynamoFilterQueryOperation {
     let _projectionExpression: string | undefined = undefined;
     //
 
-    for (const item of AND_queryConditions) {
+    AND_queryConditions.forEach((item) => {
       _expressionAttributeNames = {
         ..._expressionAttributeNames,
         ...item.xExpressionAttributeNames,
@@ -610,9 +610,9 @@ export class DynamoFilterQueryOperation {
         ...item.xExpressionAttributeValues,
       };
       AND_FilterExpressionArray.push(item.xFilterExpression);
-    }
+    });
 
-    for (const item2 of OR_queryConditions) {
+    OR_queryConditions.forEach((item2) => {
       _expressionAttributeNames = {
         ..._expressionAttributeNames,
         ...item2.xExpressionAttributeNames,
@@ -622,11 +622,11 @@ export class DynamoFilterQueryOperation {
         ...item2.xExpressionAttributeValues,
       };
       OR_FilterExpressionArray.push(item2.xFilterExpression);
-    }
+    });
 
-    for (const item2 of OR_queryConditions_multiFields) {
+    OR_queryConditions_multiFields.forEach((item2a) => {
       const xFilterExpression: string[] = [];
-      item2.forEach((item01) => {
+      item2a.forEach((item01) => {
         _expressionAttributeNames = {
           ..._expressionAttributeNames,
           ...item01.xExpressionAttributeNames,
@@ -638,21 +638,21 @@ export class DynamoFilterQueryOperation {
         xFilterExpression.push(item01.xFilterExpression);
       });
       OR_FilterExpressionMultiFieldsArray.push(xFilterExpression);
-    }
+    });
 
-    for (const item3 of NOT_queryConditions) {
+    NOT_queryConditions.forEach((item03) => {
       _expressionAttributeNames = {
         ..._expressionAttributeNames,
-        ...item3.xExpressionAttributeNames,
+        ...item03.xExpressionAttributeNames,
       };
       _expressionAttributeValues = {
         ..._expressionAttributeValues,
-        ...item3.xExpressionAttributeValues,
+        ...item03.xExpressionAttributeValues,
       };
-      NOT_FilterExpressionArray.push(item3.xFilterExpression);
-    }
+      NOT_FilterExpressionArray.push(item03.xFilterExpression);
+    });
 
-    for (const item4 of NOT_inside_OR_queryConditions) {
+    NOT_inside_OR_queryConditions.forEach((item4) => {
       _expressionAttributeNames = {
         ..._expressionAttributeNames,
         ...item4.xExpressionAttributeNames,
@@ -662,7 +662,7 @@ export class DynamoFilterQueryOperation {
         ...item4.xExpressionAttributeValues,
       };
       NOT_inside_OR_FilterExpressionArray.push(item4.xFilterExpression);
-    }
+    });
 
     let _andfilterExpression: string = "";
     let _orfilterExpression: string = "";

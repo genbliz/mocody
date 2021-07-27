@@ -298,11 +298,11 @@ export class DynamoQueryScanProcessor {
     const fields = Array.from(new Set(fields01));
 
     const obj: Record<string, any> = {};
-    for (const key of fields) {
+    fields.forEach((key) => {
       if (typeof lastKeyRawObject[key] !== "undefined") {
         obj[key] = lastKeyRawObject[key];
       }
-    }
+    });
 
     if (Object.keys(obj).length === fields.length) {
       return obj;
@@ -328,11 +328,11 @@ export class DynamoQueryScanProcessor {
     const obj01: Record<string, any> = {};
     if (result.Item && result.Item[partitionKeyFieldName]) {
       const itemObject = { ...result.Item };
-      for (const key of fields) {
+      fields.forEach((key)=>{
         if (typeof itemObject[key] !== "undefined") {
           obj01[key] = itemObject[key];
         }
-      }
+      })
     }
     return Object.keys(obj01).length === fields.length ? obj01 : null;
   }

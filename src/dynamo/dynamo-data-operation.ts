@@ -154,11 +154,11 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     const { strictRequiredFields } = this._mocody_getLocalVariables();
 
     if (strictRequiredFields?.length) {
-      for (const field of strictRequiredFields) {
+      strictRequiredFields.forEach((field) => {
         if (onDataObj[field] === null || onDataObj[field] === undefined) {
           throw this._mocody_createGenericError(`Strict required field: '${field}', NOT defined`);
         }
-      }
+      });
     }
   }
 
@@ -631,12 +631,12 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
 
     if (returnedItems?.length && withCondition?.length) {
       const returnedItems01: any[] = [];
-      for (const item of returnedItems) {
+      returnedItems.forEach((item) => {
         const canInclude = withCondition.every((condition) => item[condition.field] === condition.equals);
         if (canInclude) {
           returnedItems01.push(item);
         }
-      }
+      });
       return returnedItems01;
     }
     return returnedItems;
