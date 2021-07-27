@@ -11,13 +11,6 @@ interface ITableOptions<T> {
   sortKeyFieldName: string;
 }
 
-interface IIndexModel {
-  v: string;
-  key: Record<string, 1 | -1>;
-  name: string;
-  ns: string;
-}
-
 export class MongoManageTable<T> {
   private readonly partitionKeyFieldName: string;
   private readonly sortKeyFieldName: string;
@@ -64,12 +57,12 @@ export class MongoManageTable<T> {
   async mocody_clearAllIndexes() {
     const db = await this._mocody_getInstance();
     const indexes = await this.mocody_getIndexes();
-    const dropedIndexes: IIndexModel[] = [];
-    if (indexes?.length) {
-      for (const index01 of indexes) {
-        if (index01.name !== "_id_") {
-          await db.dropIndex(index01.name);
-          dropedIndexes.push(index01);
+    const dropedIndexes: Record<string, any> = {};
+    if (indexes) {
+      for (const [name, value] of Object.entries(indexes)) {
+        if (name !== "_id_") {
+          await db.dropIndex(name);
+          dropedIndexes[name] = value;
         }
       }
     }
@@ -79,10 +72,9 @@ export class MongoManageTable<T> {
     };
   }
 
-  async mocody_getIndexes(): Promise<IIndexModel[]> {
+  async mocody_getIndexes() {
     const db = await this._mocody_getInstance();
-    const indexes: IIndexModel[] = await db.indexes();
-    return indexes;
+    return await db.indexes();
   }
 
   async mocody_createTTL(): Promise<string> {

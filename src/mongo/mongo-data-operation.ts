@@ -16,6 +16,7 @@ import { getJoiValidationErrors } from "../helpers/base-joi-helper";
 import { MocodyInitializerMongo } from "./mongo-initializer";
 import { MongoFilterQueryOperation } from "./mongo-filter-query-operation";
 import { MongoManageTable } from "./mongo-table-manager";
+import { Projection, SortDirection } from "mongodb";
 
 interface IOptions<T> {
   schemaDef: Joi.SchemaMap;
@@ -30,6 +31,7 @@ interface IOptions<T> {
 type IModelBase = IMocodyCoreEntityModel;
 
 type IFullEntity<T> = IMocodyCoreEntityModel & T;
+type IFullEntityNative<T> = IMocodyCoreEntityModel & { _id: string } & T;
 
 export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> {
   private readonly _mocody_partitionKeyFieldName: keyof Pick<IModelBase, "id"> = "id";
@@ -180,7 +182,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
       uniqueFields.forEach((field) => {
         projection[field] = 1;
       });
-      return projection;
+      return projection as Projection<T>;
     }
     return undefined;
   }
@@ -247,11 +249,11 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
       });
     }
 
-    const projection = this._mocody_toMongoProjection(fields) ?? { _id: -1 };
+    const projection = this._mocody_toMongoProjection(fields) ?? ({ _id: -1 } as any);
 
     const query: any = { _id: { $in: fullUniqueIds } };
 
-    const dataListInDb = await mongo.find(query, { projection: projection }).toArray();
+    const dataListInDb = await mongo.find<IFullEntityNative<T>>(query, { projection }).toArray();
 
     if (!dataListInDb?.length) {
       return [];
@@ -284,7 +286,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     const mongo = await this._mocody_getDbInstance();
     const result = await mongo.insertOne(validatedDataTTL);
 
-    if (!result?.insertedCount) {
+    if (!result?.acknowledged) {
       throw this._mocody_createGenericError(this._mocody_operationNotSuccessful);
     }
     const final = { ...validatedData };
@@ -345,7 +347,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     this._mocody_errorHelper.mocody_helper_validateRequiredString({ dataId });
 
     const nativeId = this._mocody_getNativeMongoId(dataId);
-    const query: any = { _id: nativeId };
+    const query = { _id: nativeId } as IFullEntityNative<T>;
 
     const mongo = await this._mocody_getDbInstance();
 
@@ -466,7 +468,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
 
     const projection = this._mocody_toMongoProjection(paramOption.fields as any[]) ?? { _id: 0 };
 
-    const sort01: Array<[string, number]> = [];
+    const sort01: [string, SortDirection][] = [];
 
     if (paramOption.sort === "desc") {
       sort01.push([index_PartitionKeyFieldName, -1]);
@@ -475,12 +477,6 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
       sort01.push([index_PartitionKeyFieldName, 1]);
       sort01.push([index_SortKeyFieldName, 1]);
     }
-
-    // const nn = db.find(queryDefData, {
-    //   projection,
-    //   sort: sort01.length ? sort01 : undefined,
-    //   limit: paramOption.limit ? Number(paramOption.limit) : undefined,
-    // });
 
     let nextPageHash: string | undefined = undefined;
 
@@ -540,8 +536,8 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     const mongo = await this._mocody_getDbInstance();
 
     const results = await mongo
-      .find(queryDefData, {
-        projection,
+      .find<T>(queryDefData, {
+        projection: projection,
         sort: sort01.length ? sort01 : undefined,
         limit: moreFindOption.limit,
         skip: moreFindOption.skip,
@@ -572,7 +568,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     const db = await this._mocody_getDbInstance();
 
     const nativeId = this._mocody_getNativeMongoId(dataId);
-    const query: any = { _id: nativeId };
+    const query = { _id: nativeId } as IFullEntityNative<T>;
     const dataInDb = await db.findOne(query);
 
     if (!(dataInDb?.id === dataId && dataInDb.featureEntity === this._mocody_featureEntityValue)) {

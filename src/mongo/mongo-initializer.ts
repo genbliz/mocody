@@ -20,8 +20,6 @@ export class MocodyInitializerMongo {
   private async getInstance() {
     if (!this._mongoClient) {
       this._mongoClient = new MongoClient(this._inits.uri, this._inits.options);
-    }
-    if (!this._mongoClient.isConnected()) {
       await this._mongoClient.connect();
     }
     return this._mongoClient;

@@ -240,12 +240,12 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     const bulkItemChunked = lodash.chunk(bulkItem, 20);
     const bulkData: IBulkDataDynamoDb[] = [];
 
-    for (const chunkedData of bulkItemChunked) {
+    bulkItemChunked.forEach((chunkedData) => {
       const bulkData01 = {
         [tableFullName]: chunkedData,
       } as IBulkDataDynamoDb;
       bulkData.push(bulkData01);
-    }
+    });
     return JSON.stringify(bulkData);
   }
 
@@ -495,8 +495,10 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
 
     const batchIds = lodash.chunk(originalIds, BATCH_SIZE);
 
-    LoggingService.log("@mocody_getManyByIds batchIds: ", batchIds.length);
-    LoggingService.log({ batchIds });
+    LoggingService.log({
+      batchIds,
+      "@mocody_getManyByIds batchIds": batchIds.length,
+    });
 
     let resultAll: T[] = [];
 
@@ -669,13 +671,8 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     paramOption: IMocodyQueryIndexOptions<TData, TSortKeyField>;
     canPaginate: boolean;
   }): Promise<IMocodyPagingResult<T[]>> {
-    const {
-      tableFullName,
-      secondaryIndexOptions,
-      partitionKeyFieldName,
-      sortKeyFieldName,
-      featureEntityValue,
-    } = this._mocody_getLocalVariables();
+    const { tableFullName, secondaryIndexOptions, partitionKeyFieldName, sortKeyFieldName, featureEntityValue } =
+      this._mocody_getLocalVariables();
 
     if (!secondaryIndexOptions?.length) {
       throw this._mocody_createGenericError("Invalid secondary index definitions");
@@ -838,12 +835,8 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     //
     this._mocody_errorHelper.mocody_helper_validateRequiredString({ Del1SortKey: dataId });
 
-    const {
-      tableFullName,
-      partitionKeyFieldName,
-      sortKeyFieldName,
-      featureEntityValue,
-    } = this._mocody_getLocalVariables();
+    const { tableFullName, partitionKeyFieldName, sortKeyFieldName, featureEntityValue } =
+      this._mocody_getLocalVariables();
 
     const dataExist = await this.mocody_getOneById({ dataId, withCondition });
 
