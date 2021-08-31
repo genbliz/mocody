@@ -328,11 +328,11 @@ export class DynamoQueryScanProcessor {
     const obj01: Record<string, any> = {};
     if (result.Item && result.Item[partitionKeyFieldName]) {
       const itemObject = { ...result.Item };
-      fields.forEach((key)=>{
+      fields.forEach((key) => {
         if (typeof itemObject[key] !== "undefined") {
           obj01[key] = itemObject[key];
         }
-      })
+      });
     }
     return Object.keys(obj01).length === fields.length ? obj01 : null;
   }

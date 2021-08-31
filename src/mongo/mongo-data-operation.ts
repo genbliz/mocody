@@ -478,7 +478,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
       sort01.push([index_SortKeyFieldName, 1]);
     }
 
-    let nextPageHash: string | undefined = undefined;
+    let nextPageHash: string | undefined;
 
     type IPaging = {
       pageNo: number;

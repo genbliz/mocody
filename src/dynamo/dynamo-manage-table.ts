@@ -400,12 +400,8 @@ export class DynamoManageTable<T> {
   }
 
   async mocody_tbl_createTable() {
-    const {
-      partitionKeyFieldName,
-      sortKeyFieldName,
-      tableFullName,
-      secondaryIndexOptions,
-    } = this._tbl_getLocalVariables();
+    const { partitionKeyFieldName, sortKeyFieldName, tableFullName, secondaryIndexOptions } =
+      this._tbl_getLocalVariables();
 
     const params: CreateTableInput = {
       AttributeDefinitions: [

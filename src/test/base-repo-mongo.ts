@@ -1,7 +1,8 @@
-import { DynamoDataOperation } from "./../dynamo/dynamo-data-operation";
+import { UtilService } from "./../helpers/util-service";
+import { MongoDataOperation } from "./../mongo/mongo-data-operation";
 import type { IMocodyIndexDefinition } from "../type";
 import Joi from "joi";
-import { MyDynamoConnection } from "./dynamo-conn";
+import { MongoConnection } from "./mongo-conn";
 
 interface IBaseRepoOptions<T> {
   schemaSubDef: Joi.SchemaMap;
@@ -9,16 +10,16 @@ interface IBaseRepoOptions<T> {
   secondaryIndexOptions: IMocodyIndexDefinition<T>[];
 }
 
-export abstract class BaseRepository<T> extends DynamoDataOperation<T> {
+export abstract class BaseRepository<T> extends MongoDataOperation<T> {
   constructor({ schemaSubDef, secondaryIndexOptions, featureEntityValue }: IBaseRepoOptions<T>) {
     super({
-      dynamoDbInitializer: () => MyDynamoConnection.getDynamoConnection(),
-      baseTableName: "mocody_dynamo_test_table_01",
+      mongoDbInitializer: () => MongoConnection.getConnection(),
+      baseTableName: "mongo_test_table_01",
       schemaDef: { ...schemaSubDef },
       secondaryIndexOptions,
       featureEntityValue: featureEntityValue,
       strictRequiredFields: [],
-      dataKeyGenerator: () => Date.now().toString(),
+      dataKeyGenerator: () => UtilService.getRandomString(30),
     });
   }
 }

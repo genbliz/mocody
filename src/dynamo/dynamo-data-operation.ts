@@ -540,8 +540,8 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
 
     type IKey = Record<string, AttributeValue>;
 
-    let projectionExpression: string | undefined = undefined;
-    let expressionAttributeNames: Record<string, string> | undefined = undefined;
+    let projectionExpression: string | undefined;
+    let expressionAttributeNames: Record<string, string> | undefined;
 
     if (fields?.length) {
       const fieldKeys = new Set(fields);
@@ -698,8 +698,8 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       paramOption01.fields = Array.from(fieldSet01);
     }
 
-    let evaluationLimit01: number | undefined = undefined;
-    let resultLimit01: number | undefined = undefined;
+    let evaluationLimit01: number | undefined;
+    let resultLimit01: number | undefined;
 
     if (paramOption01.limit && UtilService.isNumericInteger(paramOption01.limit)) {
       resultLimit01 = Number(paramOption01.limit);
@@ -755,9 +755,9 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       projectionFields: fieldKeys,
     });
 
-    let otherFilterExpression: string | undefined = undefined;
-    let otherExpressionAttributeValues: any = undefined;
-    let otherExpressionAttributeNames: any = undefined;
+    let otherFilterExpression: string | undefined;
+    let otherExpressionAttributeValues: any;
+    let otherExpressionAttributeNames: any;
 
     if (paramOption01.query) {
       const otherFilter = this._mocody_queryFilter.processQueryFilter({

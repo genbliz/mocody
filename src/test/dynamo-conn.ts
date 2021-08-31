@@ -1,4 +1,4 @@
-import { MocodyInitializerDynamo } from "./../dynamo/dynamo-initializer";
+import { MocodyInitializerDynamo } from "../dynamo/dynamo-initializer";
 import { LoggingService } from "../helpers/logging-service";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 

@@ -1,5 +1,5 @@
 import type { IMocodyQueryDefinition } from "../type";
-import { BaseRepository } from "./base-repo";
+import { BaseRepository } from "./base-repo-mongo";
 import Joi from "joi";
 import faker from "faker";
 
@@ -98,30 +98,30 @@ class MyRepositoryBase extends BaseRepository<IPayment> {
   }
 
   async create() {
-    await this.mocody_createOne({
-      data: {
-        tenantId,
+    const data = {
+      tenantId,
+      amount: getRandom(),
+      category: getRandom().toString(),
+      skills: Array.from(
+        new Set([
+          //
+          faker.helpers.randomize(definedSkills),
+          faker.helpers.randomize(definedSkills),
+          faker.helpers.randomize(definedSkills),
+          faker.helpers.randomize(definedSkills),
+        ]),
+      ),
+      remark: getRandom().toString(),
+      transactionId: getRandom().toString(),
+      invoiceId: getRandom().toString(),
+      bill: {
         amount: getRandom(),
-        category: getRandom().toString(),
-        skills: Array.from(
-          new Set([
-            //
-            faker.helpers.randomize(definedSkills),
-            faker.helpers.randomize(definedSkills),
-            faker.helpers.randomize(definedSkills),
-            faker.helpers.randomize(definedSkills),
-          ]),
-        ),
-        remark: getRandom().toString(),
-        transactionId: getRandom().toString(),
-        invoiceId: getRandom().toString(),
-        bill: {
-          amount: getRandom(),
-          date: faker.date.between(new Date("2020-03-01"), new Date()).toISOString(),
-          remark: faker.random.word(),
-        },
+        date: faker.date.between(new Date("2020-03-01"), new Date()).toISOString(),
+        remark: faker.random.word(),
       },
-    });
+    };
+    const result = await this.mocody_createOne({ data });
+    console.log(result);
   }
 
   async update() {

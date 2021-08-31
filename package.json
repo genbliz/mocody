@@ -2,15 +2,15 @@
   "name": "mocody",
   "version": "0.0.104",
   "description": "Implementation of single table design, and unified query access for MongoDB, CouchDB, and dynamoDB",
-  "esnext": "dist-src/index.js",
-  "main": "dist-dist/index.js",
-  "types": "dist-types/index.d.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
-    "pub": "pika publish",
-    "inst": "pika install",
-    "build": "pika build",
+    "build": "rimraf ./dist && tsc -b",
+    "prepare": "npm run build",
     "version": "npm run build",
     "build-dev": "rimraf ./dist && tsc -b",
+    "eslint": "eslint 'src/**/*.ts'",
+    "eslint:fix": "eslint --fix 'src/**/*.ts'",
     "prettier-format-fix": "prettier --write \"src/**/*.{ts,js,json}\"",
     "prettier-different": "prettier --list-different \"src/**/*.{ts,js,json}\"",
     "prettier-unformatted": "prettier --check \"src/**/*.{ts,js,json}\""
@@ -33,55 +33,38 @@
   },
   "homepage": "https://github.com/genbliz/mocody#readme",
   "files": [
-    "dist-*/"
+    "dist"
   ],
-  "@pika/pack": {
-    "pipeline": [
-      [
-        "@pika/plugin-ts-standard-pkg",
-        {
-          "tsconfig": "tsconfig.json"
-        }
-      ],
-      [
-        "@pika/plugin-build-types"
-      ],
-      [
-        "@pika/plugin-build-node"
-      ]
-    ]
-  },
   "dependencies": {
-    "@aws-sdk/client-dynamodb": "^3.22.0",
-    "@aws-sdk/util-dynamodb": "^3.22.0",
-    "joi": "^17.4.1",
+    "@aws-sdk/client-dynamodb": "^3.28.0",
+    "@aws-sdk/util-dynamodb": "^3.28.0",
+    "joi": "^17.4.2",
     "lodash": "^4.17.21",
-    "mongodb": "4.0.1",
+    "mongodb": "4.1.1",
     "nano": "^9.0.3",
     "throat": "^6.0.1",
-    "tslib": "^2.3.0",
+    "tslib": "^2.3.1",
     "uuid": "^8.3.2"
   },
   "devDependencies": {
-    "@pika/pack": "^0.5.0",
-    "@pika/plugin-build-node": "^0.9.2",
-    "@pika/plugin-build-types": "^0.9.2",
-    "@pika/plugin-standard-pkg": "^0.9.2",
-    "@pika/plugin-ts-standard-pkg": "^0.9.2",
-    "@types/faker": "^5.5.7",
-    "@types/lodash": "^4.14.171",
+    "@types/faker": "^5.5.8",
+    "@types/lodash": "^4.14.172",
     "@types/node": "^14.14.35",
     "@types/shortid": "0.0.29",
     "@types/uuid": "^8.3.1",
-    "@typescript-eslint/eslint-plugin": "^4.28.3",
-    "@typescript-eslint/parser": "^4.28.3",
-    "eslint": "^7.31.0",
+    "@typescript-eslint/eslint-plugin": "^4.30.0",
+    "@typescript-eslint/parser": "^4.30.0",
+    "eslint": "^7.32.0",
     "eslint-config-prettier": "^8.3.0",
-    "eslint-plugin-prettier": "^3.4.0",
+    "eslint-config-standard": "^16.0.3",
+    "eslint-plugin-import": "^2.24.2",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-prettier": "^4.0.0",
+    "eslint-plugin-promise": "^5.1.0",
     "faker": "^5.5.3",
     "np": "^7.5.0",
     "prettier": "^2.3.2",
-    "ts-node": "^10.1.0",
-    "typescript": "^4.3.5"
+    "ts-node": "^10.2.1",
+    "typescript": "^4.4.2"
   }
 }

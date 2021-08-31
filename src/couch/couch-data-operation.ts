@@ -524,13 +524,13 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
       paramOption,
     });
 
-    let projection: string[] | undefined = undefined;
+    let projection: string[] | undefined;
 
     if (paramOption?.fields?.length) {
       projection = this._mocody_removeDuplicateString(paramOption.fields as any);
     }
 
-    let nextPageHash: string | undefined = undefined;
+    let nextPageHash: string | undefined;
 
     type IPaging = {
       pageNo: number;

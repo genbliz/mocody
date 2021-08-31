@@ -597,7 +597,7 @@ export class DynamoFilterQueryOperation {
 
     let _expressionAttributeValues: IDictionaryAttr = {};
     let _expressionAttributeNames: IDictionaryAttr = {};
-    let _projectionExpression: string | undefined = undefined;
+    let _projectionExpression: string | undefined;
     //
 
     AND_queryConditions.forEach((item) => {
