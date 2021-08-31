@@ -1,23 +1,48 @@
 import { MongoClient, ServerApiVersion } from "mongodb";
 
-// Connection URI
-// const uri = "mongodb+srv://sample-hostname:27017/?poolSize=20&writeConcern=majority";
-const uri = "mongodb+srv://hospimanuser:g9TBp7sD52lmBQNE@hospimantestdb01.if0om.mongodb.net/?writeConcern=majority";
+/*
+const uri =
+  "mongodb+srv://hospimanuser:<password>@hospimantestdb01.if0om.mongodb.net/myFirstDatabase?retryWrites=true&w=majority";
+const client = new MongoClient(uri, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+  serverApi: ServerApiVersion.v1,
+});
+*/
 
-// Create a new MongoClient
-const client = new MongoClient(uri, { serverApi: ServerApiVersion.v1 });
+const uri =
+  "mongodb+srv://hospimanuser:g9TBp7sD52lmBQNE@hospimantestdb01.if0om.mongodb.net/hospimandbm1?retryWrites=true&w=majority";
 
-async function run() {
-  try {
-    // Connect the client to the server
-    await client.connect();
+const client = new MongoClient(uri, {
+  // @ts-ignore
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+  serverApi: ServerApiVersion.v1,
+});
 
-    // Establish and verify connection
-    await client.db("hospimantestdb01").command({ ping: 1 });
-    console.log("Connected successfully to server");
-  } finally {
-    // Ensures that the client will close when you finish/error
-    await client.close();
-  }
+export async function runInsert() {
+  const collection = client.db("hospimantestdb01").collection("patient");
+  // perform actions on the collection object
+
+  console.log(collection.dbName);
+  await collection.insertOne({ ag: 36, name: "John Martin" });
+  console.log(collection.dbName);
+
+  // client.close();
+  // process.exit(0);
 }
-run().catch(console.dir);
+
+client.connect((err) => {
+  if (err) {
+    console.error(err);
+  } else {
+    // runInsert().catch(console.log);
+    const collection = client.db("hospimandbm1").collection("patients");
+    console.log(collection.dbName);
+    collection.insertOne({ ag: 36, name: "John Martin" }, (err) => {
+      client.close();
+    });
+  }
+});
+
+// ts-node ./src/test/insert01.ts
