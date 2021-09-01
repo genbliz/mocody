@@ -1,15 +1,12 @@
 import { MocodyInitializerMongo } from "../mongo/mongo-initializer";
 
-const uri = `mongodb+srv://hospimanuser:g9TBp7sD52lmBQNE@hospimantestdb01.if0om.mongodb.net`;
-
-// const urioo = `mongodb+srv://server.example.com/?connectTimeoutMS=300000&authSource=aDifferentAuthDB`;
+const uri = process.env.MONGO_URI || "";
 
 class MongoConnectionBase {
   private _dbConn!: MocodyInitializerMongo;
 
   getConnection() {
     if (!this._dbConn) {
-      // const uri = `mongodb+srv://hospimandbuser:g9TBp7sD52lmBQNE@hospimandb02.nwgy1.mongodb.net?authSource=admin`;
       this._dbConn = new MocodyInitializerMongo({
         uri,
         databaseName: "hospimantestdb01",
@@ -32,15 +29,3 @@ class MongoConnectionBase {
 }
 
 export const MongoConnection = new MongoConnectionBase();
-
-/*
-
-mongodb+srv://chris:<password>@hospimandb02.nwgy1.mongodb.net/myFirstDatabase?retryWrites=true&w=majority
-
-const uri = `mongodb+srv://chris:<password>@hospimandb02.nwgy1.mongodb.net/myFirstDatabase?retryWrites=true&w=majority`;
-const client = new MongoClient(uri);
-client.connect((err) => {
-  const collection = client.db("test").collection("devices");
-  client.close();
-});
-*/
