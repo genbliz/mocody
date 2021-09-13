@@ -516,7 +516,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
             pagingOptions.pageNo = Number(param01.pageNo);
           }
         }
-      } catch (error) {
+      } catch (error: any) {
         LoggingService.log(error?.message);
       }
 

@@ -96,7 +96,7 @@ export class DynamoManageTable<T> {
         return result.Table;
       }
       return null;
-    } catch (error) {
+    } catch (error: any) {
       LoggingService.log({ "@allGetTableInfoBase": "", error: error?.message });
       return null;
     }
@@ -267,7 +267,7 @@ export class DynamoManageTable<T> {
         return updateResults;
       }
       return null;
-    } catch (error) {
+    } catch (error: any) {
       LoggingService.log({
         "@allCreateGlobalSecondaryIndexBase": "",
         error: error?.message,

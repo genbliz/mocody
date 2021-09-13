@@ -568,7 +568,7 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
             pagingOptions.pageNo = param01.pageNo;
           }
         }
-      } catch (error) {
+      } catch (error: any) {
         LoggingService.log(error?.message);
       }
       moreFindOption.limit = pagingOptions.limit;

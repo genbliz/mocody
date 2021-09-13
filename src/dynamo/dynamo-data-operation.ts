@@ -855,7 +855,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     try {
       const dynamo = await this._mocody_dynamoDbInstance();
       await dynamo.deleteItem(params);
-    } catch (err) {
+    } catch (err: any) {
       if (err && err.code === "ResourceNotFoundException") {
         throw this._mocody_errorHelper.mocody_helper_createFriendlyError("Table not found");
       } else if (err && err.code === "ResourceInUseException") {
