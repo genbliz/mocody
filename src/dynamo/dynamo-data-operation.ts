@@ -631,6 +631,8 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       const fieldSet01 = new Set(fields01);
       fieldSet01.add(partitionKeyFieldName as any);
       projectionFields = Array.from(fieldSet01);
+    } else {
+      projectionFields = fields01;
     }
 
     let evaluationLimit01: number | undefined;
