@@ -66,6 +66,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
   private readonly _mocody_queryFilter: DynamoFilterQueryOperation;
   private readonly _mocody_queryScanProcessor: DynamoQueryScanProcessor;
   private readonly _mocody_errorHelper: MocodyErrorUtils;
+  private readonly _mocody_entityFieldsKeySet: Set<keyof T>;
   //
   private _mocody_tableManager!: DynamoManageTable<T>;
 
@@ -89,11 +90,16 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     this._mocody_queryScanProcessor = new DynamoQueryScanProcessor();
     this._mocody_errorHelper = new MocodyErrorUtils();
     this._mocody_featureEntity_Key_Value = { featureEntity: featureEntityValue };
+    this._mocody_entityFieldsKeySet = new Set();
 
     const fullSchemaMapDef = {
       ...schemaDef,
       ...coreSchemaDefinition,
     };
+
+    Object.keys(fullSchemaMapDef).forEach((key) => {
+      this._mocody_entityFieldsKeySet.add(key as keyof T);
+    });
 
     this._mocody_schema = Joi.object().keys(fullSchemaMapDef);
   }
@@ -377,111 +383,29 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     return result;
   }
 
-  /*
-  async mocody_getManyByCondition(paramOptions: IMocodyQueryParamOptions<T>) {
-    paramOptions.pagingParams = undefined;
-    const result = await this.mocody_getManyByConditionPaginate(paramOptions);
-    if (result?.paginationResults?.length) {
-      return result.paginationResults;
-    }
-    return [];
-  }
-
-  async mocody_getManyByConditionPaginate(paramOptions: IMocodyQueryParamOptions<T>) {
-    const { tableFullName, sortKeyFieldName, partitionKeyFieldName } = this._mocody_getLocalVariables();
-    //
-    if (!paramOptions?.partitionKeyQuery?.equals === undefined) {
-      throw this._mocody_createGenericError("Invalid Hash key value");
-    }
-    if (!sortKeyFieldName) {
-      throw this._mocody_createGenericError("Bad query sort configuration");
-    }
-
-    let sortKeyQuery: any = {};
-
-    const sortKeyQueryData = paramOptions.sortKeyQuery;
-    if (sortKeyQueryData) {
-      if (sortKeyQueryData[sortKeyFieldName]) {
-        sortKeyQuery = {
-          [sortKeyFieldName]: sortKeyQueryData[sortKeyFieldName],
-        };
-      } else {
-        throw this._mocody_createGenericError("Invalid Sort key value");
-      }
-    }
-
-    const fieldKeys = paramOptions?.fields?.length ? this._mocody_removeDuplicateString(paramOptions.fields) : undefined;
-
-    const filterHashSortKey = this._mocody_queryFilter.mocody__helperDynamoFilterOperation({
-      queryDefs: {
-        ...sortKeyQuery,
-        ...{
-          [partitionKeyFieldName]: paramOptions.partitionKeyQuery.equals,
-        },
-      },
-      projectionFields: fieldKeys,
+  private _mocody_getProjectionFields<TProj = T>({
+    excludeFields,
+    fields,
+  }: {
+    excludeFields?: (keyof TProj)[];
+    fields?: (keyof TProj)[];
+  }) {
+    return MocodyUtil.getProjectionFields({
+      excludeFields,
+      fields,
+      entityFields: Array.from(this._mocody_entityFieldsKeySet) as any[],
     });
-    //
-    //
-    let otherFilterExpression: string | undefined = undefined;
-    let otherExpressionAttributeValues: any = undefined;
-    let otherExpressionAttributeNames: any = undefined;
-    if (paramOptions?.query) {
-      const filterOtherAttr = this._mocody_queryFilter.mocody__helperDynamoFilterOperation({
-        queryDefs: paramOptions.query,
-        projectionFields: null,
-      });
-
-      otherExpressionAttributeValues = filterOtherAttr.expressionAttributeValues;
-      otherExpressionAttributeNames = filterOtherAttr.expressionAttributeNames;
-
-      if (filterOtherAttr?.filterExpression && filterOtherAttr?.filterExpression.length > 1) {
-        otherFilterExpression = filterOtherAttr.filterExpression;
-      }
-    }
-
-    const params: QueryInput = {
-      TableName: tableFullName,
-      KeyConditionExpression: filterHashSortKey.filterExpression,
-      ExpressionAttributeValues: {
-        ...otherExpressionAttributeValues,
-        ...filterHashSortKey.expressionAttributeValues,
-      },
-      FilterExpression: otherFilterExpression ?? undefined,
-      ExpressionAttributeNames: {
-        ...otherExpressionAttributeNames,
-        ...filterHashSortKey.expressionAttributeNames,
-      },
-    };
-
-    if (filterHashSortKey?.projectionExpressionAttr) {
-      params.ProjectionExpression = filterHashSortKey.projectionExpressionAttr;
-    }
-
-    if (paramOptions?.pagingParams?.orderDesc === true) {
-      params.ScanIndexForward = false;
-    }
-
-    const hashKeyAndSortKey: [string, string] = [partitionKeyFieldName, sortKeyFieldName];
-
-    const paginationObjects = { ...paramOptions.pagingParams };
-    const result = await this._mocody_queryScanProcessor.mocody__helperDynamoQueryProcessor<T>({
-      dynamoDb: () => this._mocody_dynamoDbInstance(),
-      params,
-      hashKeyAndSortKey,
-      ...paginationObjects,
-    });
-    return result;
   }
-*/
 
   async mocody_getManyByIds({
     dataIds,
     fields,
+    excludeFields,
     withCondition,
   }: {
     dataIds: string[];
     fields?: (keyof T)[];
+    excludeFields?: (keyof T)[];
     withCondition?: IMocodyFieldCondition<T>;
   }) {
     dataIds.forEach((dataId) => {
@@ -502,7 +426,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
 
     let resultAll: T[] = [];
 
-    const fieldKeys = fields?.length ? this._mocody_removeDuplicateString(fields) : fields;
+    const fieldKeys = this._mocody_getProjectionFields({ fields, excludeFields });
 
     for (const batch of batchIds) {
       const callByIds = await this.mocody_batchGetManyByIdsBasePrivate({
@@ -519,10 +443,12 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
   private async mocody_batchGetManyByIdsBasePrivate({
     dataIds,
     fields,
+    excludeFields,
     withCondition,
   }: {
     dataIds: string[];
     fields?: (keyof T)[];
+    excludeFields?: (keyof T)[];
     withCondition?: IMocodyFieldCondition<T>;
   }) {
     const getRandom = () =>
@@ -543,8 +469,10 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     let projectionExpression: string | undefined;
     let expressionAttributeNames: Record<string, string> | undefined;
 
-    if (fields?.length) {
-      const fieldKeys = new Set(fields);
+    const fields01 = this._mocody_getProjectionFields({ fields, excludeFields });
+
+    if (fields01?.length) {
+      const fieldKeys = new Set(fields01);
       if (withCondition?.length) {
         /** Add excluded condition */
         withCondition.forEach((condition) => {
@@ -692,10 +620,17 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       throw this._mocody_createGenericError("Secondary index not named/defined");
     }
 
-    if (canPaginate && paramOption01.fields?.length) {
-      const fieldSet01 = new Set(paramOption01.fields);
+    let projectionFields: (keyof TData)[] | undefined;
+
+    const fields01 = this._mocody_getProjectionFields({
+      fields: paramOption01.fields,
+      excludeFields: paramOption01.excludeFields,
+    });
+
+    if (canPaginate && fields01?.length) {
+      const fieldSet01 = new Set(fields01);
       fieldSet01.add(partitionKeyFieldName as any);
-      paramOption01.fields = Array.from(fieldSet01);
+      projectionFields = Array.from(fieldSet01);
     }
 
     let evaluationLimit01: number | undefined;
@@ -724,10 +659,6 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
         }
       : { [index_PartitionKeyFieldName]: paramOption01.partitionKeyValue };
 
-    const fieldKeys = paramOption01.fields?.length
-      ? this._mocody_removeDuplicateString(paramOption01.fields)
-      : undefined;
-
     const localVariables = this._mocody_getLocalVariables();
 
     /** Avoid query data leak */
@@ -752,7 +683,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
 
     const mainFilter = this._mocody_queryFilter.processQueryFilter({
       queryDefs: partitionSortKeyQuery,
-      projectionFields: fieldKeys,
+      projectionFields,
     });
 
     let otherFilterExpression: string | undefined;

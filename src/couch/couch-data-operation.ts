@@ -1,3 +1,4 @@
+import { MocodyUtil } from "./../helpers/mocody-utils";
 import { SettingDefaults } from "./../helpers/constants";
 import { UtilService } from "./../helpers/util-service";
 import { LoggingService } from "./../helpers/logging-service";
@@ -36,7 +37,7 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   private readonly _mocody_sortKeyFieldName: keyof Pick<IModelBase, "featureEntity"> = "featureEntity";
   //
   private readonly _mocody_operationNotSuccessful = "Operation Not Successful";
-  private readonly _mocody_entityResultFieldKeysMap: Map<string, string>;
+  private readonly _mocody_entityFieldsKeySet: Set<keyof T>;
   private readonly _mocody_couchDb: () => MocodyInitializerCouch;
   private readonly _mocody_dataKeyGenerator: () => string;
   private readonly _mocody_schema: Joi.Schema;
@@ -66,7 +67,7 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     this._mocody_secondaryIndexOptions = secondaryIndexOptions;
     this._mocody_strictRequiredFields = strictRequiredFields as string[];
     this._mocody_errorHelper = new MocodyErrorUtils();
-    this._mocody_entityResultFieldKeysMap = new Map();
+    this._mocody_entityFieldsKeySet = new Set();
 
     const fullSchemaMapDef = {
       ...schemaDef,
@@ -74,7 +75,7 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     };
 
     Object.keys(fullSchemaMapDef).forEach((key) => {
-      this._mocody_entityResultFieldKeysMap.set(key, key);
+      this._mocody_entityFieldsKeySet.add(key as keyof T);
     });
 
     this._mocody_schema = Joi.object().keys({
@@ -116,6 +117,20 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     } as const;
   }
 
+  private _mocody_getProjectionFields<TProj = T>({
+    excludeFields,
+    fields,
+  }: {
+    excludeFields?: (keyof TProj)[];
+    fields?: (keyof TProj)[];
+  }) {
+    return MocodyUtil.getProjectionFields({
+      excludeFields,
+      fields,
+      entityFields: Array.from(this._mocody_entityFieldsKeySet) as any[],
+    });
+  }
+
   private _mocody_stripNonRequiredOutputData({
     dataObj,
     excludeFields,
@@ -124,9 +139,9 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     excludeFields?: string[];
   }): T {
     const returnData = {} as any;
-    if (typeof dataObj === "object" && this._mocody_entityResultFieldKeysMap.size > 0) {
+    if (dataObj && typeof dataObj === "object" && this._mocody_entityFieldsKeySet.size > 0) {
       Object.entries({ ...dataObj }).forEach(([key, value]) => {
-        if (this._mocody_entityResultFieldKeysMap.has(key)) {
+        if (this._mocody_entityFieldsKeySet.has(key as keyof T)) {
           if (excludeFields?.length) {
             if (!excludeFields.includes(key)) {
               returnData[key] = value;
@@ -362,10 +377,12 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   async mocody_getManyByIds({
     dataIds,
     fields,
+    excludeFields,
     withCondition,
   }: {
     dataIds: string[];
     fields?: (keyof T)[];
+    excludeFields?: (keyof T)[];
     withCondition?: IMocodyFieldCondition<T> | undefined;
   }): Promise<T[]> {
     //
@@ -380,6 +397,8 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
 
     const dataList: T[] = [];
 
+    const fieldKeys = this._mocody_getProjectionFields({ fields, excludeFields });
+
     if (withCondition?.length) {
       data?.rows?.forEach((item) => {
         if (item?.doc?.featureEntity === this._mocody_featureEntityValue) {
@@ -387,7 +406,7 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
           if (passed) {
             const k = this._mocody_stripNonRequiredOutputData({
               dataObj: item.doc,
-              excludeFields: fields as any[],
+              excludeFields: fieldKeys as any[],
             });
             dataList.push(k);
           }
@@ -398,7 +417,7 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
         if (item?.doc?.featureEntity === this._mocody_featureEntityValue) {
           const k = this._mocody_stripNonRequiredOutputData({
             dataObj: item.doc,
-            excludeFields: fields as any[],
+            excludeFields: fieldKeys as any[],
           });
           dataList.push(k);
         }
@@ -526,8 +545,13 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
 
     let projection: string[] | undefined;
 
-    if (paramOption?.fields?.length) {
-      projection = this._mocody_removeDuplicateString(paramOption.fields as any);
+    const fieldKeys = this._mocody_getProjectionFields({
+      fields: paramOption.fields,
+      excludeFields: paramOption.excludeFields,
+    });
+
+    if (fieldKeys?.length) {
+      projection = this._mocody_removeDuplicateString(fieldKeys as any[]);
     }
 
     let nextPageHash: string | undefined;

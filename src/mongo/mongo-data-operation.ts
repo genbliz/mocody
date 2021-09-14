@@ -1,3 +1,4 @@
+import { MocodyUtil } from "./../helpers/mocody-utils";
 import { SettingDefaults } from "./../helpers/constants";
 import { UtilService } from "./../helpers/util-service";
 import { LoggingService } from "./../helpers/logging-service";
@@ -16,7 +17,7 @@ import { getJoiValidationErrors } from "../helpers/base-joi-helper";
 import { MocodyInitializerMongo } from "./mongo-initializer";
 import { MongoFilterQueryOperation } from "./mongo-filter-query-operation";
 import { MongoManageTable } from "./mongo-table-manager";
-import { Projection, SortDirection } from "mongodb";
+import { SortDirection } from "mongodb";
 
 interface IOptions<T> {
   schemaDef: Joi.SchemaMap;
@@ -38,7 +39,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   private readonly _mocody_sortKeyFieldName: keyof Pick<IModelBase, "featureEntity"> = "featureEntity";
   //
   private readonly _mocody_operationNotSuccessful = "Operation Not Successful";
-  private readonly _mocody_entityResultFieldKeysMap: Map<string, string>;
+  private readonly _mocody_entityFieldsKeySet: Set<keyof T>;
   private readonly _mocody_mongoDb: () => MocodyInitializerMongo;
   private readonly _mocody_dataKeyGenerator: () => string;
   private readonly _mocody_schema: Joi.Schema;
@@ -68,7 +69,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     this._mocody_secondaryIndexOptions = secondaryIndexOptions;
     this._mocody_strictRequiredFields = strictRequiredFields as string[];
     this._mocody_errorHelper = new MocodyErrorUtils();
-    this._mocody_entityResultFieldKeysMap = new Map();
+    this._mocody_entityFieldsKeySet = new Set();
 
     const fullSchemaMapDef = {
       ...schemaDef,
@@ -76,7 +77,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     };
 
     Object.keys(fullSchemaMapDef).forEach((key) => {
-      this._mocody_entityResultFieldKeysMap.set(key, key);
+      this._mocody_entityFieldsKeySet.add(key as keyof T);
     });
 
     this._mocody_schema = Joi.object().keys({
@@ -175,6 +176,20 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     return Array.from(new Set(list));
   }
 
+  private _mocody_getProjectionFields<TProj = T>({
+    excludeFields,
+    fields,
+  }: {
+    excludeFields?: (keyof TProj)[];
+    fields?: (keyof TProj)[];
+  }) {
+    return MocodyUtil.getProjectionFields({
+      excludeFields,
+      fields,
+      entityFields: Array.from(this._mocody_entityFieldsKeySet) as any[],
+    });
+  }
+
   private _mocody_toMongoProjection(fields?: (keyof T)[]) {
     if (fields?.length) {
       const projection: Record<string, any> = {};
@@ -182,7 +197,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
       uniqueFields.forEach((field) => {
         projection[field] = 1;
       });
-      return projection as Projection<T>;
+      return projection;
     }
     return undefined;
   }
@@ -232,10 +247,12 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   async mocody_getManyByIds({
     dataIds,
     fields,
+    excludeFields,
     withCondition,
   }: {
     dataIds: string[];
     fields?: (keyof T)[] | undefined;
+    excludeFields?: (keyof T)[] | undefined;
     withCondition?: IMocodyFieldCondition<T> | undefined;
   }): Promise<T[]> {
     const uniqueIds = this._mocody_removeDuplicateString(dataIds);
@@ -243,13 +260,15 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
 
     const mongo = await this._mocody_getDbInstance();
 
-    if (withCondition?.length && fields?.length) {
+    const fieldKeys = this._mocody_getProjectionFields({ fields, excludeFields });
+
+    if (withCondition?.length && fieldKeys?.length) {
       withCondition.forEach((item) => {
-        fields.push(item.field);
+        fieldKeys.push(item.field);
       });
     }
 
-    const projection = this._mocody_toMongoProjection(fields) ?? ({ _id: -1 } as any);
+    const projection = this._mocody_toMongoProjection(fieldKeys) ?? ({ _id: -1 } as any);
 
     const query: any = { _id: { $in: fullUniqueIds } };
 
@@ -294,7 +313,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     return final;
   }
 
-  async _mocody_validateReady({ data }: { data: T }) {
+  private async _mocody_validateReady({ data }: { data: T }) {
     const { partitionKeyFieldName, featureEntityValue } = this._mocody_getLocalVariables();
 
     let dataId: string | undefined = data[partitionKeyFieldName];
@@ -466,7 +485,12 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
 
     const queryDefData: any = this._mocody_filterQueryOperation.processQueryFilter({ queryDefs });
 
-    const projection = this._mocody_toMongoProjection(paramOption.fields as any[]) ?? { _id: 0 };
+    const fieldKeys = this._mocody_getProjectionFields({
+      fields: paramOption.fields,
+      excludeFields: paramOption.excludeFields,
+    });
+
+    const projection = this._mocody_toMongoProjection(fieldKeys as any[]) ?? { _id: 0 };
 
     const sort01: [string, SortDirection][] = [];
 
