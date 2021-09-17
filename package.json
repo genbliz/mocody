@@ -1,6 +1,6 @@
 {
   "name": "mocody",
-  "version": "0.0.108",
+  "version": "0.0.109",
   "description": "Implementation of single table design, and unified query access for MongoDB, CouchDB, and dynamoDB",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -8,6 +8,7 @@
     "build": "rimraf ./dist && tsc -b",
     "prepare": "npm run build",
     "version": "npm run build",
+    "pub": "npm publish",
     "build-dev": "rimraf ./dist && tsc -b",
     "eslint": "eslint 'src/**/*.ts'",
     "eslint:fix": "eslint --fix 'src/**/*.ts'",
