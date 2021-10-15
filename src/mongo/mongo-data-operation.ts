@@ -293,17 +293,17 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     const bulkData: string[] = [];
 
     for (const data of dataList) {
-      const { validatedDataTTL } = await this._mocody_validateReady({ data });
-      bulkData.push(JSON.stringify(validatedDataTTL));
+      const { validatedDataWithTTL } = await this._mocody_validateReady({ data });
+      bulkData.push(JSON.stringify(validatedDataWithTTL));
     }
     return bulkData.join("\n");
   }
 
   async mocody_createOne({ data }: { data: T }): Promise<T> {
-    const { validatedData, validatedDataTTL } = await this._mocody_validateReady({ data });
+    const { validatedData, validatedDataWithTTL } = await this._mocody_validateReady({ data });
 
     const mongo = await this._mocody_getDbInstance();
-    const result = await mongo.insertOne(validatedDataTTL);
+    const result = await mongo.insertOne(validatedDataWithTTL);
 
     if (!result?.acknowledged) {
       throw this._mocody_createGenericError(this._mocody_operationNotSuccessful);
@@ -340,9 +340,9 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     const { validatedData } = await this._mocody_allHelpValidateGetValue(fullData);
     this._mocody_checkValidateStrictRequiredFields(validatedData);
 
-    const validatedDataTTL: any = this._mocody_formatTTL(validatedData);
+    const validatedDataWithTTL: any = this._mocody_formatTTL(validatedData);
 
-    return { validatedData, validatedDataTTL };
+    return { validatedData, validatedDataWithTTL };
   }
 
   private _mocody_formatTTL(fullData: IFullEntity<T>) {

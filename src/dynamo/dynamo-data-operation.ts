@@ -215,13 +215,14 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
   }
 
   async mocody_createOne({ data }: { data: T }) {
-    const { tableFullName } = this._mocody_getLocalVariables();
+    const { tableFullName, partitionKeyFieldName } = this._mocody_getLocalVariables();
 
     const { marshalled, validatedData } = await this._mocody_validateReady({ data });
 
     const params: PutItemInput = {
       TableName: tableFullName,
       Item: marshalled,
+      ConditionExpression: `attribute_not_exists(${partitionKeyFieldName})`,
     };
 
     const dynamo = await this._mocody_dynamoDbInstance();
@@ -233,7 +234,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
   async mocody_formatDump({ dataList }: { dataList: T[] }): Promise<string> {
     const { tableFullName } = this._mocody_getLocalVariables();
 
-    const bulkItem: IBulkDataDynamoDb["tableFullName"] = [];
+    const bulkItem: IBulkDataDynamoDb[string] = [];
 
     for (const data of dataList) {
       const { marshalled } = await this._mocody_validateReady({ data });
@@ -376,6 +377,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     const params: PutItemInput = {
       TableName: tableFullName,
       Item: MocodyUtil.mocody_marshallFromJson(validatedData01),
+      ConditionExpression: `attribute_exists(${partitionKeyFieldName})`,
     };
     const dynamo = await this._mocody_dynamoDbInstance();
     await dynamo.putItem(params);
