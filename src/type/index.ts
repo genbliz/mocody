@@ -106,13 +106,6 @@ export type IMocodyTransactionPrepare<T> =
   | IMocodyUpdateTransactionPrepare<T>
   | IMocodyDeleteTransactionPrepare<T>;
 
-interface IMocodyPreparedUpdateTransaction {
-  kind: "update";
-  tableName: string;
-  data: Record<string, any>;
-  partitionKeyFieldName: string;
-}
-
 interface IMocodyPreparedCreateTransaction {
   kind: "create";
   tableName: string;
@@ -120,10 +113,18 @@ interface IMocodyPreparedCreateTransaction {
   partitionKeyFieldName: string;
 }
 
+interface IMocodyPreparedUpdateTransaction {
+  kind: "update";
+  tableName: string;
+  data: Record<string, any>;
+  keyQuery: Record<string, any>;
+  partitionKeyFieldName: string;
+}
+
 interface IMocodyPreparedDeleteTransaction {
   kind: "delete";
   tableName: string;
-  key: string | Record<string, any>;
+  keyQuery: Record<string, any>;
   partitionKeyFieldName: string;
 }
 

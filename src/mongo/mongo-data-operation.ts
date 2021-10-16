@@ -111,6 +111,12 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
       .getCustomCollectionInstance<IFullEntity<T>>(this._mocody_tableFullName);
   }
 
+  private async _mocody_getDbInstanceDefined(tableFullName: string) {
+    return await this._mocody_mongoDb()
+      //
+      .getCustomCollectionInstance<IFullEntity<T>>(tableFullName);
+  }
+
   private _mocody_getLocalVariables() {
     return {
       partitionKeyFieldName: this._mocody_partitionKeyFieldName,
@@ -421,11 +427,13 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
         });
       } else if (item.kind === "update") {
         const { validatedDataWithTTL } = await this._mocody_validateReady({ data: item.data });
+        const nativeId = this._mocody_getNativeMongoId(item.dataId);
         transactData.push({
           data: validatedDataWithTTL,
           partitionKeyFieldName,
           tableName: this._mocody_tableFullName,
           kind: item.kind,
+          keyQuery: { _id: nativeId },
         });
       } else if (item.kind === "delete") {
         const nativeId = this._mocody_getNativeMongoId(item.dataId);
@@ -433,7 +441,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
           partitionKeyFieldName,
           tableName: this._mocody_tableFullName,
           kind: item.kind,
-          key: nativeId,
+          keyQuery: { _id: nativeId },
         });
       }
     }
@@ -441,8 +449,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   }
 
   async mocody_executeTransaction({ transactInfo }: { transactInfo: IMocodyPreparedTransaction[] }): Promise<void> {
-    const mongo = await this._mocody_getDbInstance();
-    const session = await this._mocody_mongoDb().getSession();
+    const session = await this._mocody_mongoDb().getNewSession();
     try {
       const transactionOptions: TransactionOptions = {
         readPreference: new ReadPreference("primary"),
@@ -452,22 +459,26 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
       await session.withTransaction(async () => {
         for (const item of transactInfo) {
           if (item.kind === "create") {
+            const mongo = await this._mocody_getDbInstanceDefined(item.tableName);
             await mongo.insertOne(item.data as any, { session });
+            //
           } else if (item.kind === "update") {
+            const mongo = await this._mocody_getDbInstanceDefined(item.tableName);
             const { validatedData } = await this._mocody_allHelpValidateGetValue(item.data);
-            const query = { _id: item.data } as IFullEntityNative<T>;
-            const result = await mongo.replaceOne(query, validatedData);
+            await mongo.replaceOne(item.keyQuery as any, validatedData);
+            //
+          } else if (item.kind === "delete") {
+            const mongo = await this._mocody_getDbInstanceDefined(item.tableName);
+            await mongo.deleteOne(item.keyQuery as any);
           }
         }
-
-        await mongo.insertOne({ abc: 1 }, { session });
-        await mongo.insertOne({ xyz: 999 }, { session });
       }, transactionOptions);
       await session.commitTransaction();
-    } catch {
-      await session.abortTransaction();
-    } finally {
       await session.endSession();
+    } catch (e) {
+      await session.abortTransaction();
+      await session.endSession();
+      throw e;
     }
   }
 

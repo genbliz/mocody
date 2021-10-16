@@ -427,20 +427,24 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
         const validatedData01 = this._mocody_formatTTL(validatedData);
 
         prepareTransactData.push({
+          partitionKeyFieldName,
           kind: transactInfoItem.kind,
           tableName: tableFullName,
           data: MocodyUtil.mocody_marshallFromJson(validatedData01),
-          partitionKeyFieldName,
-        });
-      } else if (transactInfoItem.kind === "delete") {
-        prepareTransactData.push({
-          kind: transactInfoItem.kind,
-          tableName: tableFullName,
-          key: {
+          keyQuery: {
             [partitionKeyFieldName]: { S: transactInfoItem.dataId },
             [sortKeyFieldName]: { S: featureEntityValue },
           },
+        });
+      } else if (transactInfoItem.kind === "delete") {
+        prepareTransactData.push({
           partitionKeyFieldName,
+          kind: transactInfoItem.kind,
+          tableName: tableFullName,
+          keyQuery: {
+            [partitionKeyFieldName]: { S: transactInfoItem.dataId },
+            [sortKeyFieldName]: { S: featureEntityValue },
+          },
         });
       }
     }
@@ -470,13 +474,10 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
           },
         });
       } else if (item.kind === "delete") {
-        if (typeof item.key !== "object") {
-          throw this._mocody_createGenericError("Delete::Invalid dynamo data key");
-        }
         transactData.TransactItems?.push({
           Delete: {
             TableName: item.tableName,
-            Key: item.key,
+            Key: item.keyQuery,
             ConditionExpression: `attribute_exists(${item.partitionKeyFieldName})`,
           },
         });
