@@ -84,3 +84,50 @@ export interface IMocodyIndexDefinition<T> {
 }
 
 export type IMocodyFieldCondition<T> = { field: keyof T; equals: string | number }[];
+
+interface IMocodyCreateTransactionPrepare<T> {
+  kind: "create";
+  data: T;
+}
+
+interface IMocodyUpdateTransactionPrepare<T> {
+  kind: "update";
+  data: T;
+  dataId: string;
+}
+
+interface IMocodyDeleteTransactionPrepare<T> {
+  kind: "delete";
+  dataId: string;
+}
+
+export type IMocodyTransactionPrepare<T> =
+  | IMocodyCreateTransactionPrepare<T>
+  | IMocodyUpdateTransactionPrepare<T>
+  | IMocodyDeleteTransactionPrepare<T>;
+
+interface IMocodyPreparedUpdateTransaction {
+  kind: "update";
+  tableName: string;
+  data: Record<string, any>;
+  partitionKeyFieldName: string;
+}
+
+interface IMocodyPreparedCreateTransaction {
+  kind: "create";
+  tableName: string;
+  data: Record<string, any>;
+  partitionKeyFieldName: string;
+}
+
+interface IMocodyPreparedDeleteTransaction {
+  kind: "delete";
+  tableName: string;
+  key: string | Record<string, any>;
+  partitionKeyFieldName: string;
+}
+
+export type IMocodyPreparedTransaction =
+  | IMocodyPreparedCreateTransaction
+  | IMocodyPreparedUpdateTransaction
+  | IMocodyPreparedDeleteTransaction;

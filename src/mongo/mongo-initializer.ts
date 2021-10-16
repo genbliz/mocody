@@ -31,6 +31,11 @@ export class MocodyInitializerMongo {
   //   return col;
   // }
 
+  async getSession() {
+    const client = await concurrency(() => this.getInstance());
+    return client.startSession();
+  }
+
   async getCustomCollectionInstance<T = any>(collectionName: string) {
     const client = await concurrency(() => this.getInstance());
     const col: Collection<T> = client.db(this._inits.databaseName).collection<T>(collectionName);

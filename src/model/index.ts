@@ -1,4 +1,10 @@
-import type { IMocodyFieldCondition, IMocodyPagingResult, IMocodyQueryIndexOptions } from "../type";
+import type {
+  IMocodyFieldCondition,
+  IMocodyPagingResult,
+  IMocodyQueryIndexOptions,
+  IMocodyPreparedTransaction,
+  IMocodyTransactionPrepare,
+} from "../type";
 
 export abstract class RepoModel<T> {
   abstract mocody_getOneById({
@@ -20,6 +26,15 @@ export abstract class RepoModel<T> {
   }): Promise<T[]>;
 
   abstract mocody_createOne({ data }: { data: T }): Promise<T>;
+
+  abstract mocody_prepareTransaction({
+    transactPrepareInfo,
+  }: {
+    transactPrepareInfo: IMocodyTransactionPrepare<T>[];
+  }): Promise<IMocodyPreparedTransaction[]>;
+
+  abstract mocody_executeTransaction({ transactInfo }: { transactInfo: IMocodyPreparedTransaction[] }): Promise<void>;
+
   abstract mocody_formatDump({ dataList }: { dataList: T[] }): Promise<string>;
 
   abstract mocody_updateOne({

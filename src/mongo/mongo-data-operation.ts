@@ -2,12 +2,14 @@ import { MocodyUtil } from "./../helpers/mocody-utils";
 import { SettingDefaults } from "./../helpers/constants";
 import { UtilService } from "./../helpers/util-service";
 import { LoggingService } from "./../helpers/logging-service";
-import type {
+import {
   IMocodyFieldCondition,
   IMocodyIndexDefinition,
   IMocodyPagingResult,
+  IMocodyPreparedTransaction,
   IMocodyQueryIndexOptions,
   IMocodyQueryIndexOptionsNoPaging,
+  IMocodyTransactionPrepare,
 } from "../type";
 import { RepoModel } from "../model";
 import Joi from "joi";
@@ -17,7 +19,7 @@ import { getJoiValidationErrors } from "../helpers/base-joi-helper";
 import { MocodyInitializerMongo } from "./mongo-initializer";
 import { MongoFilterQueryOperation } from "./mongo-filter-query-operation";
 import { MongoManageTable } from "./mongo-table-manager";
-import { SortDirection } from "mongodb";
+import { ReadConcern, ReadPreference, SortDirection, TransactionOptions, WriteConcern } from "mongodb";
 
 interface IOptions<T> {
   schemaDef: Joi.SchemaMap;
@@ -397,6 +399,76 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     const final = { ...validatedData };
     delete final._id;
     return final;
+  }
+
+  async mocody_prepareTransaction({
+    transactPrepareInfo,
+  }: {
+    transactPrepareInfo: IMocodyTransactionPrepare<T>[];
+  }): Promise<IMocodyPreparedTransaction[]> {
+    const transactData: IMocodyPreparedTransaction[] = [];
+
+    const { partitionKeyFieldName } = this._mocody_getLocalVariables();
+
+    for (const item of transactPrepareInfo) {
+      if (item.kind === "create") {
+        const { validatedDataWithTTL } = await this._mocody_validateReady({ data: item.data });
+        transactData.push({
+          data: validatedDataWithTTL,
+          partitionKeyFieldName,
+          tableName: this._mocody_tableFullName,
+          kind: item.kind,
+        });
+      } else if (item.kind === "update") {
+        const { validatedDataWithTTL } = await this._mocody_validateReady({ data: item.data });
+        transactData.push({
+          data: validatedDataWithTTL,
+          partitionKeyFieldName,
+          tableName: this._mocody_tableFullName,
+          kind: item.kind,
+        });
+      } else if (item.kind === "delete") {
+        const nativeId = this._mocody_getNativeMongoId(item.dataId);
+        transactData.push({
+          partitionKeyFieldName,
+          tableName: this._mocody_tableFullName,
+          kind: item.kind,
+          key: nativeId,
+        });
+      }
+    }
+    return transactData;
+  }
+
+  async mocody_executeTransaction({ transactInfo }: { transactInfo: IMocodyPreparedTransaction[] }): Promise<void> {
+    const mongo = await this._mocody_getDbInstance();
+    const session = await this._mocody_mongoDb().getSession();
+    try {
+      const transactionOptions: TransactionOptions = {
+        readPreference: new ReadPreference("primary"),
+        readConcern: new ReadConcern("local"),
+        writeConcern: new WriteConcern("majority"),
+      };
+      await session.withTransaction(async () => {
+        for (const item of transactInfo) {
+          if (item.kind === "create") {
+            await mongo.insertOne(item.data as any, { session });
+          } else if (item.kind === "update") {
+            const { validatedData } = await this._mocody_allHelpValidateGetValue(item.data);
+            const query = { _id: item.data } as IFullEntityNative<T>;
+            const result = await mongo.replaceOne(query, validatedData);
+          }
+        }
+
+        await mongo.insertOne({ abc: 1 }, { session });
+        await mongo.insertOne({ xyz: 999 }, { session });
+      }, transactionOptions);
+      await session.commitTransaction();
+    } catch {
+      await session.abortTransaction();
+    } finally {
+      await session.endSession();
+    }
   }
 
   async mocody_getManyBySecondaryIndex<TData = T, TSortKeyField = string>(

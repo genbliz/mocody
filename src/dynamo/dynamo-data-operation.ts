@@ -7,6 +7,8 @@ import type {
   IMocodyQueryIndexOptions,
   IMocodyPagingResult,
   IMocodyQueryIndexOptionsNoPaging,
+  IMocodyPreparedTransaction,
+  IMocodyTransactionPrepare,
 } from "../type";
 import { MocodyErrorUtils, MocodyGenericError } from "./../helpers/errors";
 import type {
@@ -17,6 +19,7 @@ import type {
   BatchGetItemInput,
   AttributeValue,
   GetItemCommandInput,
+  TransactWriteItemsCommandInput,
 } from "@aws-sdk/client-dynamodb";
 import Joi from "joi";
 import { getJoiValidationErrors } from "../helpers/base-joi-helper";
@@ -383,6 +386,104 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     await dynamo.putItem(params);
     const result: T = validatedData;
     return result;
+  }
+
+  async mocody_prepareTransaction({
+    transactPrepareInfo,
+  }: {
+    transactPrepareInfo: IMocodyTransactionPrepare<T>[];
+  }): Promise<IMocodyPreparedTransaction[]> {
+    const {
+      //
+      tableFullName,
+      partitionKeyFieldName,
+      sortKeyFieldName,
+      featureEntityValue,
+    } = this._mocody_getLocalVariables();
+
+    const prepareTransactData: IMocodyPreparedTransaction[] = [];
+
+    for (const transactInfoItem of transactPrepareInfo) {
+      if (transactInfoItem.kind === "create") {
+        const { marshalled } = await this._mocody_validateReady({ data: transactInfoItem.data });
+
+        prepareTransactData.push({
+          kind: transactInfoItem.kind,
+          tableName: tableFullName,
+          data: marshalled,
+          partitionKeyFieldName,
+        });
+      } else if (transactInfoItem.kind === "update") {
+        const dataMust = this._mocody_getBaseObject({ dataId: transactInfoItem.dataId });
+
+        const fullData = {
+          ...transactInfoItem.data,
+          ...dataMust,
+        };
+
+        const { validatedData } = await this._mocody_allHelpValidateGetValue(fullData);
+        this._mocody_checkValidateStrictRequiredFields(validatedData);
+
+        const validatedData01 = this._mocody_formatTTL(validatedData);
+
+        prepareTransactData.push({
+          kind: transactInfoItem.kind,
+          tableName: tableFullName,
+          data: MocodyUtil.mocody_marshallFromJson(validatedData01),
+          partitionKeyFieldName,
+        });
+      } else if (transactInfoItem.kind === "delete") {
+        prepareTransactData.push({
+          kind: transactInfoItem.kind,
+          tableName: tableFullName,
+          key: {
+            [partitionKeyFieldName]: { S: transactInfoItem.dataId },
+            [sortKeyFieldName]: { S: featureEntityValue },
+          },
+          partitionKeyFieldName,
+        });
+      }
+    }
+    return Promise.resolve(prepareTransactData);
+  }
+
+  async mocody_executeTransaction({ transactInfo }: { transactInfo: IMocodyPreparedTransaction[] }): Promise<void> {
+    const transactData: TransactWriteItemsCommandInput = {
+      TransactItems: [],
+    };
+
+    for (const item of transactInfo) {
+      if (item.kind === "create") {
+        transactData.TransactItems?.push({
+          Put: {
+            TableName: item.tableName,
+            Item: item.data,
+            ConditionExpression: `attribute_not_exists(${item.partitionKeyFieldName})`,
+          },
+        });
+      } else if (item.kind === "update") {
+        transactData.TransactItems?.push({
+          Put: {
+            TableName: item.tableName,
+            Item: item.data,
+            ConditionExpression: `attribute_exists(${item.partitionKeyFieldName})`,
+          },
+        });
+      } else if (item.kind === "delete") {
+        if (typeof item.key !== "object") {
+          throw this._mocody_createGenericError("Delete::Invalid dynamo data key");
+        }
+        transactData.TransactItems?.push({
+          Delete: {
+            TableName: item.tableName,
+            Key: item.key,
+            ConditionExpression: `attribute_exists(${item.partitionKeyFieldName})`,
+          },
+        });
+      }
+    }
+    const dynamo = await this._mocody_dynamoDbInstance();
+    await dynamo.transactWriteItems(transactData);
   }
 
   private _mocody_getProjectionFields<TProj = T>({
