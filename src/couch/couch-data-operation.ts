@@ -2,12 +2,14 @@ import { MocodyUtil } from "./../helpers/mocody-utils";
 import { SettingDefaults } from "./../helpers/constants";
 import { UtilService } from "./../helpers/util-service";
 import { LoggingService } from "./../helpers/logging-service";
-import type {
+import {
   IMocodyFieldCondition,
   IMocodyIndexDefinition,
   IMocodyPagingResult,
+  IMocodyPreparedTransaction,
   IMocodyQueryIndexOptions,
   IMocodyQueryIndexOptionsNoPaging,
+  IMocodyTransactionPrepare,
 } from "../type";
 import { RepoModel } from "../model";
 import Joi from "joi";
@@ -372,6 +374,22 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     return this._mocody_stripNonRequiredOutputData({
       dataObj: validatedData,
     });
+  }
+
+  /** Not implemented */
+  async mocody_prepareTransaction({
+    transactPrepareInfo,
+  }: {
+    transactPrepareInfo: IMocodyTransactionPrepare<T>[];
+  }): Promise<IMocodyPreparedTransaction[]> {
+    await Promise.resolve();
+    throw new Error("Couch:PrepareTransaction not implemented.");
+  }
+
+  /** Not implemented */
+  async mocody_executeTransaction({ transactInfo }: { transactInfo: IMocodyPreparedTransaction[] }): Promise<void> {
+    await Promise.resolve();
+    throw new Error("Couch:ExecuteTransaction not implemented.");
   }
 
   async mocody_getManyByIds({
