@@ -677,7 +677,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
   async mocody_getManyByIndex<TData = T, TSortKeyField = string>(
     paramOption: IMocodyQueryIndexOptionsNoPaging<TData, TSortKeyField>,
   ): Promise<TData[]> {
-    const result = await this._mocody_getManyBySecondaryIndexPaginateBase<TData, TSortKeyField>({
+    const result = await this._mocody_getManyBySecondaryIndexPaginateBase<TData, TData, TSortKeyField>({
       paramOption,
       canPaginate: false,
       enableRelationFetch: false,
@@ -691,19 +691,43 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
   async mocody_getManyByIndexPaginate<TData = T, TSortKeyField = string>(
     paramOption: IMocodyQueryIndexOptions<TData, TSortKeyField>,
   ): Promise<IMocodyPagingResult<TData[]>> {
-    return this._mocody_getManyBySecondaryIndexPaginateBase<TData, TSortKeyField>({
+    return this._mocody_getManyBySecondaryIndexPaginateBase<TData, TData, TSortKeyField>({
       paramOption,
       canPaginate: true,
       enableRelationFetch: false,
     });
   }
 
-  private async _mocody_getManyBySecondaryIndexPaginateBase<TData = T, TSortKeyField = string>({
+  async mocody_getManyWithRelation<TQuery = T, TData = T, TSortKeyField = string>(
+    paramOption: Omit<IMocodyQueryIndexOptions<TQuery, TSortKeyField>, "pagingParams">,
+  ): Promise<TData[]> {
+    const result = await this._mocody_getManyBySecondaryIndexPaginateBase<TQuery, TData, TSortKeyField>({
+      paramOption,
+      canPaginate: false,
+      enableRelationFetch: true,
+    });
+    if (result?.paginationResults) {
+      return result.paginationResults;
+    }
+    return [];
+  }
+
+  async mocody_getManyWithRelationPaginate<TQuery = T, TData = T, TSortKeyField = string>(
+    paramOption: IMocodyQueryIndexOptions<TQuery, TSortKeyField>,
+  ): Promise<IMocodyPagingResult<TData[]>> {
+    return this._mocody_getManyBySecondaryIndexPaginateBase<TQuery, TData, TSortKeyField>({
+      paramOption,
+      canPaginate: true,
+      enableRelationFetch: true,
+    });
+  }
+
+  private async _mocody_getManyBySecondaryIndexPaginateBase<TQuery, TData, TSortKeyField>({
     paramOption,
     canPaginate,
     enableRelationFetch,
   }: {
-    paramOption: IMocodyQueryIndexOptions<TData, TSortKeyField>;
+    paramOption: IMocodyQueryIndexOptions<TQuery, TSortKeyField>;
     canPaginate: boolean;
     enableRelationFetch: boolean;
   }): Promise<IMocodyPagingResult<TData[]>> {
@@ -728,7 +752,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       throw this._mocody_createGenericError("Secondary index not named/defined");
     }
 
-    let projectionFields: (keyof TData)[] | undefined;
+    let projectionFields: (keyof TQuery)[] | undefined;
 
     const fields01 = this._mocody_getProjectionFields({
       fields: paramOption01.fields,

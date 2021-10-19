@@ -62,4 +62,12 @@ export abstract class RepoModel<T> {
     dataId: string;
     withCondition?: IMocodyFieldCondition<T>;
   }): Promise<T>;
+
+  abstract mocody_getManyWithRelation<TQuery = T, TData = T, TSortKeyField = string>(
+    paramOption: Omit<IMocodyQueryIndexOptions<TQuery, TSortKeyField>, "pagingParams">,
+  ): Promise<TData[]>;
+
+  abstract mocody_getManyWithRelationPaginate<TQuery = T, TData = T, TSortKeyField = string>(
+    paramOption: IMocodyQueryIndexOptions<TQuery, TSortKeyField>,
+  ): Promise<IMocodyPagingResult<TData[]>>;
 }
