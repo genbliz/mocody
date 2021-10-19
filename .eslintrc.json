@@ -55,6 +55,7 @@
     "dot-notation": 0,
     "prefer-promise-reject-errors": 0,
     "@typescript-eslint/ban-types": 0,
-    "no-useless-constructor": 0
+    "no-useless-constructor": 0,
+    "@typescript-eslint/no-unsafe-argument": 0
   }
 }

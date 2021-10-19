@@ -133,13 +133,13 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     });
   }
 
-  private _mocody_stripNonRequiredOutputData({
+  private _mocody_stripNonRequiredOutputData<TData = T>({
     dataObj,
     excludeFields,
   }: {
     dataObj: Record<string, any>;
     excludeFields?: string[];
-  }): T {
+  }): TData {
     const returnData = {} as any;
     if (dataObj && typeof dataObj === "object" && this._mocody_entityFieldsKeySet.size > 0) {
       Object.entries({ ...dataObj }).forEach(([key, value]) => {
@@ -446,7 +446,7 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
 
   async mocody_getManyBySecondaryIndex<TData = T, TSortKeyField = string>(
     paramOption: IMocodyQueryIndexOptionsNoPaging<TData, TSortKeyField>,
-  ): Promise<T[]> {
+  ): Promise<TData[]> {
     const result = await this._mocody_getManyBySecondaryIndexPaginateBase<TData, TSortKeyField>({
       paramOption,
       canPaginate: false,
@@ -459,7 +459,7 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
 
   async mocody_getManyBySecondaryIndexPaginate<TData = T, TSortKeyField = string>(
     paramOption: IMocodyQueryIndexOptions<TData, TSortKeyField>,
-  ): Promise<IMocodyPagingResult<T[]>> {
+  ): Promise<IMocodyPagingResult<TData[]>> {
     return this._mocody_getManyBySecondaryIndexPaginateBase<TData, TSortKeyField>({
       paramOption,
       canPaginate: true,
@@ -472,7 +472,7 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   }: {
     paramOption: IMocodyQueryIndexOptions<TData, TSortKeyField>;
     canPaginate: boolean;
-  }): Promise<IMocodyPagingResult<T[]>> {
+  }): Promise<IMocodyPagingResult<TData[]>> {
     const { secondaryIndexOptions } = this._mocody_getLocalVariables();
 
     if (!secondaryIndexOptions?.length) {
@@ -638,7 +638,7 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     });
 
     const results = data?.docs?.map((item) => {
-      return this._mocody_stripNonRequiredOutputData({ dataObj: item });
+      return this._mocody_stripNonRequiredOutputData<TData>({ dataObj: item });
     });
 
     if (canPaginate && results.length && moreFindOption.limit && results.length >= moreFindOption.limit) {

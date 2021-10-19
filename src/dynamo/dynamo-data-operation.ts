@@ -676,7 +676,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
 
   async mocody_getManyBySecondaryIndex<TData = T, TSortKeyField = string>(
     paramOption: IMocodyQueryIndexOptionsNoPaging<TData, TSortKeyField>,
-  ): Promise<T[]> {
+  ): Promise<TData[]> {
     const result = await this._mocody_getManyBySecondaryIndexPaginateBase<TData, TSortKeyField>({
       paramOption,
       canPaginate: false,
@@ -689,7 +689,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
 
   async mocody_getManyBySecondaryIndexPaginate<TData = T, TSortKeyField = string>(
     paramOption: IMocodyQueryIndexOptions<TData, TSortKeyField>,
-  ): Promise<IMocodyPagingResult<T[]>> {
+  ): Promise<IMocodyPagingResult<TData[]>> {
     return this._mocody_getManyBySecondaryIndexPaginateBase<TData, TSortKeyField>({
       paramOption,
       canPaginate: true,
@@ -702,7 +702,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
   }: {
     paramOption: IMocodyQueryIndexOptions<TData, TSortKeyField>;
     canPaginate: boolean;
-  }): Promise<IMocodyPagingResult<T[]>> {
+  }): Promise<IMocodyPagingResult<TData[]>> {
     const { tableFullName, secondaryIndexOptions, partitionKeyFieldName, sortKeyFieldName, featureEntityValue } =
       this._mocody_getLocalVariables();
 
@@ -846,7 +846,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       nextPageHash01 = undefined;
     }
 
-    const result = await this._mocody_queryScanProcessor.mocody__helperDynamoQueryProcessor<T>({
+    const result = await this._mocody_queryScanProcessor.mocody__helperDynamoQueryProcessor<TData>({
       dynamoDb: () => this._mocody_dynamoDbInstance(),
       params,
       orderDesc,

@@ -49,11 +49,11 @@ export abstract class RepoModel<T> {
 
   abstract mocody_getManyBySecondaryIndex<TData = T, TSortKeyField = string>(
     paramOption: Omit<IMocodyQueryIndexOptions<TData, TSortKeyField>, "pagingParams">,
-  ): Promise<T[]>;
+  ): Promise<TData[]>;
 
   abstract mocody_getManyBySecondaryIndexPaginate<TData = T, TSortKeyField = string>(
     paramOption: IMocodyQueryIndexOptions<TData, TSortKeyField>,
-  ): Promise<IMocodyPagingResult<T[]>>;
+  ): Promise<IMocodyPagingResult<TData[]>>;
 
   abstract mocody_deleteById({
     dataId,

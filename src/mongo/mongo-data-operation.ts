@@ -484,7 +484,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
 
   async mocody_getManyBySecondaryIndex<TData = T, TSortKeyField = string>(
     paramOption: IMocodyQueryIndexOptionsNoPaging<TData, TSortKeyField>,
-  ): Promise<T[]> {
+  ): Promise<TData[]> {
     const result = await this._mocody_getManyBySecondaryIndexPaginateBase<TData, TSortKeyField>({
       paramOption,
       canPaginate: false,
@@ -497,7 +497,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
 
   mocody_getManyBySecondaryIndexPaginate<TData = T, TSortKeyField = string>(
     paramOption: IMocodyQueryIndexOptions<TData, TSortKeyField>,
-  ): Promise<IMocodyPagingResult<T[]>> {
+  ): Promise<IMocodyPagingResult<TData[]>> {
     return this._mocody_getManyBySecondaryIndexPaginateBase<TData, TSortKeyField>({
       paramOption,
       canPaginate: true,
@@ -510,7 +510,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   }: {
     paramOption: IMocodyQueryIndexOptions<TData, TSortKeyField>;
     canPaginate: boolean;
-  }): Promise<IMocodyPagingResult<T[]>> {
+  }): Promise<IMocodyPagingResult<TData[]>> {
     const { secondaryIndexOptions } = this._mocody_getLocalVariables();
 
     if (!secondaryIndexOptions?.length) {
@@ -643,7 +643,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     const mongo = await this._mocody_getDbInstance();
 
     const results = await mongo
-      .find<T>(queryDefData, {
+      .find<TData>(queryDefData, {
         projection: projection,
         sort: sort01.length ? sort01 : undefined,
         limit: moreFindOption.limit,
