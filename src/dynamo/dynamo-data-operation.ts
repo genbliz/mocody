@@ -674,7 +674,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     return returnedItems;
   }
 
-  async mocody_getManyBySecondaryIndex<TData = T, TSortKeyField = string>(
+  async mocody_getManyByIndex<TData = T, TSortKeyField = string>(
     paramOption: IMocodyQueryIndexOptionsNoPaging<TData, TSortKeyField>,
   ): Promise<TData[]> {
     const result = await this._mocody_getManyBySecondaryIndexPaginateBase<TData, TSortKeyField>({
@@ -688,7 +688,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     return [];
   }
 
-  async mocody_getManyBySecondaryIndexPaginate<TData = T, TSortKeyField = string>(
+  async mocody_getManyByIndexPaginate<TData = T, TSortKeyField = string>(
     paramOption: IMocodyQueryIndexOptions<TData, TSortKeyField>,
   ): Promise<IMocodyPagingResult<TData[]>> {
     return this._mocody_getManyBySecondaryIndexPaginateBase<TData, TSortKeyField>({

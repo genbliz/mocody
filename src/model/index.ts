@@ -47,11 +47,11 @@ export abstract class RepoModel<T> {
     withCondition?: IMocodyFieldCondition<T>;
   }): Promise<T>;
 
-  abstract mocody_getManyBySecondaryIndex<TData = T, TSortKeyField = string>(
+  abstract mocody_getManyByIndex<TData = T, TSortKeyField = string>(
     paramOption: Omit<IMocodyQueryIndexOptions<TData, TSortKeyField>, "pagingParams">,
   ): Promise<TData[]>;
 
-  abstract mocody_getManyBySecondaryIndexPaginate<TData = T, TSortKeyField = string>(
+  abstract mocody_getManyByIndexPaginate<TData = T, TSortKeyField = string>(
     paramOption: IMocodyQueryIndexOptions<TData, TSortKeyField>,
   ): Promise<IMocodyPagingResult<TData[]>>;
 
