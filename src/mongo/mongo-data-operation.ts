@@ -282,6 +282,8 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
 
     const dataListInDb = await mongo.find<IFullEntityNative<T>>(query, { projection }).toArray();
 
+    LoggingService.log({ getManyByIds_query: query, projection });
+
     if (!dataListInDb?.length) {
       return [];
     }
