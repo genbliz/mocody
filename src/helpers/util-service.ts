@@ -177,6 +177,28 @@ class UtilServiceBase {
   decodeBase64(str: string) {
     return Buffer.from(str, "base64").toString();
   }
+
+  deleteKeysFromObject<T = Record<string, any>>({
+    dataObject,
+    delKeys,
+  }: {
+    dataObject: T;
+    delKeys: (keyof T | string)[];
+  }): T {
+    if (!(dataObject && typeof dataObject === "object")) {
+      return dataObject;
+    }
+    if (Array.isArray(dataObject)) {
+      return dataObject;
+    }
+    const chosenDataObject: any = {};
+    Object.keys(dataObject).forEach((key) => {
+      if (!delKeys.includes(key)) {
+        chosenDataObject[key] = dataObject[key];
+      }
+    });
+    return chosenDataObject;
+  }
 }
 
 export const UtilService = new UtilServiceBase();

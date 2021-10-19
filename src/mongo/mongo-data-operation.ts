@@ -276,27 +276,29 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
       });
     }
 
-    const projection = this._mocody_toMongoProjection(fieldKeys) ?? ({ _id: -1 } as any);
+    const projection = this._mocody_toMongoProjection(fieldKeys);
 
     const query: any = { _id: { $in: fullUniqueIds } };
 
     const dataListInDb = await mongo.find<IFullEntityNative<T>>(query, { projection }).toArray();
 
-    LoggingService.log({ getManyByIds_query: query, projection });
-
     if (!dataListInDb?.length) {
       return [];
     }
 
+    const dataListInDb01 = dataListInDb.map((f) => {
+      return UtilService.deleteKeysFromObject({ dataObject: f, delKeys: ["_id"] });
+    });
+
     if (withCondition?.length) {
-      const dataFiltered = dataListInDb.filter((item) => {
+      const dataFiltered = dataListInDb01.filter((item) => {
         const passed = this._mocody_withConditionPassed({ item, withCondition });
         return passed;
       });
       return dataFiltered;
     }
 
-    return dataListInDb;
+    return dataListInDb01;
   }
 
   async mocody_formatDump({ dataList }: { dataList: T[] }): Promise<string> {
