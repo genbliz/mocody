@@ -680,6 +680,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     const result = await this._mocody_getManyBySecondaryIndexPaginateBase<TData, TSortKeyField>({
       paramOption,
       canPaginate: false,
+      enableRelationFetch: false,
     });
     if (result?.paginationResults) {
       return result.paginationResults;
@@ -693,15 +694,18 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     return this._mocody_getManyBySecondaryIndexPaginateBase<TData, TSortKeyField>({
       paramOption,
       canPaginate: true,
+      enableRelationFetch: false,
     });
   }
 
   private async _mocody_getManyBySecondaryIndexPaginateBase<TData = T, TSortKeyField = string>({
     paramOption,
     canPaginate,
+    enableRelationFetch,
   }: {
     paramOption: IMocodyQueryIndexOptions<TData, TSortKeyField>;
     canPaginate: boolean;
+    enableRelationFetch: boolean;
   }): Promise<IMocodyPagingResult<TData[]>> {
     const { tableFullName, secondaryIndexOptions, partitionKeyFieldName, sortKeyFieldName, featureEntityValue } =
       this._mocody_getLocalVariables();
@@ -765,25 +769,27 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
         }
       : { [index_PartitionKeyFieldName]: paramOption01.partitionKeyValue };
 
-    const localVariables = this._mocody_getLocalVariables();
+    if (!enableRelationFetch) {
+      /** This block avoids query data leak */
+      const localVariables = this._mocody_getLocalVariables();
 
-    /** Avoid query data leak */
-    const hasFeatureEntity = [
-      //
-      index_PartitionKeyFieldName,
-      index_SortKeyFieldName,
-    ].includes(localVariables.sortKeyFieldName);
+      const hasFeatureEntity = [
+        //
+        index_PartitionKeyFieldName,
+        index_SortKeyFieldName,
+      ].includes(localVariables.sortKeyFieldName);
 
-    if (!hasFeatureEntity) {
-      paramOption01.query = (paramOption01.query || {}) as any;
+      if (!hasFeatureEntity) {
+        paramOption01.query = (paramOption01.query || {}) as any;
 
-      paramOption01.query = {
-        ...paramOption01.query,
-        ...this._mocody_featureEntity_Key_Value,
-      } as any;
-    } else if (index_PartitionKeyFieldName !== localVariables.sortKeyFieldName) {
-      if (localVariables.sortKeyFieldName === index_SortKeyFieldName) {
-        partitionSortKeyQuery[index_SortKeyFieldName] = { $eq: localVariables.featureEntityValue as any };
+        paramOption01.query = {
+          ...paramOption01.query,
+          ...this._mocody_featureEntity_Key_Value,
+        } as any;
+      } else if (index_PartitionKeyFieldName !== localVariables.sortKeyFieldName) {
+        if (localVariables.sortKeyFieldName === index_SortKeyFieldName) {
+          partitionSortKeyQuery[index_SortKeyFieldName] = { $eq: localVariables.featureEntityValue as any };
+        }
       }
     }
 

@@ -450,6 +450,7 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     const result = await this._mocody_getManyBySecondaryIndexPaginateBase<TData, TSortKeyField>({
       paramOption,
       canPaginate: false,
+      enableRelationFetch: false,
     });
     if (result?.paginationResults?.length) {
       return result.paginationResults;
@@ -463,15 +464,18 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     return this._mocody_getManyBySecondaryIndexPaginateBase<TData, TSortKeyField>({
       paramOption,
       canPaginate: true,
+      enableRelationFetch: false,
     });
   }
 
   private async _mocody_getManyBySecondaryIndexPaginateBase<TData = T, TSortKeyField = string>({
     paramOption,
     canPaginate,
+    enableRelationFetch,
   }: {
     paramOption: IMocodyQueryIndexOptions<TData, TSortKeyField>;
     canPaginate: boolean;
+    enableRelationFetch: boolean;
   }): Promise<IMocodyPagingResult<TData[]>> {
     const { secondaryIndexOptions } = this._mocody_getLocalVariables();
 
@@ -501,25 +505,27 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
         }
       : { [index_PartitionKeyFieldName]: paramOption.partitionKeyValue };
 
-    const localVariables = this._mocody_getLocalVariables();
+    if (!enableRelationFetch) {
+      /** This block avoids query data leak */
+      const localVariables = this._mocody_getLocalVariables();
 
-    /** Avoid query data leak */
-    const hasFeatureEntity = [
-      //
-      index_PartitionKeyFieldName,
-      index_SortKeyFieldName,
-    ].includes(localVariables.sortKeyFieldName);
+      const hasFeatureEntity = [
+        //
+        index_PartitionKeyFieldName,
+        index_SortKeyFieldName,
+      ].includes(localVariables.sortKeyFieldName);
 
-    paramOption.query = (paramOption.query || {}) as any;
+      paramOption.query = (paramOption.query || {}) as any;
 
-    if (!hasFeatureEntity) {
-      paramOption.query = {
-        ...paramOption.query,
-        ...{ [localVariables.sortKeyFieldName]: localVariables.featureEntityValue },
-      } as any;
-    } else if (index_PartitionKeyFieldName !== localVariables.sortKeyFieldName) {
-      if (localVariables.sortKeyFieldName === index_SortKeyFieldName) {
-        partitionSortKeyQuery[index_SortKeyFieldName] = { $eq: localVariables.featureEntityValue as any };
+      if (!hasFeatureEntity) {
+        paramOption.query = {
+          ...paramOption.query,
+          ...{ [localVariables.sortKeyFieldName]: localVariables.featureEntityValue },
+        } as any;
+      } else if (index_PartitionKeyFieldName !== localVariables.sortKeyFieldName) {
+        if (localVariables.sortKeyFieldName === index_SortKeyFieldName) {
+          partitionSortKeyQuery[index_SortKeyFieldName] = { $eq: localVariables.featureEntityValue as any };
+        }
       }
     }
 
