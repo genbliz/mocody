@@ -422,7 +422,7 @@ export class MongoFilterQueryOperation {
       if (fieldName_Or_And === "$or") {
         const orKey = fieldName_Or_And;
         const orArray: IQueryConditions[] = queryDefs[orKey];
-        QueryValidatorCheck.exists(orArray);
+        QueryValidatorCheck.or_query(orArray);
         if (orArray && Array.isArray(orArray)) {
           orArray.forEach((orQuery) => {
             Object.keys(orQuery).forEach((fieldName) => {
@@ -450,7 +450,7 @@ export class MongoFilterQueryOperation {
       } else if (fieldName_Or_And === "$and") {
         const andKey = fieldName_Or_And;
         const andArray: IQueryConditions[] = queryDefs[andKey];
-        QueryValidatorCheck.exists(andArray);
+        QueryValidatorCheck.and_query(andArray);
         if (andArray && Array.isArray(andArray)) {
           andArray.forEach((andQuery) => {
             Object.keys(andQuery).forEach((fieldName) => {
