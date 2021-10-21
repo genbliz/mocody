@@ -419,7 +419,7 @@ export class MongoFilterQueryOperation {
   processQueryFilter({ queryDefs }: { queryDefs: IMocodyQueryDefinition<any>["query"] }) {
     let queryMainConditions: IQueryConditions[] = [];
     let queryAndConditions: IQueryConditions[] = [];
-    let queryOrConditions: IQueryConditions[] = [];
+    const queryOrConditions: IQueryConditions[] = [];
 
     Object.entries(queryDefs).forEach(([conditionKey, conditionValue]) => {
       if (conditionKey === "$or") {
@@ -428,24 +428,35 @@ export class MongoFilterQueryOperation {
         QueryValidatorCheck.or_query(orArray);
 
         orArray.forEach((orQuery) => {
+          const perQueryCondition02: IQueryConditions = {};
+
           Object.entries(orQuery).forEach(([fieldName, orQueryObjectOrValue]) => {
             //
             if (orQueryObjectOrValue !== undefined) {
               if (orQueryObjectOrValue && typeof orQueryObjectOrValue === "object") {
-                const _orQueryCond = this.operation__translateAdvancedQueryOperation({
+                const orQueryCond01 = this.operation__translateAdvancedQueryOperation({
                   fieldName,
                   queryObject: orQueryObjectOrValue,
                 });
-                queryOrConditions = [...queryOrConditions, ..._orQueryCond];
+                if (orQueryCond01.length) {
+                  for (const xcond of orQueryCond01) {
+                    Object.entries(xcond).forEach(([key, value]) => {
+                      perQueryCondition02[key] = value;
+                    });
+                  }
+                }
               } else {
-                const _orQueryConditions = this.operation_translateBasicQueryOperation({
+                const orQueryCondition02 = this.operation_translateBasicQueryOperation({
                   fieldName,
                   queryObject: orQueryObjectOrValue,
                 });
-                queryOrConditions = [...queryOrConditions, _orQueryConditions];
+                Object.entries(orQueryCondition02).forEach(([key, value]) => {
+                  perQueryCondition02[key] = value;
+                });
               }
             }
           });
+          queryOrConditions.push(perQueryCondition02);
         });
       } else if (conditionKey === "$and") {
         const andArray = conditionValue as IQueryConditions[];
