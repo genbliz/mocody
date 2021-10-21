@@ -161,7 +161,7 @@ export class DynamoFilterQueryOperation {
         _queryValue = { $eq: queryval };
       }
 
-      Object.entries(_queryValue).forEach(([condKey, val]) => {
+      Object.entries(_queryValue).forEach(([condKey, conditionValue]) => {
         //
         const conditionKey = condKey as keyof IMocodyKeyConditionParams;
         //
@@ -179,7 +179,7 @@ export class DynamoFilterQueryOperation {
         if (conditionExpr) {
           const result: IQueryConditions = {
             xExpressionAttributeValues: {
-              [attrValue]: val,
+              [attrValue]: conditionValue,
             },
             xExpressionAttributeNames: {
               [attrKeyHash]: subFieldName,
@@ -190,14 +190,11 @@ export class DynamoFilterQueryOperation {
           results.push(result);
         } else {
           if (conditionKey === "$between") {
+            QueryValidatorCheck.between(conditionValue);
             const fromKey = `:r10a${getRandom()}`.toLowerCase();
             const toKey = `:r11a${getRandom()}`.toLowerCase();
-            if (!(Array.isArray(val) && val.length === 2)) {
-              throw MocodyErrorUtilsService.mocody_helper_createFriendlyError(
-                "$between query must be an array of length 2",
-              );
-            }
-            const [fromVal, toVal] = val;
+
+            const [fromVal, toVal] = conditionValue;
             const result: IQueryConditions = {
               xExpressionAttributeValues: {
                 [fromKey]: fromVal,
@@ -213,7 +210,7 @@ export class DynamoFilterQueryOperation {
           } else if (conditionKey === "$beginsWith") {
             const result: IQueryConditions = {
               xExpressionAttributeValues: {
-                [attrValue]: val,
+                [attrValue]: conditionValue,
               },
               xExpressionAttributeNames: {
                 [attrKeyHash]: subFieldName,
@@ -266,6 +263,7 @@ export class DynamoFilterQueryOperation {
 
         if (_conditionKey01 === "$beginsWith") {
           QueryValidatorCheck.beginWith(conditionValue);
+
           const _queryConditions = this.operation__filterBeginsWith({
             fieldName: fieldName,
             term: conditionValue,
@@ -491,104 +489,94 @@ export class DynamoFilterQueryOperation {
     const NOT_FilterExpressionArray: string[] = [];
     const NOT_inside_OR_FilterExpressionArray: string[] = [];
 
-    Object.keys(queryDefs).forEach((fieldName_Or_And) => {
-      if (fieldName_Or_And === "$or") {
-        const orKey = fieldName_Or_And;
-        const orArray: any[] = queryDefs[orKey];
-        QueryValidatorCheck.or_query(orArray);
-        if (orArray && Array.isArray(orArray)) {
-          orArray.forEach((orQuery) => {
-            const hasMultiField = Object.keys(orQuery || {}).length > 1;
-            const OR_queryConditionsPrivate: IQueryConditions[] = [];
-            Object.entries(orQuery).forEach(([fieldName, orQueryObjectOrValue]) => {
-              LoggingService.log({ orQuery, orQueryObjectOrValue });
+    Object.entries(queryDefs).forEach(([conditionKey, conditionValue]) => {
+      if (conditionKey === "$or") {
+        QueryValidatorCheck.or_query(conditionValue);
 
-              if (orQueryObjectOrValue !== undefined) {
-                if (orQueryObjectOrValue && typeof orQueryObjectOrValue === "object") {
-                  const _orQueryCond = this.operation__translateAdvancedQueryOperation({
-                    fieldName,
-                    queryObject: orQueryObjectOrValue,
-                  });
-                  if (_orQueryCond?.queryConditions?.length) {
-                    if (hasMultiField) {
-                      OR_queryConditionsPrivate.push(..._orQueryCond.queryConditions);
-                    } else {
-                      OR_queryConditions = [...OR_queryConditions, ..._orQueryCond.queryConditions];
-                      NOT_inside_OR_queryConditions = [
-                        ...NOT_inside_OR_queryConditions,
-                        ..._orQueryCond.notConditions,
-                        //
-                      ];
-                    }
-                  }
-                } else {
-                  const _orQueryConditions = this.operation_translateBasicQueryOperation({
-                    fieldName,
-                    queryObject: orQueryObjectOrValue,
-                  });
+        const orArray = conditionValue as any[];
+
+        orArray.forEach((orQuery) => {
+          const OR_queryConditionsPrivate: IQueryConditions[] = [];
+
+          Object.entries(orQuery).forEach(([fieldName, orQueryObjectOrValue]) => {
+            LoggingService.log({ orQuery, orQueryObjectOrValue });
+
+            if (orQueryObjectOrValue !== undefined) {
+              if (orQueryObjectOrValue && typeof orQueryObjectOrValue === "object") {
+                const hasMultiField = Object.keys(orQueryObjectOrValue || {}).length > 1;
+
+                const orQueryCond01 = this.operation__translateAdvancedQueryOperation({
+                  fieldName,
+                  queryObject: orQueryObjectOrValue,
+                });
+                if (orQueryCond01?.queryConditions?.length) {
                   if (hasMultiField) {
-                    OR_queryConditionsPrivate.push(_orQueryConditions);
+                    OR_queryConditionsPrivate.push(...orQueryCond01.queryConditions);
                   } else {
-                    OR_queryConditions.push(_orQueryConditions);
+                    OR_queryConditions = [...OR_queryConditions, ...orQueryCond01.queryConditions];
+                    NOT_inside_OR_queryConditions = [
+                      ...NOT_inside_OR_queryConditions,
+                      ...orQueryCond01.notConditions,
+                      //
+                    ];
                   }
                 }
+              } else {
+                const orQueryCondition01 = this.operation_translateBasicQueryOperation({
+                  fieldName,
+                  queryObject: orQueryObjectOrValue,
+                });
+                OR_queryConditions.push(orQueryCondition01);
               }
-            });
-            if (OR_queryConditionsPrivate.length) {
-              OR_queryConditions_multiFields.push(OR_queryConditionsPrivate);
             }
           });
-        }
-      } else if (fieldName_Or_And === "$and") {
-        const andKey = fieldName_Or_And;
-        const andArray: any[] = queryDefs[andKey];
-        QueryValidatorCheck.and_query(andArray);
-        if (andArray && Array.isArray(andArray)) {
-          andArray.forEach((andQuery) => {
-            Object.keys(andQuery).forEach((fieldName) => {
-              //
-              const andQueryObjectOrValue = andQuery[fieldName];
-              //
-              if (andQueryObjectOrValue !== undefined) {
-                if (andQueryObjectOrValue && typeof andQueryObjectOrValue === "object") {
-                  const _andQueryCond = this.operation__translateAdvancedQueryOperation({
-                    fieldName,
-                    queryObject: andQueryObjectOrValue,
-                  });
-                  AND_queryConditions = [...AND_queryConditions, ..._andQueryCond.queryConditions];
-                  NOT_queryConditions = [...NOT_queryConditions, ..._andQueryCond.notConditions];
-                  OR_queryConditions = [...OR_queryConditions, ..._andQueryCond.orConditions];
-                } else {
-                  const _andQueryConditions = this.operation_translateBasicQueryOperation({
-                    fieldName,
-                    queryObject: andQueryObjectOrValue,
-                  });
-                  AND_queryConditions = [...AND_queryConditions, _andQueryConditions];
-                }
-              }
-            });
-          });
-        }
-      } else {
-        if (fieldName_Or_And) {
-          const fieldName2 = fieldName_Or_And;
-          const queryObjectOrValue = queryDefs[fieldName2];
+          if (OR_queryConditionsPrivate.length) {
+            OR_queryConditions_multiFields.push(OR_queryConditionsPrivate);
+          }
+        });
+      } else if (conditionKey === "$and") {
+        const andArray = conditionValue as any[];
 
-          if (queryObjectOrValue !== undefined) {
-            if (queryObjectOrValue && typeof queryObjectOrValue === "object") {
-              const _queryCond = this.operation__translateAdvancedQueryOperation({
-                fieldName: fieldName2,
-                queryObject: queryObjectOrValue,
+        QueryValidatorCheck.and_query(andArray);
+
+        andArray.forEach((andQuery) => {
+          Object.entries(andQuery).forEach(([fieldName, andQueryObjectOrValue]) => {
+            if (andQueryObjectOrValue !== undefined) {
+              if (andQueryObjectOrValue && typeof andQueryObjectOrValue === "object") {
+                const andQueryCond01 = this.operation__translateAdvancedQueryOperation({
+                  fieldName,
+                  queryObject: andQueryObjectOrValue,
+                });
+                AND_queryConditions = [...AND_queryConditions, ...andQueryCond01.queryConditions];
+                NOT_queryConditions = [...NOT_queryConditions, ...andQueryCond01.notConditions];
+                OR_queryConditions = [...OR_queryConditions, ...andQueryCond01.orConditions];
+              } else {
+                const andQueryCondition01 = this.operation_translateBasicQueryOperation({
+                  fieldName,
+                  queryObject: andQueryObjectOrValue,
+                });
+                AND_queryConditions = [...AND_queryConditions, andQueryCondition01];
+              }
+            }
+          });
+        });
+      } else {
+        if (conditionKey) {
+          if (conditionValue !== undefined) {
+            if (conditionValue && typeof conditionValue === "object") {
+              const queryCond01 = this.operation__translateAdvancedQueryOperation({
+                fieldName: conditionKey,
+                queryObject: conditionValue,
               });
-              AND_queryConditions = [...AND_queryConditions, ..._queryCond.queryConditions];
-              NOT_queryConditions = [...NOT_queryConditions, ..._queryCond.notConditions];
-              OR_queryConditions = [...OR_queryConditions, ..._queryCond.orConditions];
+              AND_queryConditions = [...AND_queryConditions, ...queryCond01.queryConditions];
+              NOT_queryConditions = [...NOT_queryConditions, ...queryCond01.notConditions];
+              OR_queryConditions = [...OR_queryConditions, ...queryCond01.orConditions];
             } else {
-              const _queryConditions = this.operation_translateBasicQueryOperation({
-                fieldName: fieldName2,
-                queryObject: queryObjectOrValue,
+              const queryCondition01 = this.operation_translateBasicQueryOperation({
+                fieldName: conditionKey,
+                queryObject: conditionValue,
               });
-              AND_queryConditions = [...AND_queryConditions, _queryConditions];
+              AND_queryConditions = [...AND_queryConditions, queryCondition01];
             }
           }
         }

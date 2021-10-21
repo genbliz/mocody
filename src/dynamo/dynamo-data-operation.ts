@@ -9,6 +9,7 @@ import type {
   IMocodyQueryIndexOptionsNoPaging,
   IMocodyPreparedTransaction,
   IMocodyTransactionPrepare,
+  IMocodyQueryDefinition,
 } from "../type";
 import { MocodyErrorUtils, MocodyGenericError } from "./../helpers/errors";
 import type {
@@ -222,10 +223,24 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
 
     const { marshalled, validatedData } = await this._mocody_validateReady({ data });
 
+    const query01: IMocodyQueryDefinition<IMocodyCoreEntityModel> = { [partitionKeyFieldName]: { $exists: false } };
+
+    const {
+      //
+      expressionAttributeNames,
+      expressionAttributeValues,
+      filterExpression,
+    } = this._mocody_queryFilter.processQueryFilter({
+      queryDefs: query01,
+      projectionFields: undefined,
+    });
+
     const params: PutItemInput = {
       TableName: tableFullName,
       Item: marshalled,
-      ConditionExpression: `attribute_not_exists(${partitionKeyFieldName})`,
+      ConditionExpression: filterExpression,
+      ExpressionAttributeNames: expressionAttributeNames,
+      ExpressionAttributeValues: expressionAttributeValues,
     };
 
     const dynamo = await this._mocody_dynamoDbInstance();
@@ -377,10 +392,26 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
 
     const validatedData01 = this._mocody_formatTTL(validatedData);
 
+    const query01: IMocodyQueryDefinition<IMocodyCoreEntityModel> = {
+      [partitionKeyFieldName]: { $exists: true },
+    };
+
+    const {
+      //
+      expressionAttributeNames,
+      expressionAttributeValues,
+      filterExpression,
+    } = this._mocody_queryFilter.processQueryFilter({
+      queryDefs: query01,
+      projectionFields: undefined,
+    });
+
     const params: PutItemInput = {
       TableName: tableFullName,
       Item: MocodyUtil.mocody_marshallFromJson(validatedData01),
-      ConditionExpression: `attribute_exists(${partitionKeyFieldName})`,
+      ConditionExpression: filterExpression,
+      ExpressionAttributeNames: expressionAttributeNames,
+      ExpressionAttributeValues: expressionAttributeValues,
     };
     const dynamo = await this._mocody_dynamoDbInstance();
     await dynamo.putItem(params);
@@ -458,27 +489,75 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
 
     for (const item of transactInfo) {
       if (item.kind === "create") {
+        const query01: IMocodyQueryDefinition<IMocodyCoreEntityModel> = {
+          [item.partitionKeyFieldName]: { $exists: false },
+        };
+
+        const {
+          //
+          expressionAttributeNames,
+          expressionAttributeValues,
+          filterExpression,
+        } = this._mocody_queryFilter.processQueryFilter({
+          queryDefs: query01,
+          projectionFields: undefined,
+        });
+
         transactData.TransactItems?.push({
           Put: {
             TableName: item.tableName,
             Item: item.data,
-            ConditionExpression: `attribute_not_exists(${item.partitionKeyFieldName})`,
+            ConditionExpression: filterExpression,
+            ExpressionAttributeNames: expressionAttributeNames,
+            ExpressionAttributeValues: expressionAttributeValues,
           },
         });
       } else if (item.kind === "update") {
+        const query01: IMocodyQueryDefinition<IMocodyCoreEntityModel> = {
+          [item.partitionKeyFieldName]: { $exists: true },
+        };
+
+        const {
+          //
+          expressionAttributeNames,
+          expressionAttributeValues,
+          filterExpression,
+        } = this._mocody_queryFilter.processQueryFilter({
+          queryDefs: query01,
+          projectionFields: undefined,
+        });
+
         transactData.TransactItems?.push({
           Put: {
             TableName: item.tableName,
             Item: item.data,
-            ConditionExpression: `attribute_exists(${item.partitionKeyFieldName})`,
+            ConditionExpression: filterExpression,
+            ExpressionAttributeNames: expressionAttributeNames,
+            ExpressionAttributeValues: expressionAttributeValues,
           },
         });
       } else if (item.kind === "delete") {
+        const query01: IMocodyQueryDefinition<IMocodyCoreEntityModel> = {
+          [item.partitionKeyFieldName]: { $exists: true },
+        };
+
+        const {
+          //
+          expressionAttributeNames,
+          expressionAttributeValues,
+          filterExpression,
+        } = this._mocody_queryFilter.processQueryFilter({
+          queryDefs: query01,
+          projectionFields: undefined,
+        });
+
         transactData.TransactItems?.push({
           Delete: {
             TableName: item.tableName,
             Key: item.keyQuery,
-            ConditionExpression: `attribute_exists(${item.partitionKeyFieldName})`,
+            ConditionExpression: filterExpression,
+            ExpressionAttributeNames: expressionAttributeNames,
+            ExpressionAttributeValues: expressionAttributeValues,
           },
         });
       }

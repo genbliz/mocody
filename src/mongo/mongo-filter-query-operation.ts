@@ -431,32 +431,35 @@ export class MongoFilterQueryOperation {
           const perQueryCondition02: IQueryConditions = {};
 
           Object.entries(orQuery).forEach(([fieldName, orQueryObjectOrValue]) => {
-            //
             if (orQueryObjectOrValue !== undefined) {
               if (orQueryObjectOrValue && typeof orQueryObjectOrValue === "object") {
                 const orQueryCond01 = this.operation__translateAdvancedQueryOperation({
                   fieldName,
                   queryObject: orQueryObjectOrValue,
                 });
-                if (orQueryCond01.length) {
-                  for (const xcond of orQueryCond01) {
-                    Object.entries(xcond).forEach(([key, value]) => {
-                      perQueryCondition02[key] = value;
-                    });
-                  }
+                let nquery: any = {};
+                for (const xcond of orQueryCond01) {
+                  Object.entries(xcond).forEach(([_, value]) => {
+                    nquery = { ...nquery, ...value };
+                  });
                 }
+                perQueryCondition02[fieldName] = nquery;
               } else {
                 const orQueryCondition02 = this.operation_translateBasicQueryOperation({
                   fieldName,
                   queryObject: orQueryObjectOrValue,
                 });
-                Object.entries(orQueryCondition02).forEach(([key, value]) => {
-                  perQueryCondition02[key] = value;
+                let nquery02: any = {};
+                Object.entries(orQueryCondition02).forEach(([_, value]) => {
+                  nquery02 = { ...nquery02, ...value };
                 });
+                perQueryCondition02[fieldName] = nquery02;
               }
             }
           });
-          queryOrConditions.push(perQueryCondition02);
+          if (Object.keys(perQueryCondition02).length) {
+            queryOrConditions.push(perQueryCondition02);
+          }
         });
       } else if (conditionKey === "$and") {
         const andArray = conditionValue as IQueryConditions[];

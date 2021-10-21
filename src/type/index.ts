@@ -110,7 +110,7 @@ interface IMocodyPreparedCreateTransaction {
   kind: "create";
   tableName: string;
   data: Record<string, any>;
-  partitionKeyFieldName: string;
+  partitionKeyFieldName: "id";
 }
 
 interface IMocodyPreparedUpdateTransaction {
@@ -118,14 +118,14 @@ interface IMocodyPreparedUpdateTransaction {
   tableName: string;
   data: Record<string, any>;
   keyQuery: Record<string, any>;
-  partitionKeyFieldName: string;
+  partitionKeyFieldName: "id";
 }
 
 interface IMocodyPreparedDeleteTransaction {
   kind: "delete";
   tableName: string;
   keyQuery: Record<string, any>;
-  partitionKeyFieldName: string;
+  partitionKeyFieldName: "id";
 }
 
 export type IMocodyPreparedTransaction =
