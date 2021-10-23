@@ -496,22 +496,20 @@ export class DynamoFilterQueryOperation {
         const orArray = conditionValue as any[];
 
         orArray.forEach((orQuery) => {
-          const OR_queryConditionsPrivate: IQueryConditions[] = [];
+          const OR_queryMultiConditionsPrivate: IQueryConditions[] = [];
+
+          const hasMultiField = Object.keys(orQuery || {}).length > 1;
 
           Object.entries(orQuery).forEach(([fieldName, orQueryObjectOrValue]) => {
-            LoggingService.log({ orQuery, orQueryObjectOrValue });
-
             if (orQueryObjectOrValue !== undefined) {
               if (orQueryObjectOrValue && typeof orQueryObjectOrValue === "object") {
-                const hasMultiField = Object.keys(orQueryObjectOrValue || {}).length > 1;
-
                 const orQueryCond01 = this.operation__translateAdvancedQueryOperation({
                   fieldName,
                   queryObject: orQueryObjectOrValue,
                 });
                 if (orQueryCond01?.queryConditions?.length) {
                   if (hasMultiField) {
-                    OR_queryConditionsPrivate.push(...orQueryCond01.queryConditions);
+                    OR_queryMultiConditionsPrivate.push(...orQueryCond01.queryConditions);
                   } else {
                     OR_queryConditions = [...OR_queryConditions, ...orQueryCond01.queryConditions];
                     NOT_inside_OR_queryConditions = [
@@ -530,8 +528,8 @@ export class DynamoFilterQueryOperation {
               }
             }
           });
-          if (OR_queryConditionsPrivate.length) {
-            OR_queryConditions_multiFields.push(OR_queryConditionsPrivate);
+          if (OR_queryMultiConditionsPrivate.length) {
+            OR_queryConditions_multiFields.push(OR_queryMultiConditionsPrivate);
           }
         });
       } else if (conditionKey === "$and") {
@@ -729,3 +727,40 @@ export class DynamoFilterQueryOperation {
     return queryExpressions;
   }
 }
+
+const _mocody_queryFilter = new DynamoFilterQueryOperation();
+
+const multiVal1 = "b";
+
+const multiVal2 = "g";
+
+const query01 = {
+  $or: [
+    {
+      firstName: { $beginsWith: multiVal1 },
+      lastName: { $beginsWith: multiVal2 },
+    },
+    {
+      firstName: { $beginsWith: multiVal2 },
+      lastName: { $beginsWith: multiVal1 },
+    },
+  ],
+};
+
+const {
+  //
+  expressionAttributeNames,
+  expressionAttributeValues,
+  filterExpression,
+} = _mocody_queryFilter.processQueryFilter({
+  queryDefs: query01,
+  projectionFields: undefined,
+});
+
+console.log({
+  expressionAttributeNames,
+  expressionAttributeValues,
+  filterExpression,
+});
+
+// ts-node ./src/dynamo/dynamo-filter-query-operation.ts

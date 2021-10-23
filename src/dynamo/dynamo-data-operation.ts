@@ -12,7 +12,7 @@ import type {
   IMocodyQueryDefinition,
 } from "../type";
 import { MocodyErrorUtils, MocodyGenericError } from "./../helpers/errors";
-import type {
+import {
   DynamoDB,
   PutItemInput,
   DeleteItemInput,
@@ -221,32 +221,41 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
   async mocody_createOne({ data }: { data: T }) {
     const { tableFullName, partitionKeyFieldName } = this._mocody_getLocalVariables();
 
-    const { marshalled, validatedData } = await this._mocody_validateReady({ data });
+    try {
+      const { marshalled, validatedData } = await this._mocody_validateReady({ data });
 
-    const query01: IMocodyQueryDefinition<IMocodyCoreEntityModel> = { [partitionKeyFieldName]: { $exists: false } };
+      const query01: IMocodyQueryDefinition<IMocodyCoreEntityModel> = { [partitionKeyFieldName]: { $exists: false } };
 
-    const {
-      //
-      expressionAttributeNames,
-      expressionAttributeValues,
-      filterExpression,
-    } = this._mocody_queryFilter.processQueryFilter({
-      queryDefs: query01,
-      projectionFields: undefined,
-    });
+      const {
+        //
+        expressionAttributeNames,
+        expressionAttributeValues,
+        filterExpression,
+      } = this._mocody_queryFilter.processQueryFilter({
+        queryDefs: query01,
+        projectionFields: undefined,
+      });
 
-    const params: PutItemInput = {
-      TableName: tableFullName,
-      Item: marshalled,
-      ConditionExpression: filterExpression,
-      ExpressionAttributeNames: expressionAttributeNames,
-      ExpressionAttributeValues: expressionAttributeValues,
-    };
+      const params: PutItemInput = {
+        TableName: tableFullName,
+        Item: marshalled,
+        ConditionExpression: filterExpression,
+        ExpressionAttributeNames: expressionAttributeNames,
+        ExpressionAttributeValues: expressionAttributeValues,
+      };
 
-    const dynamo = await this._mocody_dynamoDbInstance();
-    await dynamo.putItem(params);
-    const result: T = { ...validatedData };
-    return result;
+      const dynamo = await this._mocody_dynamoDbInstance();
+      await dynamo.putItem(params);
+      const result: T = { ...validatedData };
+      return result;
+    } catch (error) {
+      if (error instanceof Error && error.name === "ConditionalCheckFailedException") {
+        throw this._mocody_errorHelper.mocody_helper_createFriendlyError(
+          `Field, ${partitionKeyFieldName} already exists`,
+        );
+      }
+      throw error;
+    }
   }
 
   async mocody_formatDump({ dataList }: { dataList: T[] }): Promise<string> {
