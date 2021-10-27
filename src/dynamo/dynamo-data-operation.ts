@@ -224,7 +224,9 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     try {
       const { marshalled, validatedData } = await this._mocody_validateReady({ data });
 
-      const query01: IMocodyQueryDefinition<IMocodyCoreEntityModel> = { [partitionKeyFieldName]: { $exists: false } };
+      const query01: IMocodyQueryDefinition<IMocodyCoreEntityModel> = {
+        [partitionKeyFieldName]: { $exists: false },
+      };
 
       const {
         //
@@ -248,8 +250,8 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       await dynamo.putItem(params);
       const result: T = { ...validatedData };
       return result;
-    } catch (error) {
-      if (error instanceof Error && error.name === "ConditionalCheckFailedException") {
+    } catch (error: any) {
+      if (error?.name === "ConditionalCheckFailedException") {
         throw this._mocody_errorHelper.mocody_helper_createFriendlyError(
           `Field, ${partitionKeyFieldName} already exists`,
         );
