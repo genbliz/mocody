@@ -31,6 +31,7 @@ import { MocodyInitializerDynamo } from "./dynamo-initializer";
 import { DynamoFilterQueryOperation } from "./dynamo-filter-query-operation";
 import { DynamoQueryScanProcessor } from "./dynamo-query-scan-processor";
 import lodash from "lodash";
+import { getDynamoRandomKeyOrHash } from "./dynamo-helper";
 
 interface IOptions<T> {
   schemaDef: Joi.SchemaMap;
@@ -645,9 +646,6 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     excludeFields?: (keyof T)[];
     withCondition?: IMocodyFieldCondition<T>;
   }) {
-    const getRandom = () =>
-      [Math.round(Math.random() * 999), Math.round(Math.random() * 88), Math.round(Math.random() * 99)].join("");
-
     const {
       //
       tableFullName,
@@ -677,7 +675,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       fieldKeys.forEach((fieldName) => {
         if (typeof fieldName === "string") {
           if (expressionAttributeNames) {
-            const attrKeyHash = `#hk${getRandom()}`.toLowerCase();
+            const attrKeyHash = getDynamoRandomKeyOrHash("#");
             expressionAttributeNames[attrKeyHash] = fieldName;
           }
         }
