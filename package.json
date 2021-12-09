@@ -9,6 +9,7 @@
     "prepare": "npm run build",
     "version": "npm run build",
     "pub": "npm publish",
+    "pub01": "npx np",
     "build-dev": "rimraf ./dist && npx tsc -b",
     "eslint": "eslint 'src/**/*.ts'",
     "eslint:fix": "eslint --fix 'src/**/*.ts'",
