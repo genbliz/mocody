@@ -5,11 +5,11 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "rimraf ./dist && tsc -b",
+    "build": "rimraf ./dist && npx tsc -b",
     "prepare": "npm run build",
     "version": "npm run build",
     "pub": "npm publish",
-    "build-dev": "rimraf ./dist && tsc -b",
+    "build-dev": "rimraf ./dist && npx tsc -b",
     "eslint": "eslint 'src/**/*.ts'",
     "eslint:fix": "eslint --fix 'src/**/*.ts'",
     "prettier-format-fix": "prettier --write \"src/**/*.{ts,js,json}\"",

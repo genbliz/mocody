@@ -242,7 +242,7 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     });
   }
 
-  async mocody_formatDump({ dataList }: { dataList: T[] }): Promise<string> {
+  async mocody_formatForDump({ dataList }: { dataList: T[] }): Promise<string> {
     const bulkData: any[] = [];
 
     for (const data of dataList) {
@@ -250,6 +250,11 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
       bulkData.push(validatedData);
     }
     return JSON.stringify(bulkData);
+  }
+
+  async mocody_validateFormatData({ data }: { data: T }): Promise<string> {
+    const { validatedData } = await this._mocody_validateReady({ data });
+    return JSON.stringify(validatedData);
   }
 
   private async _mocody_validateReady({ data }: { data: T }) {

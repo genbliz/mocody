@@ -1,7 +1,7 @@
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
 
 class MocodyUtilBase {
-  mocody_marshallFromJson(jsonData: Record<string, any>) {
+  marshallFromJson(jsonData: Record<string, any>) {
     const marshalled = marshall(jsonData, {
       convertClassInstanceToMap: true,
       convertEmptyValues: true,
@@ -10,7 +10,7 @@ class MocodyUtilBase {
     return marshalled;
   }
 
-  mocody_unmarshallToJson(dynamoData: Record<string, any>) {
+  unmarshallToJson(dynamoData: Record<string, any>) {
     return unmarshall(dynamoData);
   }
 

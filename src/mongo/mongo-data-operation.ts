@@ -301,7 +301,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     return dataListInDb01;
   }
 
-  async mocody_formatDump({ dataList }: { dataList: T[] }): Promise<string> {
+  async mocody_formatForDump({ dataList }: { dataList: T[] }): Promise<string> {
     const bulkData: string[] = [];
 
     for (const data of dataList) {
@@ -309,6 +309,11 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
       bulkData.push(JSON.stringify(validatedDataWithTTL));
     }
     return bulkData.join("\n");
+  }
+
+  async mocody_validateFormatData({ data }: { data: T }): Promise<string> {
+    const { validatedDataWithTTL } = await this._mocody_validateReady({ data });
+    return JSON.stringify(validatedDataWithTTL);
   }
 
   async mocody_createOne({ data }: { data: T }): Promise<T> {

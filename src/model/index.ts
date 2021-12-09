@@ -35,7 +35,8 @@ export abstract class RepoModel<T> {
 
   abstract mocody_executeTransaction({ transactInfo }: { transactInfo: IMocodyPreparedTransaction[] }): Promise<void>;
 
-  abstract mocody_formatDump({ dataList }: { dataList: T[] }): Promise<string>;
+  abstract mocody_formatForDump({ dataList }: { dataList: T[] }): Promise<string>;
+  abstract mocody_validateFormatData({ data }: { data: T }): Promise<string>;
 
   abstract mocody_updateOne({
     dataId,

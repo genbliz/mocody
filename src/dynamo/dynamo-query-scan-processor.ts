@@ -251,7 +251,7 @@ export class DynamoQueryScanProcessor {
 
   private __unmarshallToJson(items: any[]) {
     if (items?.length) {
-      return items.map((item) => MocodyUtil.mocody_unmarshallToJson(item));
+      return items.map((item) => MocodyUtil.unmarshallToJson(item));
     }
     return items;
   }
@@ -308,7 +308,7 @@ export class DynamoQueryScanProcessor {
       return obj;
     }
 
-    const itemJson = MocodyUtil.mocody_unmarshallToJson(lastKeyRawObject);
+    const itemJson = MocodyUtil.unmarshallToJson(lastKeyRawObject);
 
     const dataId: string | undefined = itemJson?.[partitionKeyFieldName];
 

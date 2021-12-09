@@ -45,11 +45,7 @@ interface IOptions<T> {
 
 export interface IBulkDataDynamoDb {
   [tableName: string]: {
-    PutRequest: {
-      Item: {
-        [key: string]: AttributeValue;
-      };
-    };
+    PutRequest: { Item: { [key: string]: AttributeValue } };
   }[];
 }
 
@@ -261,7 +257,12 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     }
   }
 
-  async mocody_formatDump({ dataList }: { dataList: T[] }): Promise<string> {
+  async mocody_validateFormatData({ data }: { data: T }): Promise<string> {
+    const { marshalled } = await this._mocody_validateReady({ data });
+    return JSON.stringify(marshalled);
+  }
+
+  async mocody_formatForDump({ dataList }: { dataList: T[] }): Promise<string> {
     const { tableFullName } = this._mocody_getLocalVariables();
 
     const bulkItem: IBulkDataDynamoDb[string] = [];
@@ -314,7 +315,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
 
     const ready = {
       validatedData,
-      marshalled: MocodyUtil.mocody_marshallFromJson(validatedDataTTL),
+      marshalled: MocodyUtil.marshallFromJson(validatedDataTTL),
     };
     return ready;
   }
@@ -352,7 +353,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     if (!item01) {
       return null;
     }
-    const item: any = MocodyUtil.mocody_unmarshallToJson(item01);
+    const item: any = MocodyUtil.unmarshallToJson(item01);
     const isPassed = this._mocody_withConditionPassed({ withCondition, item });
     if (!isPassed) {
       return null;
@@ -420,7 +421,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
 
     const params: PutItemInput = {
       TableName: tableFullName,
-      Item: MocodyUtil.mocody_marshallFromJson(validatedData01),
+      Item: MocodyUtil.marshallFromJson(validatedData01),
       ConditionExpression: filterExpression,
       ExpressionAttributeNames: expressionAttributeNames,
       ExpressionAttributeValues: expressionAttributeValues,
@@ -473,7 +474,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
           partitionKeyFieldName,
           kind: transactInfoItem.kind,
           tableName: tableFullName,
-          data: MocodyUtil.mocody_marshallFromJson(validatedData01),
+          data: MocodyUtil.marshallFromJson(validatedData01),
           keyQuery: {
             [partitionKeyFieldName]: { S: transactInfoItem.dataId },
             [sortKeyFieldName]: { S: featureEntityValue },
@@ -724,7 +725,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
         if (Responses) {
           const itemListRaw = Responses[tableFullName];
           if (itemListRaw?.length) {
-            const itemList = itemListRaw.map((item) => MocodyUtil.mocody_unmarshallToJson(item));
+            const itemList = itemListRaw.map((item) => MocodyUtil.unmarshallToJson(item));
             returnedItems = [...returnedItems, ...itemList];
           }
         }
