@@ -259,32 +259,16 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
 
   async mocody_validateFormatData({ data }: { data: T }): Promise<string> {
     const { marshalled } = await this._mocody_validateReady({ data });
-    return JSON.stringify(marshalled);
+    return JSON.stringify({ Item: marshalled });
   }
 
-  async mocody_formatForDump({ dataList }: { dataList: T[] }): Promise<string> {
-    const { tableFullName } = this._mocody_getLocalVariables();
-
-    const bulkItem: IBulkDataDynamoDb[string] = [];
-
+  async mocody_formatForDump({ dataList }: { dataList: T[] }): Promise<string[]> {
+    const bulkData: string[] = [];
     for (const data of dataList) {
-      const { marshalled } = await this._mocody_validateReady({ data });
-      bulkItem.push({
-        PutRequest: {
-          Item: marshalled,
-        },
-      });
+      const data01b = await this.mocody_validateFormatData({ data });
+      bulkData.push(`{"PutRequest":{"Item":${data01b}}}`);
     }
-    const bulkItemChunked = lodash.chunk(bulkItem, 20);
-    const bulkData: IBulkDataDynamoDb[] = [];
-
-    bulkItemChunked.forEach((chunkedData) => {
-      const bulkData01 = {
-        [tableFullName]: chunkedData,
-      } as IBulkDataDynamoDb;
-      bulkData.push(bulkData01);
-    });
-    return JSON.stringify(bulkData);
+    return bulkData;
   }
 
   private async _mocody_validateReady({ data }: { data: T }) {

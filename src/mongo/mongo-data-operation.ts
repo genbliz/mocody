@@ -301,14 +301,13 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     return dataListInDb01;
   }
 
-  async mocody_formatForDump({ dataList }: { dataList: T[] }): Promise<string> {
+  async mocody_formatForDump({ dataList }: { dataList: T[] }): Promise<string[]> {
     const bulkData: string[] = [];
-
     for (const data of dataList) {
-      const { validatedDataWithTTL } = await this._mocody_validateReady({ data });
-      bulkData.push(JSON.stringify(validatedDataWithTTL));
+      const validatedDataWithTTL = await this.mocody_validateFormatData({ data });
+      bulkData.push(validatedDataWithTTL);
     }
-    return bulkData.join("\n");
+    return bulkData;
   }
 
   async mocody_validateFormatData({ data }: { data: T }): Promise<string> {
