@@ -259,7 +259,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
 
   async mocody_validateFormatData({ data }: { data: T }): Promise<string> {
     const { marshalled } = await this._mocody_validateReady({ data });
-    return JSON.stringify({ Item: marshalled });
+    return JSON.stringify(marshalled);
   }
 
   async mocody_formatForDump({ dataList }: { dataList: T[] }): Promise<string[]> {
