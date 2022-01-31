@@ -245,11 +245,11 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     if (!(dataInDb?.id === dataId && dataInDb.featureEntity === this._mocody_featureEntityValue)) {
       return null;
     }
-    const passed = this._mocody_withConditionPassed({ item: dataInDb, withCondition });
+    const passed = this._mocody_withConditionPassed({ item: dataInDb as any, withCondition });
     if (!passed) {
       return null;
     }
-    return dataInDb;
+    return dataInDb as any;
   }
 
   async mocody_getManyByIds({
@@ -391,7 +391,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
       throw this._mocody_createGenericError("Record does not exists");
     }
 
-    const passed = this._mocody_withConditionPassed({ item: dataInDb, withCondition });
+    const passed = this._mocody_withConditionPassed({ item: dataInDb as any, withCondition });
     if (!passed) {
       throw this._mocody_createGenericError("Record with conditions does not exists");
     }
@@ -402,7 +402,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
       ...dataInDb,
       ...updateData,
       ...dataMust,
-    };
+    } as any;
 
     const { validatedData } = await this._mocody_allHelpValidateGetValue(data);
 
@@ -719,7 +719,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     if (!(dataInDb?.id === dataId && dataInDb.featureEntity === this._mocody_featureEntityValue)) {
       throw this._mocody_createGenericError("Record does not exists");
     }
-    const passed = this._mocody_withConditionPassed({ item: dataInDb, withCondition });
+    const passed = this._mocody_withConditionPassed({ item: dataInDb as any, withCondition });
     if (!passed) {
       throw this._mocody_createGenericError("Record with conditions does not exists for deletion");
     }
@@ -727,6 +727,6 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     if (!result?.deletedCount) {
       throw this._mocody_createGenericError(this._mocody_operationNotSuccessful);
     }
-    return dataInDb;
+    return dataInDb as any;
   }
 }
