@@ -13,14 +13,13 @@ import type {
 } from "../type";
 import { MocodyErrorUtils, MocodyGenericError } from "./../helpers/errors";
 import {
-  DynamoDB,
-  PutItemInput,
-  DeleteItemInput,
-  QueryInput,
-  BatchGetItemInput,
+  PutItemCommandInput,
+  DeleteItemCommandInput,
+  QueryCommandInput,
   AttributeValue,
   GetItemCommandInput,
   TransactWriteItemsCommandInput,
+  BatchGetItemCommandInput,
 } from "@aws-sdk/client-dynamodb";
 import Joi from "joi";
 import { getJoiValidationErrors } from "../helpers/base-joi-helper";
@@ -108,7 +107,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
   mocody_tableManager() {
     if (!this._mocody_tableManager) {
       this._mocody_tableManager = new DynamoManageTable<T>({
-        dynamoDb: () => this._mocody_dynamoDbInstance(),
+        dynamoDb: () => this._mocody_dynamoDb(),
         secondaryIndexOptions: this._mocody_secondaryIndexOptions,
         tableFullName: this._mocody_tableFullName,
         partitionKeyFieldName: this._mocody_partitionKeyFieldName,
@@ -118,8 +117,8 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     return this._mocody_tableManager;
   }
 
-  private _mocody_dynamoDbInstance(): Promise<DynamoDB> {
-    return this._mocody_dynamoDb().getInstance();
+  private _mocody_dynamoInit() {
+    return this._mocody_dynamoDb();
   }
 
   private _mocody_generateDynamoTableKey() {
@@ -235,7 +234,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
         projectionFields: undefined,
       });
 
-      const params: PutItemInput = {
+      const params: PutItemCommandInput = {
         TableName: tableFullName,
         Item: marshalled,
         ConditionExpression: filterExpression,
@@ -243,8 +242,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
         ExpressionAttributeValues: expressionAttributeValues,
       };
 
-      const dynamo = await this._mocody_dynamoDbInstance();
-      await dynamo.putItem(params);
+      await this._mocody_dynamoInit().putItem(params);
       const result: T = { ...validatedData };
       return result;
     } catch (error: any) {
@@ -331,8 +329,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
         [sortKeyFieldName]: { S: featureEntityValue },
       },
     };
-    const dynamo = await this._mocody_dynamoDbInstance();
-    const result = await dynamo.getItem(params);
+    const result = await this._mocody_dynamoInit().getItem(params);
     const item01 = result.Item as any;
     if (!item01) {
       return null;
@@ -403,15 +400,14 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       projectionFields: undefined,
     });
 
-    const params: PutItemInput = {
+    const params: PutItemCommandInput = {
       TableName: tableFullName,
       Item: MocodyUtil.marshallFromJson(validatedData01),
       ConditionExpression: filterExpression,
       ExpressionAttributeNames: expressionAttributeNames,
       ExpressionAttributeValues: expressionAttributeValues,
     };
-    const dynamo = await this._mocody_dynamoDbInstance();
-    await dynamo.putItem(params);
+    await this._mocody_dynamoInit().putItem(params);
     const result: T = validatedData;
     return result;
   }
@@ -559,8 +555,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
         });
       }
     }
-    const dynamo = await this._mocody_dynamoDbInstance();
-    await dynamo.transactWriteItems(transactData);
+    await this._mocody_dynamoInit().transactWriteItems(transactData);
   }
 
   private _mocody_getProjectionFields<TProj = T>({
@@ -681,7 +676,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       return params01;
     });
 
-    const params: BatchGetItemInput = {
+    const params: BatchGetItemCommandInput = {
       RequestItems: {
         [tableFullName]: {
           Keys: [...getArray],
@@ -698,7 +693,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     let params01 = { ...params };
     let returnedItems: any[] = [];
 
-    const dynamo = await this._mocody_dynamoDbInstance();
+    const dynamo = this._mocody_dynamoInit();
 
     LoggingService.log({ fetchForDataIds: dataIds });
 
@@ -913,7 +908,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       }
     }
 
-    const params: QueryInput = {
+    const params: QueryCommandInput = {
       TableName: tableFullName,
       IndexName: paramOption01.indexName,
       KeyConditionExpression: mainFilter.filterExpression,
@@ -950,7 +945,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     }
 
     const result = await this._mocody_queryScanProcessor.mocody__helperDynamoQueryProcessor<TData>({
-      dynamoDb: () => this._mocody_dynamoDbInstance(),
+      dynamoDb: () => this._mocody_dynamoInit(),
       params,
       orderDesc,
       canPaginate,
@@ -984,7 +979,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       throw this._mocody_errorHelper.mocody_helper_createFriendlyError("Record does NOT exists");
     }
 
-    const params: DeleteItemInput = {
+    const params: DeleteItemCommandInput = {
       TableName: tableFullName,
       Key: {
         [partitionKeyFieldName]: { S: dataId },
@@ -993,8 +988,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     };
 
     try {
-      const dynamo = await this._mocody_dynamoDbInstance();
-      await dynamo.deleteItem(params);
+      await this._mocody_dynamoInit().deleteItem(params);
     } catch (err: any) {
       if (err && err.code === "ResourceNotFoundException") {
         throw this._mocody_errorHelper.mocody_helper_createFriendlyError("Table not found");

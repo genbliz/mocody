@@ -2,7 +2,7 @@ import { UtilService } from "../helpers/util-service";
 import type { IMocodyQueryDefinition } from "../type";
 import { BaseRepository } from "./base-repo-mongo";
 import Joi from "joi";
-import faker from "faker";
+import faker from "@faker-js/faker";
 
 export interface IPayment {
   amount: number;
@@ -101,10 +101,10 @@ class MyRepositoryBase extends BaseRepository<IPayment> {
       skills: Array.from(
         new Set([
           //
-          faker.helpers.randomize(definedSkills),
-          faker.helpers.randomize(definedSkills),
-          faker.helpers.randomize(definedSkills),
-          faker.helpers.randomize(definedSkills),
+          faker.helpers.arrayElement(definedSkills),
+          faker.helpers.arrayElement(definedSkills),
+          faker.helpers.arrayElement(definedSkills),
+          faker.helpers.arrayElement(definedSkills),
         ]),
       ),
       remark: getRandom(),

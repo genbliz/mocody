@@ -2,19 +2,24 @@ import { IMocodyCoreEntityModel } from "../core/base-schema";
 import { IMocodyIndexDefinition } from "../type";
 import { UtilService } from "../helpers/util-service";
 import { LoggingService } from "../helpers/logging-service";
-import type {
-  DescribeTableInput,
-  DynamoDB,
-  ListTablesInput,
+import {
   TableDescription,
-  UpdateTableInput,
-  UpdateTimeToLiveInput,
-  CreateTableInput,
   ProjectionType,
+  DescribeTableCommandInput,
+  UpdateTableCommandInput,
+  UpdateTimeToLiveCommandInput,
+  CreateTableCommandInput,
+  ListTablesCommandInput,
+  UpdateTableCommand,
+  CreateTableCommand,
+  DescribeTableCommand,
+  UpdateTimeToLiveCommand,
+  ListTablesCommand,
 } from "@aws-sdk/client-dynamodb";
+import { MocodyInitializerDynamo } from "./dynamo-initializer";
 
 interface ITableOptions<T> {
-  dynamoDb: () => Promise<DynamoDB>;
+  dynamoDb: () => MocodyInitializerDynamo;
   secondaryIndexOptions: IMocodyIndexDefinition<T>[];
   tableFullName: string;
   partitionKeyFieldName: string;
@@ -24,7 +29,7 @@ interface ITableOptions<T> {
 export class DynamoManageTable<T> {
   private readonly partitionKeyFieldName: string;
   private readonly sortKeyFieldName: string;
-  private readonly dynamoDb: () => Promise<DynamoDB>;
+  private readonly dynamoDb: () => MocodyInitializerDynamo;
   private readonly tableFullName: string;
   private readonly secondaryIndexOptions: IMocodyIndexDefinition<T>[];
 
@@ -52,31 +57,31 @@ export class DynamoManageTable<T> {
     } as const;
   }
 
-  private _tbl_dynamoDb(): Promise<DynamoDB> {
+  private _tbl_dynamoDb() {
     return this.dynamoDb();
   }
 
   async mocody_tbl_getListOfTablesNamesOnline() {
-    const params: ListTablesInput = {
+    const params: ListTablesCommandInput = {
       Limit: 99,
     };
-    const dynamo = await this._tbl_dynamoDb();
-    const listOfTables = await dynamo.listTables(params);
+    const dynamo = await this._tbl_dynamoDb().getInstance();
+    const listOfTables = await dynamo.send(new ListTablesCommand(params));
     return listOfTables?.TableNames;
   }
 
   async mocody_updateTTL({ isEnabled }: { isEnabled: boolean }) {
     const { tableFullName } = this._tbl_getLocalVariables();
     const fieldName: keyof IMocodyCoreEntityModel = "dangerouslyExpireAtTTL";
-    const params: UpdateTimeToLiveInput = {
+    const params: UpdateTimeToLiveCommandInput = {
       TableName: tableFullName,
       TimeToLiveSpecification: {
         AttributeName: fieldName,
         Enabled: isEnabled,
       },
     };
-    const dynamo = await this._tbl_dynamoDb();
-    const result = await dynamo.updateTimeToLive(params);
+    const dynamo = await this._tbl_dynamoDb().getInstance();
+    const result = await dynamo.send(new UpdateTimeToLiveCommand(params));
     if (result?.TimeToLiveSpecification) {
       return result.TimeToLiveSpecification;
     }
@@ -87,11 +92,11 @@ export class DynamoManageTable<T> {
     try {
       const { tableFullName } = this._tbl_getLocalVariables();
 
-      const params: DescribeTableInput = {
+      const params: DescribeTableCommandInput = {
         TableName: tableFullName,
       };
-      const dynamo = await this._tbl_dynamoDb();
-      const result = await dynamo.describeTable(params);
+      const dynamo = await this._tbl_dynamoDb().getInstance();
+      const result = await dynamo.send(new DescribeTableCommand(params));
       if (result?.Table?.TableName === tableFullName) {
         return result.Table;
       }
@@ -170,7 +175,7 @@ export class DynamoManageTable<T> {
         canUpdate = true;
         let indexCount = 0;
         for (const indexOption of newSecondaryIndexOptions) {
-          const params: UpdateTableInput = {
+          const params: UpdateTableCommandInput = {
             TableName: tableFullName,
             GlobalSecondaryIndexUpdates: [],
           };
@@ -192,8 +197,8 @@ export class DynamoManageTable<T> {
             });
           });
 
-          const dynamo = await this._tbl_dynamoDb();
-          const result = await dynamo.updateTable(params);
+          const dynamo = await this._tbl_dynamoDb().getInstance();
+          const result = await dynamo.send(new UpdateTableCommand(params));
           if (result?.TableDescription) {
             updateResults.push(result?.TableDescription);
           }
@@ -221,7 +226,7 @@ export class DynamoManageTable<T> {
         let indexCount = 0;
 
         for (const indexName of staledIndexNames) {
-          const params: UpdateTableInput = {
+          const params: UpdateTableCommandInput = {
             TableName: tableFullName,
             GlobalSecondaryIndexUpdates: [],
           };
@@ -234,8 +239,8 @@ export class DynamoManageTable<T> {
             },
           });
 
-          const dynamo = await this._tbl_dynamoDb();
-          const result = await dynamo.updateTable(params);
+          const dynamo = await this._tbl_dynamoDb().getInstance();
+          const result = await dynamo.send(new UpdateTableCommand(params));
           if (result?.TableDescription) {
             updateResults.push(result?.TableDescription);
           }
@@ -321,7 +326,7 @@ export class DynamoManageTable<T> {
     secondaryIndexOptions: IMocodyIndexDefinition<T>[];
   }) {
     const { tableFullName } = this._tbl_getLocalVariables();
-    const params: CreateTableInput = {
+    const params: CreateTableCommandInput = {
       KeySchema: [], //  make linter happy
       AttributeDefinitions: [],
       TableName: tableFullName,
@@ -403,7 +408,7 @@ export class DynamoManageTable<T> {
     const { partitionKeyFieldName, sortKeyFieldName, tableFullName, secondaryIndexOptions } =
       this._tbl_getLocalVariables();
 
-    const params: CreateTableInput = {
+    const params: CreateTableCommandInput = {
       AttributeDefinitions: [
         {
           AttributeName: partitionKeyFieldName,
@@ -459,8 +464,8 @@ export class DynamoManageTable<T> {
       "@allCreateTableBase, table: ": tableFullName,
     });
 
-    const dynamo = await this._tbl_dynamoDb();
-    const result = await dynamo.createTable(params);
+    const dynamo = await this._tbl_dynamoDb().getInstance();
+    const result = await dynamo.send(new CreateTableCommand(params));
 
     if (result?.TableDescription) {
       LoggingService.log(
@@ -478,7 +483,7 @@ export class DynamoManageTable<T> {
   async mocody_tbl_deleteGlobalSecondaryIndex(indexName: string) {
     const { tableFullName } = this._tbl_getLocalVariables();
 
-    const params: UpdateTableInput = {
+    const params: UpdateTableCommandInput = {
       TableName: tableFullName,
       GlobalSecondaryIndexUpdates: [
         {
@@ -488,8 +493,8 @@ export class DynamoManageTable<T> {
         },
       ],
     };
-    const dynamo = await this._tbl_dynamoDb();
-    const result = await dynamo.updateTable(params);
+    const dynamo = await this._tbl_dynamoDb().getInstance();
+    const result = await dynamo.send(new UpdateTableCommand(params));
     if (result?.TableDescription) {
       return result.TableDescription?.TableName;
     }
