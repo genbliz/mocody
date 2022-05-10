@@ -1,5 +1,5 @@
 import { LoggingService } from "./../helpers/logging-service";
-import type { IMocodyIndexDefinition } from "./../type/types";
+import type { IMocodyIndexDefinition } from "../type";
 import type { MocodyInitializerCouch } from "./couch-initializer";
 
 interface ITableOptions<T> {

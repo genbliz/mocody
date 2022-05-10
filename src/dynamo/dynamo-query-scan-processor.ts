@@ -1,7 +1,7 @@
 import { UtilService } from "./../helpers/util-service";
 import type { DynamoDB, GetItemCommandInput, QueryInput } from "@aws-sdk/client-dynamodb";
 import { marshall } from "@aws-sdk/util-dynamodb";
-import type { IMocodyPagingResult } from "../type/types";
+import type { IMocodyPagingResult } from "../type";
 import { LoggingService } from "../helpers/logging-service";
 import { MocodyUtil } from "../helpers/mocody-utils";
 
@@ -251,7 +251,7 @@ export class DynamoQueryScanProcessor {
 
   private __unmarshallToJson(items: any[]) {
     if (items?.length) {
-      return items.map((item) => MocodyUtil.mocody_unmarshallToJson(item));
+      return items.map((item) => MocodyUtil.unmarshallToJson(item));
     }
     return items;
   }
@@ -298,17 +298,17 @@ export class DynamoQueryScanProcessor {
     const fields = Array.from(new Set(fields01));
 
     const obj: Record<string, any> = {};
-    for (const key of fields) {
+    fields.forEach((key) => {
       if (typeof lastKeyRawObject[key] !== "undefined") {
         obj[key] = lastKeyRawObject[key];
       }
-    }
+    });
 
     if (Object.keys(obj).length === fields.length) {
       return obj;
     }
 
-    const itemJson = MocodyUtil.mocody_unmarshallToJson(lastKeyRawObject);
+    const itemJson = MocodyUtil.unmarshallToJson(lastKeyRawObject);
 
     const dataId: string | undefined = itemJson?.[partitionKeyFieldName];
 
@@ -328,11 +328,11 @@ export class DynamoQueryScanProcessor {
     const obj01: Record<string, any> = {};
     if (result.Item && result.Item[partitionKeyFieldName]) {
       const itemObject = { ...result.Item };
-      for (const key of fields) {
+      fields.forEach((key) => {
         if (typeof itemObject[key] !== "undefined") {
           obj01[key] = itemObject[key];
         }
-      }
+      });
     }
     return Object.keys(obj01).length === fields.length ? obj01 : null;
   }

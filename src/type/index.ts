@@ -64,6 +64,7 @@ export interface IMocodyQueryIndexOptions<T, TSortKeyField = string> {
   sortKeyQuery?: IMocodyKeyConditionParams<TSortKeyField>;
   query?: IMocodyQueryDefinition<T>;
   fields?: (keyof T)[];
+  excludeFields?: (keyof T)[];
   pagingParams?: IMocodyPagingParams;
   limit?: number | null;
   sort?: "asc" | "desc" | null;
@@ -83,3 +84,51 @@ export interface IMocodyIndexDefinition<T> {
 }
 
 export type IMocodyFieldCondition<T> = { field: keyof T; equals: string | number }[];
+
+interface IMocodyCreateTransactionPrepare<T> {
+  kind: "create";
+  data: T;
+}
+
+interface IMocodyUpdateTransactionPrepare<T> {
+  kind: "update";
+  data: T;
+  dataId: string;
+}
+
+interface IMocodyDeleteTransactionPrepare<T> {
+  kind: "delete";
+  dataId: string;
+}
+
+export type IMocodyTransactionPrepare<T> =
+  | IMocodyCreateTransactionPrepare<T>
+  | IMocodyUpdateTransactionPrepare<T>
+  | IMocodyDeleteTransactionPrepare<T>;
+
+interface IMocodyPreparedCreateTransaction {
+  kind: "create";
+  tableName: string;
+  data: Record<string, any>;
+  partitionKeyFieldName: "id";
+}
+
+interface IMocodyPreparedUpdateTransaction {
+  kind: "update";
+  tableName: string;
+  data: Record<string, any>;
+  keyQuery: Record<string, any>;
+  partitionKeyFieldName: "id";
+}
+
+interface IMocodyPreparedDeleteTransaction {
+  kind: "delete";
+  tableName: string;
+  keyQuery: Record<string, any>;
+  partitionKeyFieldName: "id";
+}
+
+export type IMocodyPreparedTransaction =
+  | IMocodyPreparedCreateTransaction
+  | IMocodyPreparedUpdateTransaction
+  | IMocodyPreparedDeleteTransaction;

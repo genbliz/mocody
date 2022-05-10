@@ -8,7 +8,7 @@ export type {
   IMocodyPagingResult,
   IMocodyQueryDefinition,
   IMocodyQueryIndexOptionsNoPaging,
-} from "./type/types";
+} from "./type";
 
 export { IMocodyCoreEntityModel } from "./core/base-schema";
 export { MocodyGenericError } from "./helpers/errors";

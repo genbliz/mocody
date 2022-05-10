@@ -36,3 +36,7 @@ https://partiql.org/tutorial.html#querying-nested-data
 
 https://github.com/dabit3/dynamodb-documentclient-cheat-sheet
 
+https://docs.atlas.mongodb.com/reference/faq/connection-changes/
+
+https://docs.mongodb.com/manual/applications/indexes/
+

@@ -1,14 +1,17 @@
+import { MocodyUtil } from "./../helpers/mocody-utils";
 import { SettingDefaults } from "./../helpers/constants";
 import { UtilService } from "./../helpers/util-service";
 import { LoggingService } from "./../helpers/logging-service";
-import type {
+import {
   IMocodyFieldCondition,
   IMocodyIndexDefinition,
   IMocodyPagingResult,
+  IMocodyPreparedTransaction,
   IMocodyQueryIndexOptions,
   IMocodyQueryIndexOptionsNoPaging,
-} from "../type/types";
-import { RepoModel } from "../model/repo-model";
+  IMocodyTransactionPrepare,
+} from "../type";
+import { RepoModel } from "../model";
 import Joi from "joi";
 import { coreSchemaDefinition, IMocodyCoreEntityModel } from "../core/base-schema";
 import { MocodyErrorUtils, MocodyGenericError } from "../helpers/errors";
@@ -16,6 +19,7 @@ import { getJoiValidationErrors } from "../helpers/base-joi-helper";
 import { MocodyInitializerMongo } from "./mongo-initializer";
 import { MongoFilterQueryOperation } from "./mongo-filter-query-operation";
 import { MongoManageTable } from "./mongo-table-manager";
+import { ReadConcern, ReadPreference, SortDirection, TransactionOptions, WriteConcern } from "mongodb";
 
 interface IOptions<T> {
   schemaDef: Joi.SchemaMap;
@@ -30,13 +34,14 @@ interface IOptions<T> {
 type IModelBase = IMocodyCoreEntityModel;
 
 type IFullEntity<T> = IMocodyCoreEntityModel & T;
+type IFullEntityNative<T> = IMocodyCoreEntityModel & { _id: string } & T;
 
 export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> {
   private readonly _mocody_partitionKeyFieldName: keyof Pick<IModelBase, "id"> = "id";
   private readonly _mocody_sortKeyFieldName: keyof Pick<IModelBase, "featureEntity"> = "featureEntity";
   //
   private readonly _mocody_operationNotSuccessful = "Operation Not Successful";
-  private readonly _mocody_entityResultFieldKeysMap: Map<string, string>;
+  private readonly _mocody_entityFieldsKeySet: Set<keyof T>;
   private readonly _mocody_mongoDb: () => MocodyInitializerMongo;
   private readonly _mocody_dataKeyGenerator: () => string;
   private readonly _mocody_schema: Joi.Schema;
@@ -66,7 +71,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     this._mocody_secondaryIndexOptions = secondaryIndexOptions;
     this._mocody_strictRequiredFields = strictRequiredFields as string[];
     this._mocody_errorHelper = new MocodyErrorUtils();
-    this._mocody_entityResultFieldKeysMap = new Map();
+    this._mocody_entityFieldsKeySet = new Set();
 
     const fullSchemaMapDef = {
       ...schemaDef,
@@ -74,7 +79,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     };
 
     Object.keys(fullSchemaMapDef).forEach((key) => {
-      this._mocody_entityResultFieldKeysMap.set(key, key);
+      this._mocody_entityFieldsKeySet.add(key as keyof T);
     });
 
     this._mocody_schema = Joi.object().keys({
@@ -104,6 +109,12 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     return await this._mocody_mongoDb()
       //
       .getCustomCollectionInstance<IFullEntity<T>>(this._mocody_tableFullName);
+  }
+
+  private async _mocody_getDbInstanceDefined(tableFullName: string) {
+    return await this._mocody_mongoDb()
+      //
+      .getCustomCollectionInstance<IFullEntity<T>>(tableFullName);
   }
 
   private _mocody_getLocalVariables() {
@@ -161,16 +172,30 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     const { strictRequiredFields } = this._mocody_getLocalVariables();
 
     if (strictRequiredFields?.length) {
-      for (const field of strictRequiredFields) {
+      strictRequiredFields.forEach((field) => {
         if (onDataObj[field] === null || onDataObj[field] === undefined) {
           throw this._mocody_createGenericError(`Strict required field: '${field}', NOT defined`);
         }
-      }
+      });
     }
   }
 
   private _mocody_removeDuplicateString(list: string[]) {
     return Array.from(new Set(list));
+  }
+
+  private _mocody_getProjectionFields<TProj = T>({
+    excludeFields,
+    fields,
+  }: {
+    excludeFields?: (keyof TProj)[];
+    fields?: (keyof TProj)[];
+  }) {
+    return MocodyUtil.getProjectionFields({
+      excludeFields,
+      fields,
+      entityFields: Array.from(this._mocody_entityFieldsKeySet) as any[],
+    });
   }
 
   private _mocody_toMongoProjection(fields?: (keyof T)[]) {
@@ -220,20 +245,22 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     if (!(dataInDb?.id === dataId && dataInDb.featureEntity === this._mocody_featureEntityValue)) {
       return null;
     }
-    const passed = this._mocody_withConditionPassed({ item: dataInDb, withCondition });
+    const passed = this._mocody_withConditionPassed({ item: dataInDb as any, withCondition });
     if (!passed) {
       return null;
     }
-    return dataInDb;
+    return dataInDb as any;
   }
 
   async mocody_getManyByIds({
     dataIds,
     fields,
+    excludeFields,
     withCondition,
   }: {
     dataIds: string[];
     fields?: (keyof T)[] | undefined;
+    excludeFields?: (keyof T)[] | undefined;
     withCondition?: IMocodyFieldCondition<T> | undefined;
   }): Promise<T[]> {
     const uniqueIds = this._mocody_removeDuplicateString(dataIds);
@@ -241,50 +268,60 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
 
     const mongo = await this._mocody_getDbInstance();
 
-    if (withCondition?.length && fields?.length) {
+    const fieldKeys = this._mocody_getProjectionFields({ fields, excludeFields });
+
+    if (withCondition?.length && fieldKeys?.length) {
       withCondition.forEach((item) => {
-        fields.push(item.field);
+        fieldKeys.push(item.field);
       });
     }
 
-    const projection = this._mocody_toMongoProjection(fields) ?? { _id: -1 };
+    const projection = this._mocody_toMongoProjection(fieldKeys);
 
     const query: any = { _id: { $in: fullUniqueIds } };
 
-    const dataListInDb = await mongo.find(query, { projection: projection }).toArray();
+    const dataListInDb = await mongo.find<IFullEntityNative<T>>(query, { projection }).toArray();
 
     if (!dataListInDb?.length) {
       return [];
     }
 
+    const dataListInDb01 = dataListInDb.map((f) => {
+      return UtilService.deleteKeysFromObject({ dataObject: f, delKeys: ["_id"] });
+    });
+
     if (withCondition?.length) {
-      const dataFiltered = dataListInDb.filter((item) => {
+      const dataFiltered = dataListInDb01.filter((item) => {
         const passed = this._mocody_withConditionPassed({ item, withCondition });
         return passed;
       });
       return dataFiltered;
     }
 
-    return dataListInDb;
+    return dataListInDb01;
   }
 
-  async mocody_formatDump({ dataList }: { dataList: T[] }): Promise<string> {
+  async mocody_formatForDump({ dataList }: { dataList: T[] }): Promise<string[]> {
     const bulkData: string[] = [];
-
     for (const data of dataList) {
-      const { validatedDataTTL } = await this._mocody_validateReady({ data });
-      bulkData.push(JSON.stringify(validatedDataTTL));
+      const validatedDataWithTTL = await this.mocody_validateFormatData({ data });
+      bulkData.push(validatedDataWithTTL);
     }
-    return bulkData.join("\n");
+    return bulkData;
+  }
+
+  async mocody_validateFormatData({ data }: { data: T }): Promise<string> {
+    const { validatedDataWithTTL } = await this._mocody_validateReady({ data });
+    return JSON.stringify(validatedDataWithTTL);
   }
 
   async mocody_createOne({ data }: { data: T }): Promise<T> {
-    const { validatedData, validatedDataTTL } = await this._mocody_validateReady({ data });
+    const { validatedData, validatedDataWithTTL } = await this._mocody_validateReady({ data });
 
     const mongo = await this._mocody_getDbInstance();
-    const result = await mongo.insertOne(validatedDataTTL);
+    const result = await mongo.insertOne(validatedDataWithTTL);
 
-    if (!result?.insertedCount) {
+    if (!result?.acknowledged) {
       throw this._mocody_createGenericError(this._mocody_operationNotSuccessful);
     }
     const final = { ...validatedData };
@@ -292,7 +329,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     return final;
   }
 
-  async _mocody_validateReady({ data }: { data: T }) {
+  private async _mocody_validateReady({ data }: { data: T }) {
     const { partitionKeyFieldName, featureEntityValue } = this._mocody_getLocalVariables();
 
     let dataId: string | undefined = data[partitionKeyFieldName];
@@ -319,9 +356,9 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     const { validatedData } = await this._mocody_allHelpValidateGetValue(fullData);
     this._mocody_checkValidateStrictRequiredFields(validatedData);
 
-    const validatedDataTTL: any = this._mocody_formatTTL(validatedData);
+    const validatedDataWithTTL: any = this._mocody_formatTTL(validatedData);
 
-    return { validatedData, validatedDataTTL };
+    return { validatedData, validatedDataWithTTL };
   }
 
   private _mocody_formatTTL(fullData: IFullEntity<T>) {
@@ -345,7 +382,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     this._mocody_errorHelper.mocody_helper_validateRequiredString({ dataId });
 
     const nativeId = this._mocody_getNativeMongoId(dataId);
-    const query: any = { _id: nativeId };
+    const query = { _id: nativeId } as IFullEntityNative<T>;
 
     const mongo = await this._mocody_getDbInstance();
 
@@ -354,7 +391,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
       throw this._mocody_createGenericError("Record does not exists");
     }
 
-    const passed = this._mocody_withConditionPassed({ item: dataInDb, withCondition });
+    const passed = this._mocody_withConditionPassed({ item: dataInDb as any, withCondition });
     if (!passed) {
       throw this._mocody_createGenericError("Record with conditions does not exists");
     }
@@ -365,7 +402,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
       ...dataInDb,
       ...updateData,
       ...dataMust,
-    };
+    } as any;
 
     const { validatedData } = await this._mocody_allHelpValidateGetValue(data);
 
@@ -378,12 +415,88 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     return final;
   }
 
-  async mocody_getManyBySecondaryIndex<TData = T, TSortKeyField = string>(
+  async mocody_prepareTransaction({
+    transactPrepareInfo,
+  }: {
+    transactPrepareInfo: IMocodyTransactionPrepare<T>[];
+  }): Promise<IMocodyPreparedTransaction[]> {
+    const transactData: IMocodyPreparedTransaction[] = [];
+
+    const { partitionKeyFieldName } = this._mocody_getLocalVariables();
+
+    for (const item of transactPrepareInfo) {
+      if (item.kind === "create") {
+        const { validatedDataWithTTL } = await this._mocody_validateReady({ data: item.data });
+        transactData.push({
+          data: validatedDataWithTTL,
+          partitionKeyFieldName,
+          tableName: this._mocody_tableFullName,
+          kind: item.kind,
+        });
+      } else if (item.kind === "update") {
+        const { validatedDataWithTTL } = await this._mocody_validateReady({ data: item.data });
+        const nativeId = this._mocody_getNativeMongoId(item.dataId);
+        transactData.push({
+          data: validatedDataWithTTL,
+          partitionKeyFieldName,
+          tableName: this._mocody_tableFullName,
+          kind: item.kind,
+          keyQuery: { _id: nativeId },
+        });
+      } else if (item.kind === "delete") {
+        const nativeId = this._mocody_getNativeMongoId(item.dataId);
+        transactData.push({
+          partitionKeyFieldName,
+          tableName: this._mocody_tableFullName,
+          kind: item.kind,
+          keyQuery: { _id: nativeId },
+        });
+      }
+    }
+    return transactData;
+  }
+
+  async mocody_executeTransaction({ transactInfo }: { transactInfo: IMocodyPreparedTransaction[] }): Promise<void> {
+    const session = await this._mocody_mongoDb().getNewSession();
+    try {
+      const transactionOptions: TransactionOptions = {
+        readPreference: new ReadPreference("primary"),
+        readConcern: new ReadConcern("local"),
+        writeConcern: new WriteConcern("majority"),
+      };
+      await session.withTransaction(async () => {
+        for (const item of transactInfo) {
+          if (item.kind === "create") {
+            const mongo = await this._mocody_getDbInstanceDefined(item.tableName);
+            await mongo.insertOne(item.data as any, { session });
+            //
+          } else if (item.kind === "update") {
+            const mongo = await this._mocody_getDbInstanceDefined(item.tableName);
+            const { validatedData } = await this._mocody_allHelpValidateGetValue(item.data);
+            await mongo.replaceOne(item.keyQuery as any, validatedData);
+            //
+          } else if (item.kind === "delete") {
+            const mongo = await this._mocody_getDbInstanceDefined(item.tableName);
+            await mongo.deleteOne(item.keyQuery as any);
+          }
+        }
+      }, transactionOptions);
+      await session.commitTransaction();
+      await session.endSession();
+    } catch (e) {
+      await session.abortTransaction();
+      await session.endSession();
+      throw e;
+    }
+  }
+
+  async mocody_getManyByIndex<TData = T, TSortKeyField = string>(
     paramOption: IMocodyQueryIndexOptionsNoPaging<TData, TSortKeyField>,
-  ): Promise<T[]> {
-    const result = await this._mocody_getManyBySecondaryIndexPaginateBase<TData, TSortKeyField>({
+  ): Promise<TData[]> {
+    const result = await this._mocody_getManyBySecondaryIndexPaginateBase<TData, TData, TSortKeyField>({
       paramOption,
       canPaginate: false,
+      enableRelationFetch: false,
     });
     if (result?.paginationResults) {
       return result.paginationResults;
@@ -391,22 +504,49 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     return [];
   }
 
-  mocody_getManyBySecondaryIndexPaginate<TData = T, TSortKeyField = string>(
+  mocody_getManyByIndexPaginate<TData = T, TSortKeyField = string>(
     paramOption: IMocodyQueryIndexOptions<TData, TSortKeyField>,
-  ): Promise<IMocodyPagingResult<T[]>> {
-    return this._mocody_getManyBySecondaryIndexPaginateBase<TData, TSortKeyField>({
+  ): Promise<IMocodyPagingResult<TData[]>> {
+    return this._mocody_getManyBySecondaryIndexPaginateBase<TData, TData, TSortKeyField>({
       paramOption,
       canPaginate: true,
+      enableRelationFetch: false,
     });
   }
 
-  private async _mocody_getManyBySecondaryIndexPaginateBase<TData = T, TSortKeyField = string>({
+  async mocody_getManyWithRelation<TQuery = T, TData = T, TSortKeyField = string>(
+    paramOption: Omit<IMocodyQueryIndexOptions<TQuery, TSortKeyField>, "pagingParams">,
+  ): Promise<TData[]> {
+    const result = await this._mocody_getManyBySecondaryIndexPaginateBase<TQuery, TData, TSortKeyField>({
+      paramOption,
+      canPaginate: false,
+      enableRelationFetch: true,
+    });
+    if (result?.paginationResults) {
+      return result.paginationResults;
+    }
+    return [];
+  }
+
+  async mocody_getManyWithRelationPaginate<TQuery = T, TData = T, TSortKeyField = string>(
+    paramOption: IMocodyQueryIndexOptions<TQuery, TSortKeyField>,
+  ): Promise<IMocodyPagingResult<TData[]>> {
+    return this._mocody_getManyBySecondaryIndexPaginateBase<TQuery, TData, TSortKeyField>({
+      paramOption,
+      canPaginate: true,
+      enableRelationFetch: true,
+    });
+  }
+
+  private async _mocody_getManyBySecondaryIndexPaginateBase<TQuery, TData, TSortKeyField>({
     paramOption,
     canPaginate,
+    enableRelationFetch,
   }: {
-    paramOption: IMocodyQueryIndexOptions<TData, TSortKeyField>;
+    paramOption: IMocodyQueryIndexOptions<TQuery, TSortKeyField>;
     canPaginate: boolean;
-  }): Promise<IMocodyPagingResult<T[]>> {
+    enableRelationFetch: boolean;
+  }): Promise<IMocodyPagingResult<TData[]>> {
     const { secondaryIndexOptions } = this._mocody_getLocalVariables();
 
     if (!secondaryIndexOptions?.length) {
@@ -435,25 +575,27 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
         }
       : { [index_PartitionKeyFieldName]: paramOption.partitionKeyValue };
 
-    const localVariables = this._mocody_getLocalVariables();
+    if (!enableRelationFetch) {
+      /** This block avoids query data leak */
+      const localVariables = this._mocody_getLocalVariables();
 
-    /** Avoid query data leak */
-    const hasFeatureEntity = [
-      //
-      index_PartitionKeyFieldName,
-      index_SortKeyFieldName,
-    ].includes(localVariables.sortKeyFieldName);
+      const hasFeatureEntity = [
+        //
+        index_PartitionKeyFieldName,
+        index_SortKeyFieldName,
+      ].includes(localVariables.sortKeyFieldName);
 
-    paramOption.query = paramOption.query || ({} as any);
+      paramOption.query = paramOption.query || ({} as any);
 
-    if (!hasFeatureEntity) {
-      paramOption.query = {
-        ...paramOption.query,
-        ...{ [localVariables.sortKeyFieldName]: localVariables.featureEntityValue },
-      } as any;
-    } else if (index_PartitionKeyFieldName !== localVariables.sortKeyFieldName) {
-      if (localVariables.sortKeyFieldName === index_SortKeyFieldName) {
-        partitionSortKeyQuery[index_SortKeyFieldName] = { $eq: localVariables.featureEntityValue as any };
+      if (!hasFeatureEntity) {
+        paramOption.query = {
+          ...paramOption.query,
+          ...{ [localVariables.sortKeyFieldName]: localVariables.featureEntityValue },
+        } as any;
+      } else if (index_PartitionKeyFieldName !== localVariables.sortKeyFieldName) {
+        if (localVariables.sortKeyFieldName === index_SortKeyFieldName) {
+          partitionSortKeyQuery[index_SortKeyFieldName] = { $eq: localVariables.featureEntityValue as any };
+        }
       }
     }
 
@@ -464,9 +606,14 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
 
     const queryDefData: any = this._mocody_filterQueryOperation.processQueryFilter({ queryDefs });
 
-    const projection = this._mocody_toMongoProjection(paramOption.fields as any[]) ?? { _id: 0 };
+    const fieldKeys = this._mocody_getProjectionFields({
+      fields: paramOption.fields,
+      excludeFields: paramOption.excludeFields,
+    });
 
-    const sort01: Array<[string, number]> = [];
+    const projection = this._mocody_toMongoProjection(fieldKeys as any[]) ?? { _id: 0 };
+
+    const sort01: [string, SortDirection][] = [];
 
     if (paramOption.sort === "desc") {
       sort01.push([index_PartitionKeyFieldName, -1]);
@@ -476,13 +623,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
       sort01.push([index_SortKeyFieldName, 1]);
     }
 
-    // const nn = db.find(queryDefData, {
-    //   projection,
-    //   sort: sort01.length ? sort01 : undefined,
-    //   limit: paramOption.limit ? Number(paramOption.limit) : undefined,
-    // });
-
-    let nextPageHash: string | undefined = undefined;
+    let nextPageHash: string | undefined;
 
     type IPaging = {
       pageNo: number;
@@ -520,7 +661,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
             pagingOptions.pageNo = Number(param01.pageNo);
           }
         }
-      } catch (error) {
+      } catch (error: any) {
         LoggingService.log(error?.message);
       }
 
@@ -540,8 +681,8 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     const mongo = await this._mocody_getDbInstance();
 
     const results = await mongo
-      .find(queryDefData, {
-        projection,
+      .find<TData>(queryDefData, {
+        projection: projection,
         sort: sort01.length ? sort01 : undefined,
         limit: moreFindOption.limit,
         skip: moreFindOption.skip,
@@ -572,13 +713,13 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     const db = await this._mocody_getDbInstance();
 
     const nativeId = this._mocody_getNativeMongoId(dataId);
-    const query: any = { _id: nativeId };
+    const query = { _id: nativeId } as IFullEntityNative<T>;
     const dataInDb = await db.findOne(query);
 
     if (!(dataInDb?.id === dataId && dataInDb.featureEntity === this._mocody_featureEntityValue)) {
       throw this._mocody_createGenericError("Record does not exists");
     }
-    const passed = this._mocody_withConditionPassed({ item: dataInDb, withCondition });
+    const passed = this._mocody_withConditionPassed({ item: dataInDb as any, withCondition });
     if (!passed) {
       throw this._mocody_createGenericError("Record with conditions does not exists for deletion");
     }
@@ -586,6 +727,6 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     if (!result?.deletedCount) {
       throw this._mocody_createGenericError(this._mocody_operationNotSuccessful);
     }
-    return dataInDb;
+    return dataInDb as any;
   }
 }

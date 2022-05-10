@@ -1,5 +1,5 @@
 import { LoggingService } from "./../helpers/logging-service";
-import type { IMocodyKeyConditionParams, IMocodyQueryConditionParams, IMocodyQueryDefinition } from "../type/types";
+import type { IMocodyKeyConditionParams, IMocodyQueryConditionParams, IMocodyQueryDefinition } from "../type";
 import { QueryValidatorCheck } from "../helpers/query-validator";
 import { MocodyErrorUtilsService } from "../helpers/errors";
 // https://docs.mongodb.com/drivers/node/fundamentals/crud/
@@ -150,14 +150,14 @@ export class MongoFilterQueryOperation {
         const _conditionKey01 = conditionKey as keyof IMocodyKeyConditionParams;
 
         if (_conditionKey01 === "$beginsWith") {
-          QueryValidatorCheck.beginWith(_conditionKey01);
+          QueryValidatorCheck.beginWith(conditionValue);
           const _queryConditions = this.operation__filterBeginsWith({
             fieldName: fieldName,
             term: conditionValue,
           });
           mConditions.push(_queryConditions);
         } else if (_conditionKey01 === "$between") {
-          QueryValidatorCheck.between(_conditionKey01);
+          QueryValidatorCheck.between(conditionValue);
           const _queryConditions = this.operation__filterBetween({
             fieldName: fieldName,
             from: conditionValue[0],
@@ -182,9 +182,9 @@ export class MongoFilterQueryOperation {
 
     if (mConditions.length) {
       let selectorValuesAll: any = {};
-      for (const condition of mConditions) {
+      mConditions.forEach((condition) => {
         selectorValuesAll = { ...selectorValuesAll, ...condition[fieldName] };
-      }
+      });
       const result = {
         [fieldName]: { $not: selectorValuesAll },
       } as IQueryConditions;
@@ -247,7 +247,7 @@ export class MongoFilterQueryOperation {
         _queryValue = { $eq: queryval };
       }
 
-      Object.entries(_queryValue).forEach(([condKey, val]) => {
+      Object.entries(_queryValue).forEach(([condKey, conditionValue]) => {
         //
         const conditionKey = condKey as keyof IMocodyKeyConditionParams;
         //
@@ -260,25 +260,24 @@ export class MongoFilterQueryOperation {
 
         if (conditionExpr) {
           const result = {
-            [`${fieldName}.${subFieldName}`]: { [conditionExpr]: val },
+            [`${fieldName}.${subFieldName}`]: { [conditionExpr]: conditionValue },
           } as IQueryConditions;
           results.push(result);
         } else {
           if (conditionKey === "$between") {
-            if (!(Array.isArray(val) && val.length === 2)) {
-              throw MocodyErrorUtilsService.mocody_helper_createFriendlyError(
-                "$between query must be an array of length 2",
-              );
-            }
-            const [fromVal, toVal] = val;
+            QueryValidatorCheck.between(conditionValue);
+
+            const [fromVal, toVal] = conditionValue;
             const result = {
               [`${fieldName}.${subFieldName}`]: { $gte: fromVal, $lte: toVal },
             } as IQueryConditions;
             results.push(result);
             //
           } else if (conditionKey === "$beginsWith") {
+            QueryValidatorCheck.beginWith(conditionValue);
+
             const result = {
-              [`${fieldName}.${subFieldName}`]: { $regex: new RegExp(`^${val}`, "i") },
+              [`${fieldName}.${subFieldName}`]: { $regex: new RegExp(`^${conditionValue}`, "i") },
             } as IQueryConditions;
             results.push(result);
           } else {
@@ -305,6 +304,7 @@ export class MongoFilterQueryOperation {
       if (conditionValue !== undefined) {
         if (conditionKey === "$between") {
           QueryValidatorCheck.between(conditionValue);
+
           const _queryConditions = this.operation__filterBetween({
             fieldName: fieldName,
             from: conditionValue[0],
@@ -313,6 +313,7 @@ export class MongoFilterQueryOperation {
           queryConditions.push(_queryConditions);
         } else if (conditionKey === "$beginsWith") {
           QueryValidatorCheck.beginWith(conditionValue);
+
           const _queryConditions = this.operation__filterBeginsWith({
             fieldName: fieldName,
             term: conditionValue,
@@ -320,6 +321,7 @@ export class MongoFilterQueryOperation {
           queryConditions.push(_queryConditions);
         } else if (conditionKey === "$contains") {
           QueryValidatorCheck.contains(conditionValue);
+
           const _queryConditions = this.operation__filterContains({
             fieldName: fieldName,
             term: conditionValue,
@@ -327,6 +329,7 @@ export class MongoFilterQueryOperation {
           queryConditions.push(_queryConditions);
         } else if (conditionKey === "$notContains") {
           QueryValidatorCheck.notContains(conditionValue);
+
           const _queryConditions = this.operation__filterNotContains({
             fieldName: fieldName,
             term: conditionValue,
@@ -360,9 +363,9 @@ export class MongoFilterQueryOperation {
             attrValues: conditionValue,
           });
           if (nestedMatchConditions?.length) {
-            for (const _queryCondition of nestedMatchConditions) {
-              queryConditions.push(_queryCondition);
-            }
+            nestedMatchConditions.forEach((cond) => {
+              queryConditions.push(cond);
+            });
           }
         } else if (conditionKey === "$not") {
           QueryValidatorCheck.not_query(conditionValue);
@@ -416,83 +419,87 @@ export class MongoFilterQueryOperation {
   processQueryFilter({ queryDefs }: { queryDefs: IMocodyQueryDefinition<any>["query"] }) {
     let queryMainConditions: IQueryConditions[] = [];
     let queryAndConditions: IQueryConditions[] = [];
-    let queryOrConditions: IQueryConditions[] = [];
+    const queryOrConditions: IQueryConditions[] = [];
 
-    Object.keys(queryDefs).forEach((fieldName_Or_And) => {
-      if (fieldName_Or_And === "$or") {
-        const orKey = fieldName_Or_And;
-        const orArray: IQueryConditions[] = queryDefs[orKey];
-        QueryValidatorCheck.exists(orArray);
-        if (orArray && Array.isArray(orArray)) {
-          orArray.forEach((orQuery) => {
-            Object.keys(orQuery).forEach((fieldName) => {
-              //
-              const orQueryObjectOrValue = orQuery[fieldName];
-              //
-              if (orQueryObjectOrValue !== undefined) {
-                if (orQueryObjectOrValue && typeof orQueryObjectOrValue === "object") {
-                  const _orQueryCond = this.operation__translateAdvancedQueryOperation({
-                    fieldName,
-                    queryObject: orQueryObjectOrValue,
+    Object.entries(queryDefs).forEach(([conditionKey, conditionValue]) => {
+      if (conditionKey === "$or") {
+        const orArray = conditionValue as IQueryConditions[];
+
+        QueryValidatorCheck.or_query(orArray);
+
+        orArray.forEach((orQuery) => {
+          const perQueryCondition02: IQueryConditions = {};
+
+          Object.entries(orQuery).forEach(([fieldName, orQueryObjectOrValue]) => {
+            if (orQueryObjectOrValue !== undefined) {
+              if (orQueryObjectOrValue && typeof orQueryObjectOrValue === "object") {
+                const orQueryCond01 = this.operation__translateAdvancedQueryOperation({
+                  fieldName,
+                  queryObject: orQueryObjectOrValue,
+                });
+                let nquery: any = {};
+                for (const xcond of orQueryCond01) {
+                  Object.entries(xcond).forEach(([_, value]) => {
+                    nquery = { ...nquery, ...value };
                   });
-                  queryOrConditions = [...queryOrConditions, ..._orQueryCond];
-                } else {
-                  const _orQueryConditions = this.operation_translateBasicQueryOperation({
-                    fieldName,
-                    queryObject: orQueryObjectOrValue,
-                  });
-                  queryOrConditions = [...queryOrConditions, _orQueryConditions];
                 }
+                perQueryCondition02[fieldName] = nquery;
+              } else {
+                const orQueryCondition02 = this.operation_translateBasicQueryOperation({
+                  fieldName,
+                  queryObject: orQueryObjectOrValue,
+                });
+                let nquery02: any = {};
+                Object.entries(orQueryCondition02).forEach(([_, value]) => {
+                  nquery02 = { ...nquery02, ...value };
+                });
+                perQueryCondition02[fieldName] = nquery02;
               }
-            });
-          });
-        }
-      } else if (fieldName_Or_And === "$and") {
-        const andKey = fieldName_Or_And;
-        const andArray: IQueryConditions[] = queryDefs[andKey];
-        QueryValidatorCheck.exists(andArray);
-        if (andArray && Array.isArray(andArray)) {
-          andArray.forEach((andQuery) => {
-            Object.keys(andQuery).forEach((fieldName) => {
-              //
-              const andQueryObjectOrValue = andQuery[fieldName];
-              //
-              if (andQueryObjectOrValue !== undefined) {
-                if (andQueryObjectOrValue && typeof andQueryObjectOrValue === "object") {
-                  const _andQueryCond = this.operation__translateAdvancedQueryOperation({
-                    fieldName,
-                    queryObject: andQueryObjectOrValue,
-                  });
-                  queryAndConditions = [...queryAndConditions, ..._andQueryCond];
-                } else {
-                  const _andQueryConditions = this.operation_translateBasicQueryOperation({
-                    fieldName,
-                    queryObject: andQueryObjectOrValue,
-                  });
-                  queryAndConditions = [...queryAndConditions, _andQueryConditions];
-                }
-              }
-            });
-          });
-        }
-      } else {
-        if (fieldName_Or_And) {
-          const fieldName2 = fieldName_Or_And;
-          const queryObjectOrValue = queryDefs[fieldName2];
-          if (queryObjectOrValue !== undefined) {
-            if (queryObjectOrValue && typeof queryObjectOrValue === "object") {
-              const _queryCond = this.operation__translateAdvancedQueryOperation({
-                fieldName: fieldName2,
-                queryObject: queryObjectOrValue,
-              });
-              queryMainConditions = [...queryMainConditions, ..._queryCond];
-            } else {
-              const _queryConditions = this.operation_translateBasicQueryOperation({
-                fieldName: fieldName2,
-                queryObject: queryObjectOrValue,
-              });
-              queryMainConditions = [...queryMainConditions, _queryConditions];
             }
+          });
+          if (Object.keys(perQueryCondition02).length) {
+            queryOrConditions.push(perQueryCondition02);
+          }
+        });
+      } else if (conditionKey === "$and") {
+        const andArray = conditionValue as IQueryConditions[];
+
+        QueryValidatorCheck.and_query(conditionValue);
+
+        andArray.forEach((andQuery) => {
+          Object.entries(andQuery).forEach(([fieldName, andQueryObjectOrValue]) => {
+            //
+            if (andQueryObjectOrValue !== undefined) {
+              if (andQueryObjectOrValue && typeof andQueryObjectOrValue === "object") {
+                const _andQueryCond = this.operation__translateAdvancedQueryOperation({
+                  fieldName,
+                  queryObject: andQueryObjectOrValue,
+                });
+                queryAndConditions = [...queryAndConditions, ..._andQueryCond];
+              } else {
+                const _andQueryConditions = this.operation_translateBasicQueryOperation({
+                  fieldName,
+                  queryObject: andQueryObjectOrValue,
+                });
+                queryAndConditions = [...queryAndConditions, _andQueryConditions];
+              }
+            }
+          });
+        });
+      } else {
+        if (conditionKey && conditionValue !== undefined) {
+          if (conditionValue && typeof conditionValue === "object") {
+            const _queryCond = this.operation__translateAdvancedQueryOperation({
+              fieldName: conditionKey,
+              queryObject: conditionValue,
+            });
+            queryMainConditions = [...queryMainConditions, ..._queryCond];
+          } else {
+            const _queryConditions = this.operation_translateBasicQueryOperation({
+              fieldName: conditionKey,
+              queryObject: conditionValue,
+            });
+            queryMainConditions = [...queryMainConditions, _queryConditions];
           }
         }
       }
@@ -501,11 +508,11 @@ export class MongoFilterQueryOperation {
     let queryAllConditions: IQueryConditions & { $and: IQueryConditions[] } & { $or: IQueryConditions[] } = {} as any;
 
     if (queryMainConditions?.length) {
-      for (const item1 of queryMainConditions) {
+      queryMainConditions.forEach((item1) => {
         if (item1) {
           queryAllConditions = { ...queryAllConditions, ...item1 };
         }
-      }
+      });
     }
 
     if (queryAndConditions?.length) {

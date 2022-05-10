@@ -1,0 +1,60 @@
+{
+  "env": {
+    "browser": true,
+    "es2021": true,
+    "node": true
+  },
+  "extends": [
+    "eslint:recommended",
+    "plugin:@typescript-eslint/recommended",
+    "plugin:@typescript-eslint/recommended-requiring-type-checking",
+    "standard",
+    "plugin:prettier/recommended"
+  ],
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "ecmaVersion": 12,
+    "sourceType": "module",
+    "project": "./tsconfig-dev.json"
+  },
+  "plugins": ["@typescript-eslint", "prettier"],
+  "rules": {
+    "brace-style": [2, "1tbs"],
+    "strict": 1,
+    "quotes": "off",
+    "no-console": 0,
+    "no-undef": 0,
+    "no-unused-vars": 0,
+    "no-use-before-define": 0,
+    "@typescript-eslint/explicit-function-return-type": 0,
+    "@typescript-eslint/interface-name-prefix": 0,
+    "@typescript-eslint/camelcase": 0,
+    "@typescript-eslint/no-explicit-any": 0,
+    "@typescript-eslint/no-unused-vars": 0,
+    "no-useless-escape": 0,
+    "@typescript-eslint/no-inferrable-types": 0,
+    "@typescript-eslint/no-use-before-define": 0,
+    "@typescript-eslint/no-var-requires": "off",
+    "@typescript-eslint/unbound-method": "off",
+    "prettier/prettier": "off",
+    "@typescript-eslint/ban-ts-ignore": "off",
+    "@typescript-eslint/no-unsafe-assignment": "off",
+    "@typescript-eslint/no-unsafe-member-access": "off",
+    "@typescript-eslint/no-unsafe-call": "off",
+    "@typescript-eslint/ban-ts-comment": "off",
+    "@typescript-eslint/no-floating-promises": ["off"],
+    "@typescript-eslint/explicit-module-boundary-types": ["off"],
+    "@typescript-eslint/no-unsafe-return": ["off"],
+    "@typescript-eslint/restrict-template-expressions": ["off"],
+    "camelcase": 0,
+    "spaced-comment": 0,
+    "prefer-regex-literals": 0,
+    "@typescript-eslint/no-empty-interface": 0,
+    "node/handle-callback-err": 0,
+    "dot-notation": 0,
+    "prefer-promise-reject-errors": 0,
+    "@typescript-eslint/ban-types": 0,
+    "no-useless-constructor": 0,
+    "@typescript-eslint/no-unsafe-argument": 0
+  }
+}

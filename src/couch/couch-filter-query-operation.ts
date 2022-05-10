@@ -1,6 +1,6 @@
 import { MocodyErrorUtilsService } from "../helpers/errors";
 import { QueryValidatorCheck } from "../helpers/query-validator";
-import type { IMocodyKeyConditionParams, IMocodyQueryConditionParams, IMocodyQueryDefinition } from "../type/types";
+import type { IMocodyKeyConditionParams, IMocodyQueryConditionParams, IMocodyQueryDefinition } from "../type";
 // https://docs.couchdb.org/en/latest/api/database/find.html
 
 interface ISelectedQueryConditionsKeys {
@@ -174,9 +174,9 @@ export class CouchFilterQueryOperation {
 
     if (mConditions.length) {
       let selectorValuesAll: any = {};
-      for (const condition of mConditions) {
+      mConditions.forEach((condition) => {
         selectorValuesAll = { ...selectorValuesAll, ...condition[fieldName] };
-      }
+      });
       const result = {
         [fieldName]: { $not: selectorValuesAll },
       } as IQueryConditions;
@@ -367,9 +367,9 @@ export class CouchFilterQueryOperation {
             attrValues: conditionValue,
           });
           if (nestedMatchConditions?.length) {
-            for (const _queryCondition of nestedMatchConditions) {
+            nestedMatchConditions.forEach((_queryCondition) => {
               queryConditions.push(_queryCondition);
-            }
+            });
           }
         } else if (conditionKey === "$not") {
           QueryValidatorCheck.not_query(conditionValue);
@@ -510,11 +510,11 @@ export class CouchFilterQueryOperation {
     let queryAllConditions: IQueryConditions & { $and: IQueryConditions[] } & { $or: IQueryConditions[] } = {} as any;
 
     if (queryMainConditions?.length) {
-      for (const item1 of queryMainConditions) {
+      queryMainConditions.forEach((item1) => {
         if (item1) {
           queryAllConditions = { ...queryAllConditions, ...item1 };
         }
-      }
+      });
     }
 
     if (queryAndConditions?.length) {

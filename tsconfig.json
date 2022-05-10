@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "es2020",
     "module": "CommonJS",
-    "declaration": false,
+    "declaration": true,
     "noImplicitAny": false,
     "removeComments": true,
     "moduleResolution": "node",
@@ -16,10 +16,10 @@
     "resolveJsonModule": true,
     "useDefineForClassFields": true,
     "strict": true,
-    "outDir": "./dist-dev",
+    "outDir": "./dist",
     "baseUrl": "./",
     "rootDir": "./src/"
   },
   "include": ["src/**/*", "src/index.ts"],
-  "exclude": ["node_modules", "src/**/*.test.ts", "src/**/*.spec.ts"]
+  "exclude": ["node_modules", "**/dumps/**", "src/test/**", "src/**/*.test.ts", "src/**/*.spec.ts"]
 }

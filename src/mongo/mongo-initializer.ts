@@ -5,12 +5,11 @@ const concurrency = throat(1);
 interface IDbOptions {
   uri: string;
   databaseName: string;
-  // collectionName: string;
   options?: MongoClientOptions;
 }
 
 export class MocodyInitializerMongo {
-  private _mongoClient!: MongoClient | null;
+  private _mongoClient: MongoClient | null | undefined;
   private readonly _inits: IDbOptions;
 
   constructor(inits: IDbOptions) {
@@ -20,18 +19,15 @@ export class MocodyInitializerMongo {
   private async getInstance() {
     if (!this._mongoClient) {
       this._mongoClient = new MongoClient(this._inits.uri, this._inits.options);
-    }
-    if (!this._mongoClient.isConnected()) {
       await this._mongoClient.connect();
     }
     return this._mongoClient;
   }
 
-  // async getCollectionInstance<T = any>() {
-  //   const client = await concurrency(() => this.getInstance());
-  //   const col: Collection<T> = client.db(this._inits.databaseName).collection<T>(this._inits.collectionName);
-  //   return col;
-  // }
+  async getNewSession() {
+    const client = await concurrency(() => this.getInstance());
+    return client.startSession();
+  }
 
   async getCustomCollectionInstance<T = any>(collectionName: string) {
     const client = await concurrency(() => this.getInstance());

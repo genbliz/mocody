@@ -1,5 +1,5 @@
 import { IMocodyCoreEntityModel } from "../core/base-schema";
-import { IMocodyIndexDefinition } from "../type/types";
+import { IMocodyIndexDefinition } from "../type";
 import { UtilService } from "../helpers/util-service";
 import { LoggingService } from "../helpers/logging-service";
 import type {
@@ -96,7 +96,7 @@ export class DynamoManageTable<T> {
         return result.Table;
       }
       return null;
-    } catch (error) {
+    } catch (error: any) {
       LoggingService.log({ "@allGetTableInfoBase": "", error: error?.message });
       return null;
     }
@@ -267,7 +267,7 @@ export class DynamoManageTable<T> {
         return updateResults;
       }
       return null;
-    } catch (error) {
+    } catch (error: any) {
       LoggingService.log({
         "@allCreateGlobalSecondaryIndexBase": "",
         error: error?.message,
@@ -400,12 +400,8 @@ export class DynamoManageTable<T> {
   }
 
   async mocody_tbl_createTable() {
-    const {
-      partitionKeyFieldName,
-      sortKeyFieldName,
-      tableFullName,
-      secondaryIndexOptions,
-    } = this._tbl_getLocalVariables();
+    const { partitionKeyFieldName, sortKeyFieldName, tableFullName, secondaryIndexOptions } =
+      this._tbl_getLocalVariables();
 
     const params: CreateTableInput = {
       AttributeDefinitions: [

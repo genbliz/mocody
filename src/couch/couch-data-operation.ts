@@ -1,14 +1,17 @@
+import { MocodyUtil } from "./../helpers/mocody-utils";
 import { SettingDefaults } from "./../helpers/constants";
 import { UtilService } from "./../helpers/util-service";
 import { LoggingService } from "./../helpers/logging-service";
-import type {
+import {
   IMocodyFieldCondition,
   IMocodyIndexDefinition,
   IMocodyPagingResult,
+  IMocodyPreparedTransaction,
   IMocodyQueryIndexOptions,
   IMocodyQueryIndexOptionsNoPaging,
-} from "../type/types";
-import { RepoModel } from "../model/repo-model";
+  IMocodyTransactionPrepare,
+} from "../type";
+import { RepoModel } from "../model";
 import Joi from "joi";
 import type { MocodyInitializerCouch } from "./couch-initializer";
 import { coreSchemaDefinition, IMocodyCoreEntityModel } from "../core/base-schema";
@@ -36,7 +39,7 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   private readonly _mocody_sortKeyFieldName: keyof Pick<IModelBase, "featureEntity"> = "featureEntity";
   //
   private readonly _mocody_operationNotSuccessful = "Operation Not Successful";
-  private readonly _mocody_entityResultFieldKeysMap: Map<string, string>;
+  private readonly _mocody_entityFieldsKeySet: Set<keyof T>;
   private readonly _mocody_couchDb: () => MocodyInitializerCouch;
   private readonly _mocody_dataKeyGenerator: () => string;
   private readonly _mocody_schema: Joi.Schema;
@@ -66,7 +69,7 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     this._mocody_secondaryIndexOptions = secondaryIndexOptions;
     this._mocody_strictRequiredFields = strictRequiredFields as string[];
     this._mocody_errorHelper = new MocodyErrorUtils();
-    this._mocody_entityResultFieldKeysMap = new Map();
+    this._mocody_entityFieldsKeySet = new Set();
 
     const fullSchemaMapDef = {
       ...schemaDef,
@@ -74,7 +77,7 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     };
 
     Object.keys(fullSchemaMapDef).forEach((key) => {
-      this._mocody_entityResultFieldKeysMap.set(key, key);
+      this._mocody_entityFieldsKeySet.add(key as keyof T);
     });
 
     this._mocody_schema = Joi.object().keys({
@@ -116,17 +119,31 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     } as const;
   }
 
-  private _mocody_stripNonRequiredOutputData({
+  private _mocody_getProjectionFields<TProj = T>({
+    excludeFields,
+    fields,
+  }: {
+    excludeFields?: (keyof TProj)[];
+    fields?: (keyof TProj)[];
+  }) {
+    return MocodyUtil.getProjectionFields({
+      excludeFields,
+      fields,
+      entityFields: Array.from(this._mocody_entityFieldsKeySet) as any[],
+    });
+  }
+
+  private _mocody_stripNonRequiredOutputData<TData = T>({
     dataObj,
     excludeFields,
   }: {
     dataObj: Record<string, any>;
     excludeFields?: string[];
-  }): T {
+  }): TData {
     const returnData = {} as any;
-    if (typeof dataObj === "object" && this._mocody_entityResultFieldKeysMap.size > 0) {
+    if (dataObj && typeof dataObj === "object" && this._mocody_entityFieldsKeySet.size > 0) {
       Object.entries({ ...dataObj }).forEach(([key, value]) => {
-        if (this._mocody_entityResultFieldKeysMap.has(key)) {
+        if (this._mocody_entityFieldsKeySet.has(key as keyof T)) {
           if (excludeFields?.length) {
             if (!excludeFields.includes(key)) {
               returnData[key] = value;
@@ -183,11 +200,11 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     const { strictRequiredFields } = this._mocody_getLocalVariables();
 
     if (strictRequiredFields?.length) {
-      for (const field of strictRequiredFields) {
+      strictRequiredFields.forEach((field) => {
         if (onDataObj[field] === null || onDataObj[field] === undefined) {
           throw this._mocody_createGenericError(`Strict required field: '${field}', NOT defined`);
         }
-      }
+      });
     }
   }
 
@@ -225,14 +242,19 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     });
   }
 
-  async mocody_formatDump({ dataList }: { dataList: T[] }): Promise<string> {
-    const bulkData: any[] = [];
+  async mocody_formatForDump({ dataList }: { dataList: T[] }): Promise<string[]> {
+    const bulkData: string[] = [];
 
     for (const data of dataList) {
-      const { validatedData } = await this._mocody_validateReady({ data });
+      const validatedData = await this.mocody_validateFormatData({ data });
       bulkData.push(validatedData);
     }
-    return JSON.stringify(bulkData);
+    return bulkData;
+  }
+
+  async mocody_validateFormatData({ data }: { data: T }): Promise<string> {
+    const { validatedData } = await this._mocody_validateReady({ data });
+    return JSON.stringify(validatedData);
   }
 
   private async _mocody_validateReady({ data }: { data: T }) {
@@ -359,13 +381,31 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     });
   }
 
+  /** Not implemented */
+  async mocody_prepareTransaction({
+    transactPrepareInfo,
+  }: {
+    transactPrepareInfo: IMocodyTransactionPrepare<T>[];
+  }): Promise<IMocodyPreparedTransaction[]> {
+    await Promise.resolve();
+    throw new Error("Couch:PrepareTransaction not implemented.");
+  }
+
+  /** Not implemented */
+  async mocody_executeTransaction({ transactInfo }: { transactInfo: IMocodyPreparedTransaction[] }): Promise<void> {
+    await Promise.resolve();
+    throw new Error("Couch:ExecuteTransaction not implemented.");
+  }
+
   async mocody_getManyByIds({
     dataIds,
     fields,
+    excludeFields,
     withCondition,
   }: {
     dataIds: string[];
     fields?: (keyof T)[];
+    excludeFields?: (keyof T)[];
     withCondition?: IMocodyFieldCondition<T> | undefined;
   }): Promise<T[]> {
     //
@@ -380,6 +420,8 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
 
     const dataList: T[] = [];
 
+    const fieldKeys = this._mocody_getProjectionFields({ fields, excludeFields });
+
     if (withCondition?.length) {
       data?.rows?.forEach((item) => {
         if (item?.doc?.featureEntity === this._mocody_featureEntityValue) {
@@ -387,7 +429,7 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
           if (passed) {
             const k = this._mocody_stripNonRequiredOutputData({
               dataObj: item.doc,
-              excludeFields: fields as any[],
+              excludeFields: fieldKeys as any[],
             });
             dataList.push(k);
           }
@@ -398,7 +440,7 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
         if (item?.doc?.featureEntity === this._mocody_featureEntityValue) {
           const k = this._mocody_stripNonRequiredOutputData({
             dataObj: item.doc,
-            excludeFields: fields as any[],
+            excludeFields: fieldKeys as any[],
           });
           dataList.push(k);
         }
@@ -407,12 +449,13 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     return dataList;
   }
 
-  async mocody_getManyBySecondaryIndex<TData = T, TSortKeyField = string>(
+  async mocody_getManyByIndex<TData = T, TSortKeyField = string>(
     paramOption: IMocodyQueryIndexOptionsNoPaging<TData, TSortKeyField>,
-  ): Promise<T[]> {
-    const result = await this._mocody_getManyBySecondaryIndexPaginateBase<TData, TSortKeyField>({
+  ): Promise<TData[]> {
+    const result = await this._mocody_getManyBySecondaryIndexPaginateBase<TData, TData, TSortKeyField>({
       paramOption,
       canPaginate: false,
+      enableRelationFetch: false,
     });
     if (result?.paginationResults?.length) {
       return result.paginationResults;
@@ -420,22 +463,49 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     return [];
   }
 
-  async mocody_getManyBySecondaryIndexPaginate<TData = T, TSortKeyField = string>(
+  async mocody_getManyByIndexPaginate<TData = T, TSortKeyField = string>(
     paramOption: IMocodyQueryIndexOptions<TData, TSortKeyField>,
-  ): Promise<IMocodyPagingResult<T[]>> {
-    return this._mocody_getManyBySecondaryIndexPaginateBase<TData, TSortKeyField>({
+  ): Promise<IMocodyPagingResult<TData[]>> {
+    return this._mocody_getManyBySecondaryIndexPaginateBase<TData, TData, TSortKeyField>({
       paramOption,
       canPaginate: true,
+      enableRelationFetch: false,
     });
   }
 
-  private async _mocody_getManyBySecondaryIndexPaginateBase<TData = T, TSortKeyField = string>({
+  async mocody_getManyWithRelation<TQuery = T, TData = T, TSortKeyField = string>(
+    paramOption: Omit<IMocodyQueryIndexOptions<TQuery, TSortKeyField>, "pagingParams">,
+  ): Promise<TData[]> {
+    const result = await this._mocody_getManyBySecondaryIndexPaginateBase<TQuery, TData, TSortKeyField>({
+      paramOption,
+      canPaginate: false,
+      enableRelationFetch: true,
+    });
+    if (result?.paginationResults) {
+      return result.paginationResults;
+    }
+    return [];
+  }
+
+  async mocody_getManyWithRelationPaginate<TQuery = T, TData = T, TSortKeyField = string>(
+    paramOption: IMocodyQueryIndexOptions<TQuery, TSortKeyField>,
+  ): Promise<IMocodyPagingResult<TData[]>> {
+    return this._mocody_getManyBySecondaryIndexPaginateBase<TQuery, TData, TSortKeyField>({
+      paramOption,
+      canPaginate: true,
+      enableRelationFetch: true,
+    });
+  }
+
+  private async _mocody_getManyBySecondaryIndexPaginateBase<TQuery, TData, TSortKeyField>({
     paramOption,
     canPaginate,
+    enableRelationFetch,
   }: {
-    paramOption: IMocodyQueryIndexOptions<TData, TSortKeyField>;
+    paramOption: IMocodyQueryIndexOptions<TQuery, TSortKeyField>;
     canPaginate: boolean;
-  }): Promise<IMocodyPagingResult<T[]>> {
+    enableRelationFetch: boolean;
+  }): Promise<IMocodyPagingResult<TData[]>> {
     const { secondaryIndexOptions } = this._mocody_getLocalVariables();
 
     if (!secondaryIndexOptions?.length) {
@@ -464,25 +534,27 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
         }
       : { [index_PartitionKeyFieldName]: paramOption.partitionKeyValue };
 
-    const localVariables = this._mocody_getLocalVariables();
+    if (!enableRelationFetch) {
+      /** This block avoids query data leak */
+      const localVariables = this._mocody_getLocalVariables();
 
-    /** Avoid query data leak */
-    const hasFeatureEntity = [
-      //
-      index_PartitionKeyFieldName,
-      index_SortKeyFieldName,
-    ].includes(localVariables.sortKeyFieldName);
+      const hasFeatureEntity = [
+        //
+        index_PartitionKeyFieldName,
+        index_SortKeyFieldName,
+      ].includes(localVariables.sortKeyFieldName);
 
-    paramOption.query = (paramOption.query || {}) as any;
+      paramOption.query = (paramOption.query || {}) as any;
 
-    if (!hasFeatureEntity) {
-      paramOption.query = {
-        ...paramOption.query,
-        ...{ [localVariables.sortKeyFieldName]: localVariables.featureEntityValue },
-      } as any;
-    } else if (index_PartitionKeyFieldName !== localVariables.sortKeyFieldName) {
-      if (localVariables.sortKeyFieldName === index_SortKeyFieldName) {
-        partitionSortKeyQuery[index_SortKeyFieldName] = { $eq: localVariables.featureEntityValue as any };
+      if (!hasFeatureEntity) {
+        paramOption.query = {
+          ...paramOption.query,
+          ...{ [localVariables.sortKeyFieldName]: localVariables.featureEntityValue },
+        } as any;
+      } else if (index_PartitionKeyFieldName !== localVariables.sortKeyFieldName) {
+        if (localVariables.sortKeyFieldName === index_SortKeyFieldName) {
+          partitionSortKeyQuery[index_SortKeyFieldName] = { $eq: localVariables.featureEntityValue as any };
+        }
       }
     }
 
@@ -524,13 +596,18 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
       paramOption,
     });
 
-    let projection: string[] | undefined = undefined;
+    let projection: string[] | undefined;
 
-    if (paramOption?.fields?.length) {
-      projection = this._mocody_removeDuplicateString(paramOption.fields as any);
+    const fieldKeys = this._mocody_getProjectionFields({
+      fields: paramOption.fields,
+      excludeFields: paramOption.excludeFields,
+    });
+
+    if (fieldKeys?.length) {
+      projection = this._mocody_removeDuplicateString(fieldKeys as any[]);
     }
 
-    let nextPageHash: string | undefined = undefined;
+    let nextPageHash: string | undefined;
 
     type IPaging = {
       pageNo: number;
@@ -568,7 +645,7 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
             pagingOptions.pageNo = param01.pageNo;
           }
         }
-      } catch (error) {
+      } catch (error: any) {
         LoggingService.log(error?.message);
       }
       moreFindOption.limit = pagingOptions.limit;
@@ -596,7 +673,7 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     });
 
     const results = data?.docs?.map((item) => {
-      return this._mocody_stripNonRequiredOutputData({ dataObj: item });
+      return this._mocody_stripNonRequiredOutputData<TData>({ dataObj: item });
     });
 
     if (canPaginate && results.length && moreFindOption.limit && results.length >= moreFindOption.limit) {

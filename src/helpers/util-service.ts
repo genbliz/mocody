@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from "uuid";
+import { customAlphabet } from "nanoid";
 
 class UtilServiceBase {
   /** generate uuid */
@@ -13,6 +14,7 @@ class UtilServiceBase {
   getRandomDecimal(min: number, max: number) {
     return Math.random() * (max - min) + min;
   }
+
   /**
    * Returns a random integer between min (inclusive) and max (inclusive)
    * Using Math.round() will give you a non-uniform distribution!
@@ -24,23 +26,9 @@ class UtilServiceBase {
   }
 
   getRandomString(count: number) {
-    let text = "";
-    const possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-    for (let i = 0; i < count; i++) {
-      const random = Math.floor(Math.random() * possible.length);
-      text += possible[random];
-    }
-    return text;
-  }
-
-  getRandomAlphabet(count: number) {
-    let txt = "";
-    const alphabets = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    for (let i = 0; i < count; i++) {
-      const random = Math.floor(Math.random() * alphabets.length);
-      txt += alphabets[random];
-    }
-    return txt;
+    const alphabet = "0123456789abcdefghijklmnopqrstuvwxyz";
+    const nanoid01 = customAlphabet(alphabet, count);
+    return nanoid01();
   }
 
   camelCaseToSentenceCase(text: string) {
@@ -51,7 +39,7 @@ class UtilServiceBase {
 
   toTitleCase(text: string) {
     return text.replace(/\w\S*/g, (txt) => {
-      return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
+      return txt[0].toUpperCase() + txt.slice(1).toLowerCase();
     });
   }
 
@@ -175,6 +163,28 @@ class UtilServiceBase {
 
   decodeBase64(str: string) {
     return Buffer.from(str, "base64").toString();
+  }
+
+  deleteKeysFromObject<T = Record<string, any>>({
+    dataObject,
+    delKeys,
+  }: {
+    dataObject: T;
+    delKeys: (keyof T | string)[];
+  }): T {
+    if (!(dataObject && typeof dataObject === "object")) {
+      return dataObject;
+    }
+    if (Array.isArray(dataObject)) {
+      return dataObject;
+    }
+    const chosenDataObject: any = {};
+    Object.keys(dataObject).forEach((key) => {
+      if (!delKeys.includes(key)) {
+        chosenDataObject[key] = dataObject[key];
+      }
+    });
+    return chosenDataObject;
   }
 }
 

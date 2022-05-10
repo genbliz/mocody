@@ -1,5 +1,6 @@
-import type { IMocodyQueryDefinition } from "../type/types";
-import { BaseRepository } from "./base-repo";
+import { UtilService } from "../helpers/util-service";
+import type { IMocodyQueryDefinition } from "../type";
+import { BaseRepository } from "./base-repo-mongo";
 import Joi from "joi";
 import faker from "faker";
 
@@ -47,13 +48,8 @@ const schemaSubDef = {
   }),
 };
 
-const getRandom = () =>
-  [
-    //
-    Math.round(Math.random() * 99999),
-    Math.round(Math.random() * 88),
-    Math.round(Math.random() * 99),
-  ].reduce((prev, cur) => prev + cur, 0);
+const getRandom = () => UtilService.getRandomString(0);
+const getRandomNumber = () => UtilService.getRandomInt(100, 10000);
 
 export const DefinedIndexes = {
   featureEntity_tenantId: {
@@ -76,7 +72,7 @@ class MyRepositoryBase extends BaseRepository<IPayment> {
   }
 
   async getIt() {
-    return await this.mocody_getManyBySecondaryIndex({
+    return await this.mocody_getManyByIndex({
       indexName: DefinedIndexes.featureEntity_tenantId.indexName,
       partitionKeyValue: this.featureEntityValue,
       query: {
@@ -98,37 +94,37 @@ class MyRepositoryBase extends BaseRepository<IPayment> {
   }
 
   async create() {
-    await this.mocody_createOne({
-      data: {
-        tenantId,
-        amount: getRandom(),
-        category: getRandom().toString(),
-        skills: Array.from(
-          new Set([
-            //
-            faker.helpers.randomize(definedSkills),
-            faker.helpers.randomize(definedSkills),
-            faker.helpers.randomize(definedSkills),
-            faker.helpers.randomize(definedSkills),
-          ]),
-        ),
-        remark: getRandom().toString(),
-        transactionId: getRandom().toString(),
-        invoiceId: getRandom().toString(),
-        bill: {
-          amount: getRandom(),
-          date: faker.date.between(new Date("2020-03-01"), new Date()).toISOString(),
-          remark: faker.random.word(),
-        },
+    const data = {
+      tenantId,
+      amount: getRandomNumber(),
+      category: getRandom(),
+      skills: Array.from(
+        new Set([
+          //
+          faker.helpers.randomize(definedSkills),
+          faker.helpers.randomize(definedSkills),
+          faker.helpers.randomize(definedSkills),
+          faker.helpers.randomize(definedSkills),
+        ]),
+      ),
+      remark: getRandom(),
+      transactionId: getRandom(),
+      invoiceId: getRandom(),
+      bill: {
+        amount: getRandomNumber(),
+        date: faker.date.between(new Date("2020-03-01"), new Date()).toISOString(),
+        remark: faker.random.word(),
       },
-    });
+    };
+    const result = await this.mocody_createOne({ data });
+    console.log(result);
   }
 
   async update() {
     await this.mocody_updateOne({
       dataId: "",
       updateData: {
-        amount: getRandom(),
+        amount: getRandomNumber(),
         // category: getRandom().toString(),
         invoiceId: getRandom().toString(),
         remark: getRandom().toString(),
