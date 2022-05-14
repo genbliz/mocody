@@ -32,13 +32,23 @@ class QueryValidatorCheckBase {
   }
 
   in_query(conditionValue: unknown) {
-    if (!(conditionValue && Array.isArray(conditionValue) && conditionValue.length)) {
+    if (conditionValue && Array.isArray(conditionValue) && conditionValue.length) {
+      const firstValue = conditionValue[0];
+      if (typeof firstValue !== "string" || typeof firstValue !== "number") {
+        this.queryErrorThrowChecks({ conditionValue, queryType: "$in" });
+      }
+    } else {
       this.queryErrorThrowChecks({ conditionValue, queryType: "$in" });
     }
   }
 
   notIn(conditionValue: unknown) {
-    if (!(conditionValue && Array.isArray(conditionValue) && conditionValue.length)) {
+    if (conditionValue && Array.isArray(conditionValue) && conditionValue.length) {
+      const firstValue = conditionValue[0];
+      if (typeof firstValue !== "string" || typeof firstValue !== "number") {
+        this.queryErrorThrowChecks({ conditionValue, queryType: "$nin" });
+      }
+    } else {
       this.queryErrorThrowChecks({ conditionValue, queryType: "$nin" });
     }
   }

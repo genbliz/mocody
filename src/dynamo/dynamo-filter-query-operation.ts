@@ -92,7 +92,52 @@ export class DynamoFilterQueryOperation {
     return result;
   }
 
-  private operation__filterIn({ fieldName, attrValues }: { fieldName: string; attrValues: any[] }): IQueryConditions {
+  private operation__filterIn({
+    fieldName,
+    attrValues,
+  }: {
+    fieldName: string;
+    attrValues: (string | number)[];
+  }): IQueryConditions {
+    const expressAttrVal: { [key: string]: { S: string } | { N: number } } = {};
+    const expressAttrName: { [key: string]: string } = {};
+    const valuesVariable: string[] = [];
+
+    const attrKeyVariale = getDynamoRandomKeyOrHash("#");
+    expressAttrName[attrKeyVariale] = fieldName;
+
+    attrValues.forEach((item, i) => {
+      const keyAttr = getDynamoRandomKeyOrHash(":");
+      if (typeof item === "number") {
+        expressAttrVal[keyAttr] = { N: item };
+      } else {
+        expressAttrVal[keyAttr] = { S: item };
+      }
+      valuesVariable.push(keyAttr);
+    });
+
+    const filterExpressionValue01 = `${attrKeyVariale} IN (${valuesVariable.join(", ")})`;
+
+    const result: IQueryConditions = {
+      xExpressionAttributeValues: {
+        ...expressAttrVal,
+      },
+      xExpressionAttributeNames: {
+        ...expressAttrName,
+      },
+      xFilterExpression: filterExpressionValue01,
+    };
+    return result;
+  }
+
+  //@ts-ignore
+  private operation__filterIn_00({
+    fieldName,
+    attrValues,
+  }: {
+    fieldName: string;
+    attrValues: any[];
+  }): IQueryConditions {
     const expressAttrVal: { [key: string]: string } = {};
     const expressAttrName: { [key: string]: string } = {};
     const filterExpress: string[] = [];
