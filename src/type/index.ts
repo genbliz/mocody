@@ -7,8 +7,8 @@ type RequireAtLeastOne<T> = RequireAtLeastOneBase<T, keyof T>;
 
 type TypeFallBackStringOnly<T> = Extract<T, string>;
 type TypeFallBack<T> = undefined extends T ? Exclude<T, undefined> : T;
-// type TypeFallBackArray<T> = number extends T ? number[] : string extends T ? string[] : T;
-type TypeFallBackArray<T> = number extends T
+type TypeFallBackArray<T> = number extends T ? number[] : string extends T ? string[] : T;
+type TypeFallBackArrayAdvanced<T> = number extends T
   ? number[]
   : string extends T
   ? string[]
@@ -28,8 +28,8 @@ export type IMocodyKeyConditionParams<T = string> = {
 
 export type IMocodyQueryConditionParams<T = any> = IMocodyKeyConditionParams<T> & {
   $ne?: TypeFallBack<T> | null;
-  $in?: TypeFallBackArray<T>;
-  $nin?: TypeFallBackArray<T>;
+  $in?: TypeFallBackArrayAdvanced<T>;
+  $nin?: TypeFallBackArrayAdvanced<T>;
   $exists?: boolean;
   $not?: IMocodyKeyConditionParams<T>;
   $elemMatch?: { $in: TypeFallBackArray<T> };
