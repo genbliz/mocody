@@ -207,8 +207,8 @@ export class DynamoFilterQueryOperation {
         const conditionExpr = QUERY_CONDITION_MAP_NESTED[conditionKey];
         //
         const attrValue = getDynamoRandomKeyOrHash(":");
-        const attrKeyHash = getDynamoRandomKeyOrHash("#");
-        const parentFieldName = getDynamoRandomKeyOrHash("#");
+        const childKeyHash = getDynamoRandomKeyOrHash("#");
+        const parentHashKey = getDynamoRandomKeyOrHash("#");
         //
         if (conditionExpr) {
           const result: IQueryConditions = {
@@ -216,10 +216,10 @@ export class DynamoFilterQueryOperation {
               [attrValue]: conditionValue,
             },
             xExpressionAttributeNames: {
-              [attrKeyHash]: subFieldName,
-              [parentFieldName]: fieldName,
+              [childKeyHash]: subFieldName,
+              [parentHashKey]: fieldName,
             },
-            xFilterExpression: [`${parentFieldName}.${attrKeyHash}`, conditionExpr, attrValue].join(" "),
+            xFilterExpression: [`${parentHashKey}.${childKeyHash}`, conditionExpr, attrValue].join(" "),
           };
           results.push(result);
         } else {
@@ -235,10 +235,10 @@ export class DynamoFilterQueryOperation {
                 [toKey]: toVal,
               },
               xExpressionAttributeNames: {
-                [attrKeyHash]: subFieldName,
-                [parentFieldName]: fieldName,
+                [childKeyHash]: subFieldName,
+                [parentHashKey]: fieldName,
               },
-              xFilterExpression: [`${parentFieldName}.${attrKeyHash}`, "between", fromKey, "and", toKey].join(" "),
+              xFilterExpression: [`${parentHashKey}.${childKeyHash}`, "between", fromKey, "and", toKey].join(" "),
             };
             results.push(result);
           } else if (conditionKey === "$beginsWith") {
@@ -247,15 +247,15 @@ export class DynamoFilterQueryOperation {
                 [attrValue]: conditionValue,
               },
               xExpressionAttributeNames: {
-                [attrKeyHash]: subFieldName,
-                [parentFieldName]: fieldName,
+                [childKeyHash]: subFieldName,
+                [parentHashKey]: fieldName,
               },
-              xFilterExpression: `begins_with (${parentFieldName}.${attrKeyHash}, ${attrValue})`,
+              xFilterExpression: `begins_with (${parentHashKey}.${childKeyHash}, ${attrValue})`,
             };
             results.push(result);
           } else if (conditionKey === "$contains") {
             const result = this.operation__filterContains({
-              fieldName: `${parentFieldName}.${subFieldName}`,
+              fieldName: `${fieldName}.${subFieldName}`,
               term: conditionValue,
             });
             results.push(result);
