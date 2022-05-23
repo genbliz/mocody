@@ -8,7 +8,8 @@ import { getDynamoRandomKeyOrHash } from "./dynamo-helper";
 // https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.OperatorsAndFunctions.html
 
 type FieldPartial<T> = { [P in keyof T]-?: string };
-const keyConditionMap: FieldPartial<IMocodyKeyConditionParams> = {
+
+const KEY_CONDITION_MAP: FieldPartial<IMocodyKeyConditionParams> = {
   $eq: "=",
   $lt: "<",
   $lte: "<=",
@@ -18,7 +19,7 @@ const keyConditionMap: FieldPartial<IMocodyKeyConditionParams> = {
   $between: "",
 };
 
-const conditionMapPre: FieldPartial<Omit<IMocodyQueryConditionParams, keyof IMocodyKeyConditionParams>> = {
+const QUERY_CONDITION_MAP_PART: FieldPartial<Omit<IMocodyQueryConditionParams, keyof IMocodyKeyConditionParams>> = {
   $ne: "<>",
   $exists: "",
   $in: "",
@@ -30,7 +31,8 @@ const conditionMapPre: FieldPartial<Omit<IMocodyQueryConditionParams, keyof IMoc
   $nestedMatch: "",
 };
 
-const conditionMap = { ...keyConditionMap, ...conditionMapPre };
+const QUERY_CONDITION_MAP_NESTED = { ...KEY_CONDITION_MAP, $contains: "" };
+const QUERY_CONDITION_MAP_FULL = { ...KEY_CONDITION_MAP, ...QUERY_CONDITION_MAP_PART };
 
 type IDictionaryAttr = { [key: string]: any };
 type IQueryConditions = {
@@ -40,7 +42,7 @@ type IQueryConditions = {
 };
 
 function hasQueryConditionValue(key: string) {
-  if (key && Object.keys(conditionMap).includes(key) && conditionMap[key]) {
+  if (key && Object.keys(QUERY_CONDITION_MAP_FULL).includes(key) && QUERY_CONDITION_MAP_FULL[key]) {
     return true;
   }
   return false;
@@ -195,14 +197,14 @@ export class DynamoFilterQueryOperation {
 
       Object.entries(_queryValue).forEach(([condKey, conditionValue]) => {
         //
-        const conditionKey = condKey as keyof IMocodyKeyConditionParams;
+        const conditionKey = condKey as keyof typeof QUERY_CONDITION_MAP_NESTED;
         //
-        if (!Object.keys(keyConditionMap).includes(conditionKey)) {
+        if (!Object.keys(QUERY_CONDITION_MAP_NESTED).includes(conditionKey)) {
           throw MocodyErrorUtilsService.mocody_helper_createFriendlyError(
             `Invalid query key: ${conditionKey} @ NestedMatchObject`,
           );
         }
-        const conditionExpr = keyConditionMap[conditionKey];
+        const conditionExpr = QUERY_CONDITION_MAP_NESTED[conditionKey];
         //
         const attrValue = getDynamoRandomKeyOrHash(":");
         const attrKeyHash = getDynamoRandomKeyOrHash("#");
@@ -250,6 +252,12 @@ export class DynamoFilterQueryOperation {
               },
               xFilterExpression: `begins_with (${parentFieldName}.${attrKeyHash}, ${attrValue})`,
             };
+            results.push(result);
+          } else if (conditionKey === "$contains") {
+            const result = this.operation__filterContains({
+              fieldName: `${parentFieldName}.${subFieldName}`,
+              term: conditionValue,
+            });
             results.push(result);
           } else {
             throw MocodyErrorUtilsService.mocody_helper_createFriendlyError(
@@ -311,7 +319,7 @@ export class DynamoFilterQueryOperation {
           });
           mConditions.push(_queryConditions);
         } else {
-          const conditionExpr = conditionMap[conditionKey];
+          const conditionExpr = QUERY_CONDITION_MAP_FULL[conditionKey];
           if (conditionExpr) {
             const _queryConditions = this.operation__helperFilterBasic({
               fieldName: fieldName,
@@ -475,7 +483,7 @@ export class DynamoFilterQueryOperation {
             queryConditions.push(_queryConditions);
           }
         } else {
-          const conditionExpr = conditionMap[conditionKey];
+          const conditionExpr = QUERY_CONDITION_MAP_FULL[conditionKey];
           if (hasQueryConditionValue(conditionKey) && conditionExpr) {
             const _queryConditions = this.operation__helperFilterBasic({
               fieldName: fieldName,
