@@ -182,14 +182,25 @@ export class DynamoFilterQueryOperation {
     attrValues,
   }: {
     fieldName: string;
-    attrValues: Record<string, Record<string, any> | string | number>; // { product: {$eq: "xyz"} }
-  }): IQueryConditions[] {
-    const results: IQueryConditions[] = [];
+    attrValues: Record<string, Record<string, any> | string | number>; // { amount: {$gte: 99} }
+  }): IQueryConditions {
+    const parentHashKey = getDynamoRandomKeyOrHash("#");
+    const xFilterExpressionList: string[] = [];
+
+    const resultQuery: IQueryConditions = {
+      xExpressionAttributeValues: {},
+      xExpressionAttributeNames: {
+        [parentHashKey]: fieldName,
+      },
+      xFilterExpression: "",
+    };
+
     Object.entries(attrValues).forEach(([subFieldName, queryval]) => {
       //
       let queryValue001: Record<string, any>;
+      const childKeyHash = getDynamoRandomKeyOrHash("#");
 
-      LoggingService.log(JSON.stringify({ fieldName, attrValues, subFieldName, queryval }, null, 2));
+      resultQuery.xExpressionAttributeNames[childKeyHash] = subFieldName;
 
       if (queryval && typeof queryval === "object") {
         queryValue001 = { ...queryval };
@@ -208,22 +219,11 @@ export class DynamoFilterQueryOperation {
         }
         const conditionExpr = QUERY_CONDITION_MAP_NESTED[conditionKey];
         //
-        const attrValue = getDynamoRandomKeyOrHash(":");
-        const childKeyHash = getDynamoRandomKeyOrHash("#");
-        const parentHashKey = getDynamoRandomKeyOrHash("#");
+        const attrValueHashKey = getDynamoRandomKeyOrHash(":");
         //
         if (conditionExpr) {
-          const result: IQueryConditions = {
-            xExpressionAttributeValues: {
-              [attrValue]: conditionValue,
-            },
-            xExpressionAttributeNames: {
-              [childKeyHash]: subFieldName,
-              [parentHashKey]: fieldName,
-            },
-            xFilterExpression: [`${parentHashKey}.${childKeyHash}`, conditionExpr, attrValue].join(" "),
-          };
-          results.push(result);
+          resultQuery.xExpressionAttributeValues[attrValueHashKey] = conditionValue;
+          xFilterExpressionList.push([`${parentHashKey}.${childKeyHash}`, conditionExpr, attrValueHashKey].join(" "));
         } else {
           if (conditionKey === "$between") {
             QueryValidatorCheck.between(conditionValue);
@@ -231,42 +231,23 @@ export class DynamoFilterQueryOperation {
             const toKey = getDynamoRandomKeyOrHash(":");
 
             const [fromVal, toVal] = conditionValue;
-            const result: IQueryConditions = {
-              xExpressionAttributeValues: {
-                [fromKey]: fromVal,
-                [toKey]: toVal,
-              },
-              xExpressionAttributeNames: {
-                [childKeyHash]: subFieldName,
-                [parentHashKey]: fieldName,
-              },
-              xFilterExpression: [`${parentHashKey}.${childKeyHash}`, "between", fromKey, "and", toKey].join(" "),
-            };
-            results.push(result);
+
+            resultQuery.xExpressionAttributeValues[fromKey] = fromVal;
+            resultQuery.xExpressionAttributeValues[toKey] = toVal;
+            xFilterExpressionList.push(
+              [`${parentHashKey}.${childKeyHash}`, "between", fromKey, "and", toKey].join(" "),
+            );
+            //
           } else if (conditionKey === "$beginsWith") {
-            const result: IQueryConditions = {
-              xExpressionAttributeValues: {
-                [attrValue]: conditionValue,
-              },
-              xExpressionAttributeNames: {
-                [childKeyHash]: subFieldName,
-                [parentHashKey]: fieldName,
-              },
-              xFilterExpression: `begins_with (${parentHashKey}.${childKeyHash}, ${attrValue})`,
-            };
-            results.push(result);
+            //
+            resultQuery.xExpressionAttributeValues[attrValueHashKey] = conditionValue;
+            xFilterExpressionList.push(`begins_with (${parentHashKey}.${childKeyHash}, ${attrValueHashKey})`);
+            //
           } else if (conditionKey === "$contains") {
-            const result: IQueryConditions = {
-              xExpressionAttributeValues: {
-                [attrValue]: conditionValue,
-              },
-              xExpressionAttributeNames: {
-                [childKeyHash]: subFieldName,
-                [parentHashKey]: fieldName,
-              },
-              xFilterExpression: `contains (${parentHashKey}.${childKeyHash}, ${attrValue})`,
-            };
-            results.push(result);
+            //
+            resultQuery.xExpressionAttributeValues[attrValueHashKey] = conditionValue;
+            xFilterExpressionList.push(`contains (${parentHashKey}.${childKeyHash}, ${attrValueHashKey})`);
+            //
           } else {
             throw MocodyErrorUtilsService.mocody_helper_createFriendlyError(
               `Query key: ${conditionKey} not currently supported`,
@@ -274,8 +255,14 @@ export class DynamoFilterQueryOperation {
           }
         }
       });
+
+      LoggingService.log(JSON.stringify({ queryNested: resultQuery }, null, 2));
     });
-    return results;
+
+    const xFilterExpression = xFilterExpressionList.map((f) => `(${f})`).join(" AND ");
+    resultQuery.xFilterExpression = xFilterExpression;
+
+    return resultQuery;
   }
 
   private operation__filterContains({ fieldName, term }: { fieldName: string; term: any }): IQueryConditions {
@@ -453,10 +440,8 @@ export class DynamoFilterQueryOperation {
             fieldName: fieldName,
             attrValues: conditionValue,
           });
-          if (nestedMatchConditions?.length) {
-            nestedMatchConditions.forEach((cond) => {
-              queryConditions.push(cond);
-            });
+          if (nestedMatchConditions) {
+            queryConditions.push(nestedMatchConditions);
           }
         } else if (conditionKey === "$not") {
           QueryValidatorCheck.not_query(conditionValue);
