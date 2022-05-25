@@ -64,9 +64,9 @@ class QueryValidatorCheckBase {
     }
 
     for (const item of conditionValue.$in) {
-      if (typeof item !== "number" && typeof item !== "string" && typeof item !== "boolean") {
+      if (typeof item !== "number" && typeof item !== "string") {
         throw MocodyErrorUtilsService.mocody_helper_createFriendlyError(
-          "$in in $elemMatch MUST have values of string or number or boolean",
+          "$in in $elemMatch MUST have values of string or number",
         );
       }
     }

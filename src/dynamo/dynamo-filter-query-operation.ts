@@ -17,7 +17,7 @@ const KEY_CONDITION_MAP: FieldPartial<IMocodyKeyConditionParams> = {
   $gte: ">=",
   $beginsWith: "",
   $between: "",
-};
+} as const;
 
 const QUERY_CONDITION_MAP_PART: FieldPartial<Omit<IMocodyQueryConditionParams, keyof IMocodyKeyConditionParams>> = {
   $ne: "<>",
@@ -29,10 +29,18 @@ const QUERY_CONDITION_MAP_PART: FieldPartial<Omit<IMocodyQueryConditionParams, k
   $notContains: "",
   $elemMatch: "",
   $nestedMatch: "",
-};
+} as const;
 
-const QUERY_CONDITION_MAP_NESTED = { ...KEY_CONDITION_MAP, $contains: "" };
-const QUERY_CONDITION_MAP_FULL = { ...KEY_CONDITION_MAP, ...QUERY_CONDITION_MAP_PART };
+const QUERY_CONDITION_MAP_NESTED = {
+  ...KEY_CONDITION_MAP,
+  $ne: "<>",
+  $contains: "",
+  $exists: "",
+  $in: "",
+  $nin: "",
+} as const;
+
+const QUERY_CONDITION_MAP_FULL = { ...KEY_CONDITION_MAP, ...QUERY_CONDITION_MAP_PART } as const;
 
 type IDictionaryAttr = { [key: string]: any };
 type IQueryConditions = {
@@ -133,6 +141,21 @@ export class DynamoFilterQueryOperation {
     return result;
   }
 
+  private operation__filterElemMatch({
+    fieldName,
+    attrValues,
+  }: {
+    fieldName: string;
+    attrValues: { $in: any[] };
+  }): IQueryConditions[] {
+    const result: IQueryConditions[] = [];
+    attrValues.$in.forEach((term) => {
+      const query01 = this.operation__filterContains({ term, fieldName });
+      result.push(query01);
+    });
+    return result;
+  }
+
   private operation__filterIn({ fieldName, attrValues }: { fieldName: string; attrValues: any[] }): IQueryConditions {
     const expressAttrVal: { [key: string]: string } = {};
     const expressAttrName: { [key: string]: string } = {};
@@ -162,27 +185,17 @@ export class DynamoFilterQueryOperation {
     return result;
   }
 
-  private operation__filterElemMatch({
-    fieldName,
-    attrValues,
-  }: {
-    fieldName: string;
-    attrValues: { $in: any[] };
-  }): IQueryConditions[] {
-    const result: IQueryConditions[] = [];
-    attrValues.$in.forEach((term) => {
-      const query01 = this.operation__filterContains({ term, fieldName });
-      result.push(query01);
-    });
-    return result;
-  }
-
   private operation__filterNestedMatchObject({
     fieldName,
     attrValues,
   }: {
     fieldName: string;
-    attrValues: Record<string, Record<string, any> | string | number>; // { amount: {$gte: 99} }
+    /*
+      ---- Samples ----
+      { amount: {$gte: 99} }
+      { amount: {$in: [99, 69, 69]} }
+    */
+    attrValues: Record<string, Record<string, any> | string | number | string[] | number[]>;
   }): IQueryConditions {
     const parentHashKey = getDynamoRandomKeyOrHash("#");
     const xFilterExpressionList: string[] = [];
@@ -224,35 +237,62 @@ export class DynamoFilterQueryOperation {
         if (conditionExpr) {
           resultQuery.xExpressionAttributeValues[attrValueHashKey] = conditionValue;
           xFilterExpressionList.push([`${parentHashKey}.${childKeyHash}`, conditionExpr, attrValueHashKey].join(" "));
-        } else {
-          if (conditionKey === "$between") {
-            QueryValidatorCheck.between(conditionValue);
-            const fromKey = getDynamoRandomKeyOrHash(":");
-            const toKey = getDynamoRandomKeyOrHash(":");
+          //
+        } else if (conditionKey === "$between") {
+          QueryValidatorCheck.between(conditionValue);
+          const fromKey = getDynamoRandomKeyOrHash(":");
+          const toKey = getDynamoRandomKeyOrHash(":");
 
-            const [fromVal, toVal] = conditionValue;
+          const [fromVal, toVal] = conditionValue;
 
-            resultQuery.xExpressionAttributeValues[fromKey] = fromVal;
-            resultQuery.xExpressionAttributeValues[toKey] = toVal;
-            xFilterExpressionList.push(
-              [`${parentHashKey}.${childKeyHash}`, "between", fromKey, "and", toKey].join(" "),
-            );
-            //
-          } else if (conditionKey === "$beginsWith") {
-            //
-            resultQuery.xExpressionAttributeValues[attrValueHashKey] = conditionValue;
-            xFilterExpressionList.push(`begins_with (${parentHashKey}.${childKeyHash}, ${attrValueHashKey})`);
-            //
-          } else if (conditionKey === "$contains") {
-            //
-            resultQuery.xExpressionAttributeValues[attrValueHashKey] = conditionValue;
-            xFilterExpressionList.push(`contains (${parentHashKey}.${childKeyHash}, ${attrValueHashKey})`);
-            //
+          resultQuery.xExpressionAttributeValues[fromKey] = fromVal;
+          resultQuery.xExpressionAttributeValues[toKey] = toVal;
+          xFilterExpressionList.push([`${parentHashKey}.${childKeyHash}`, "between", fromKey, "and", toKey].join(" "));
+          //
+        } else if (conditionKey === "$beginsWith") {
+          //
+          resultQuery.xExpressionAttributeValues[attrValueHashKey] = conditionValue;
+          xFilterExpressionList.push(`begins_with (${parentHashKey}.${childKeyHash}, ${attrValueHashKey})`);
+          //
+        } else if (conditionKey === "$contains") {
+          //
+          resultQuery.xExpressionAttributeValues[attrValueHashKey] = conditionValue;
+          xFilterExpressionList.push(`contains (${parentHashKey}.${childKeyHash}, ${attrValueHashKey})`);
+          //
+        } else if (conditionKey === "$exists") {
+          QueryValidatorCheck.exists(conditionValue);
+          if (String(conditionValue) === "true") {
+            xFilterExpressionList.push(`attribute_exists (${parentHashKey}.${childKeyHash})`);
           } else {
-            throw MocodyErrorUtilsService.mocody_helper_createFriendlyError(
-              `Query key: ${conditionKey} not currently supported`,
-            );
+            xFilterExpressionList.push(`attribute_not_exists (${parentHashKey}.${childKeyHash})`);
           }
+        } else if (conditionKey === "$in" || conditionKey === "$nin") {
+          if (conditionKey === "$nin") {
+            QueryValidatorCheck.notIn(conditionValue);
+          } else {
+            QueryValidatorCheck.in_query(conditionValue);
+          }
+
+          const attrValues: string[] = [...conditionValue];
+          const filterExpress: string[] = [];
+
+          attrValues.forEach((item) => {
+            const keyAttr = getDynamoRandomKeyOrHash(":");
+            resultQuery.xExpressionAttributeValues[keyAttr] = item;
+            filterExpress.push(`(${parentHashKey}.${childKeyHash} = ${keyAttr})`);
+          });
+
+          const filterExpression01 = filterExpress.join(" OR ").trim();
+
+          if (conditionKey === "$nin") {
+            xFilterExpressionList.push(`NOT (${filterExpression01})`);
+          } else {
+            xFilterExpressionList.push(filterExpression01);
+          }
+        } else {
+          throw MocodyErrorUtilsService.mocody_helper_createFriendlyError(
+            `Nested Query key: ${conditionKey}, not currently supported`,
+          );
         }
       });
 
@@ -417,12 +457,16 @@ export class DynamoFilterQueryOperation {
           queryConditions.push(_queryConditions);
         } else if (conditionKey === "$nin") {
           QueryValidatorCheck.notIn(conditionValue);
-          const _queryConditions = this.operation__filterIn({
+          const queryConditions01 = this.operation__filterIn({
             fieldName: fieldName,
             attrValues: conditionValue,
           });
-          _queryConditions.xFilterExpression = `NOT ${_queryConditions.xFilterExpression}`;
-          queryConditions.push(_queryConditions);
+
+          queryConditions01.xFilterExpression = queryConditions01.xFilterExpression.trim().startsWith("(")
+            ? `NOT ${queryConditions01.xFilterExpression}`
+            : `NOT (${queryConditions01.xFilterExpression})`;
+
+          queryConditions.push(queryConditions01);
         } else if (conditionKey === "$elemMatch") {
           QueryValidatorCheck.elemMatch(conditionValue);
           const elemMatchConditions = this.operation__filterElemMatch({
@@ -760,3 +804,13 @@ export class DynamoFilterQueryOperation {
     return queryExpressions;
   }
 }
+
+// const result01 = new DynamoFilterQueryOperation().operation__filterNestedMatchObject({
+//   fieldName: "user",
+//   attrValues: {
+//     amount: { $nin: [8999, 7466, 354] },
+//     name: { $eq: "chris" },
+//   },
+// });
+
+// console.log(JSON.stringify(result01, null, 2));

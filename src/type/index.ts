@@ -41,6 +41,10 @@ export type IMocodyQueryConditionParams<T = any> = IMocodyKeyConditionParams<T> 
 
 export type IMocodyQueryNestedParams<T = any> = IMocodyKeyConditionParams<T> & {
   $contains?: TypeFallBackStringOnly<T>;
+  $ne?: TypeFallBack<T> | null;
+  $in?: TypeFallBackArrayAdvanced<T>;
+  $nin?: TypeFallBackArrayAdvanced<T>;
+  $exists?: boolean;
 };
 
 type IQueryAll<T> = {
