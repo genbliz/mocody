@@ -272,15 +272,15 @@ export class DynamoFilterQueryOperation {
 
   private operation__filterContains({ fieldName, term }: { fieldName: string; term: any }): IQueryConditions {
     const attrKeyHash = getDynamoRandomKeyOrHash("#");
-    const keyAttr = getDynamoRandomKeyOrHash(":");
+    const valueHash = getDynamoRandomKeyOrHash(":");
     const result: IQueryConditions = {
       xExpressionAttributeValues: {
-        [keyAttr]: term,
+        [valueHash]: term,
       },
       xExpressionAttributeNames: {
         [attrKeyHash]: fieldName,
       },
-      xFilterExpression: `contains (${attrKeyHash}, ${keyAttr})`,
+      xFilterExpression: `contains (${attrKeyHash}, ${valueHash})`,
     };
     return result;
   }
@@ -345,33 +345,33 @@ export class DynamoFilterQueryOperation {
     from: any;
     to: any;
   }): IQueryConditions {
-    const _attrKeyHash = getDynamoRandomKeyOrHash("#");
-    const _fromKey = getDynamoRandomKeyOrHash(":");
-    const _toKey = getDynamoRandomKeyOrHash(":");
+    const attrKeyHash01 = getDynamoRandomKeyOrHash("#");
+    const fromValueHash = getDynamoRandomKeyOrHash(":");
+    const toValueHash = getDynamoRandomKeyOrHash(":");
     const result: IQueryConditions = {
       xExpressionAttributeValues: {
-        [_fromKey]: from,
-        [_toKey]: to,
+        [fromValueHash]: from,
+        [toValueHash]: to,
       },
       xExpressionAttributeNames: {
-        [_attrKeyHash]: fieldName,
+        [attrKeyHash01]: fieldName,
       },
-      xFilterExpression: [_attrKeyHash, "between", _fromKey, "and", _toKey].join(" "),
+      xFilterExpression: [attrKeyHash01, "between", fromValueHash, "and", toValueHash].join(" "),
     };
     return result;
   }
 
   private operation__filterBeginsWith({ fieldName, term }: { fieldName: string; term: any }): IQueryConditions {
-    const _attrKeyHash = getDynamoRandomKeyOrHash("#");
-    const keyAttr = getDynamoRandomKeyOrHash(":");
+    const attrKeyHash01 = getDynamoRandomKeyOrHash("#");
+    const valueHash01 = getDynamoRandomKeyOrHash(":");
     const result: IQueryConditions = {
       xExpressionAttributeValues: {
-        [keyAttr]: term,
+        [valueHash01]: term,
       },
       xExpressionAttributeNames: {
-        [_attrKeyHash]: fieldName,
+        [attrKeyHash01]: fieldName,
       },
-      xFilterExpression: `begins_with (${_attrKeyHash}, ${keyAttr})`,
+      xFilterExpression: `begins_with (${attrKeyHash01}, ${valueHash01})`,
     };
     return result;
   }
