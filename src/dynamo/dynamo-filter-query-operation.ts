@@ -187,15 +187,17 @@ export class DynamoFilterQueryOperation {
     const results: IQueryConditions[] = [];
     Object.entries(attrValues).forEach(([subFieldName, queryval]) => {
       //
-      let _queryValue: Record<string, any>;
+      let queryValue001: Record<string, any>;
+
+      LoggingService.log(JSON.stringify({ fieldName, attrValues, subFieldName, queryval }, null, 2));
 
       if (queryval && typeof queryval === "object") {
-        _queryValue = { ...queryval };
+        queryValue001 = { ...queryval };
       } else {
-        _queryValue = { $eq: queryval };
+        queryValue001 = { $eq: queryval };
       }
 
-      Object.entries(_queryValue).forEach(([condKey, conditionValue]) => {
+      Object.entries(queryValue001).forEach(([condKey, conditionValue]) => {
         //
         const conditionKey = condKey as keyof typeof QUERY_CONDITION_MAP_NESTED;
         //
@@ -254,10 +256,16 @@ export class DynamoFilterQueryOperation {
             };
             results.push(result);
           } else if (conditionKey === "$contains") {
-            const result = this.operation__filterContains({
-              fieldName: `${fieldName}.${subFieldName}`,
-              term: conditionValue,
-            });
+            const result: IQueryConditions = {
+              xExpressionAttributeValues: {
+                [attrValue]: conditionValue,
+              },
+              xExpressionAttributeNames: {
+                [childKeyHash]: subFieldName,
+                [parentHashKey]: fieldName,
+              },
+              xFilterExpression: `contains (${parentHashKey}.${childKeyHash}, ${attrValue})`,
+            };
             results.push(result);
           } else {
             throw MocodyErrorUtilsService.mocody_helper_createFriendlyError(
