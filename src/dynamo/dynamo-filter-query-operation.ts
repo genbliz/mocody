@@ -279,10 +279,16 @@ export class DynamoFilterQueryOperation {
           attrValues.forEach((item) => {
             const keyAttr = getDynamoRandomKeyOrHash(":");
             resultQuery.xExpressionAttributeValues[keyAttr] = item;
-            filterExpress.push(`(${parentHashKey}.${childKeyHash} = ${keyAttr})`);
+            filterExpress.push(`${parentHashKey}.${childKeyHash} = ${keyAttr}`);
           });
 
-          const filterExpression01 = filterExpress.join(" OR ").trim();
+          const filterExpression01 = filterExpress
+            .map((f, _, arr) => {
+              if (arr.length > 1) return `(${f})`;
+              return f;
+            })
+            .join(" OR ")
+            .trim();
 
           if (conditionKey === "$nin") {
             xFilterExpressionList.push(`NOT (${filterExpression01})`);
@@ -295,13 +301,18 @@ export class DynamoFilterQueryOperation {
           );
         }
       });
-
-      LoggingService.log(JSON.stringify({ queryNested: resultQuery }, null, 2));
     });
 
-    const xFilterExpression = xFilterExpressionList.map((f) => `(${f})`).join(" AND ");
+    const xFilterExpression = xFilterExpressionList
+      .map((f, _, arr) => {
+        if (arr.length > 1) return `(${f})`;
+        return f;
+      })
+      .join(" AND ");
+
     resultQuery.xFilterExpression = xFilterExpression;
 
+    LoggingService.log(JSON.stringify({ queryNested: resultQuery }, null, 2));
     return resultQuery;
   }
 
