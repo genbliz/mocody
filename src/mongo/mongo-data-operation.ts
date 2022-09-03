@@ -696,7 +696,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     }
 
     return {
-      paginationResults: results,
+      paginationResults: results as TData[],
       nextPageHash: nextPageHash,
     };
   }

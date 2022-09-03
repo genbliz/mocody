@@ -263,8 +263,8 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
   async mocody_formatForDump({ dataList }: { dataList: T[] }): Promise<string[]> {
     const bulkData: string[] = [];
     for (const data of dataList) {
-      const data01b = await this.mocody_validateFormatData({ data });
-      bulkData.push(`{"PutRequest":{"Item":${data01b}}}`);
+      const { marshalled } = await this._mocody_validateReady({ data });
+      bulkData.push(JSON.stringify({ Item: marshalled }));
     }
     return bulkData;
   }
