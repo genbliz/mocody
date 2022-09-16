@@ -8,6 +8,11 @@ type RequireAtLeastOne<T> = RequireAtLeastOneBase<T, keyof T>;
 type TypeFallBackStringOnly<T> = Extract<T, string>;
 type TypeFallBack<T> = undefined extends T ? Exclude<T, undefined> : T;
 type TypeFallBackArray<T> = number extends T ? number[] : string extends T ? string[] : T;
+type TypeFallBackArrayAdvanced<T> = number extends T
+  ? number[]
+  : string extends T
+  ? string[]
+  : Extract<T, string>[] | Extract<T, number>[];
 
 export type IMocodyKeyConditionParams<T = string> = {
   // https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/LegacyConditionalParameters.KeyConditions.html
@@ -23,23 +28,31 @@ export type IMocodyKeyConditionParams<T = string> = {
 
 export type IMocodyQueryConditionParams<T = any> = IMocodyKeyConditionParams<T> & {
   $ne?: TypeFallBack<T> | null;
-  $in?: TypeFallBackArray<T>;
-  $nin?: TypeFallBackArray<T>;
+  $in?: TypeFallBackArrayAdvanced<T>;
+  $nin?: TypeFallBackArrayAdvanced<T>;
   $exists?: boolean;
   $not?: IMocodyKeyConditionParams<T>;
   $elemMatch?: { $in: TypeFallBackArray<T> };
   //
   $contains?: TypeFallBackStringOnly<T>;
   $notContains?: TypeFallBackStringOnly<T>;
-  $nestedMatch?: QueryKeyConditionBasic<RequireAtLeastOne<T>>;
+  $nestedMatch?: IQueryNested<RequireAtLeastOne<T>>;
 };
 
-type QueryPartialAll<T> = {
+export type IMocodyQueryNestedParams<T = any> = IMocodyKeyConditionParams<T> & {
+  $contains?: TypeFallBackStringOnly<T>;
+  $ne?: TypeFallBack<T> | null;
+  $in?: TypeFallBackArrayAdvanced<T>;
+  $nin?: TypeFallBackArrayAdvanced<T>;
+  $exists?: boolean;
+};
+
+type IQueryAll<T> = {
   [P in keyof T]: T[P] | IMocodyQueryConditionParams<T[P]>;
 };
 
-type QueryKeyConditionBasic<T> = {
-  [P in keyof T]: T[P] | IMocodyKeyConditionParams<T[P]>;
+type IQueryNested<T> = {
+  [P in keyof T]: T[P] | IMocodyQueryNestedParams<T[P]>;
 };
 
 export interface IMocodyPagingResult<T> {
@@ -53,10 +66,10 @@ export type IMocodyPagingParams = {
   nextPageHash?: string;
 };
 
-type IQueryDefOr<T> = { $or?: QueryPartialAll<RequireAtLeastOne<T>>[] };
-type IQueryDefAnd<T> = { $and?: QueryPartialAll<RequireAtLeastOne<T>>[] };
+type IQueryDefOr<T> = { $or?: IQueryAll<RequireAtLeastOne<T>>[] };
+type IQueryDefAnd<T> = { $and?: IQueryAll<RequireAtLeastOne<T>>[] };
 
-export type IMocodyQueryDefinition<T> = QueryPartialAll<RequireAtLeastOne<T & IQueryDefOr<T> & IQueryDefAnd<T>>>;
+export type IMocodyQueryDefinition<T> = IQueryAll<RequireAtLeastOne<T & IQueryDefOr<T> & IQueryDefAnd<T>>>;
 
 export interface IMocodyQueryIndexOptions<T, TSortKeyField = string> {
   indexName: string;

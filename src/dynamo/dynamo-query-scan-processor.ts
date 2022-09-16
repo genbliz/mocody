@@ -1,9 +1,10 @@
 import { UtilService } from "./../helpers/util-service";
-import type { DynamoDB, GetItemCommandInput, QueryInput } from "@aws-sdk/client-dynamodb";
+import { GetItemCommandInput, QueryCommand, QueryCommandInput } from "@aws-sdk/client-dynamodb";
 import { marshall } from "@aws-sdk/util-dynamodb";
 import type { IMocodyPagingResult } from "../type";
 import { LoggingService } from "../helpers/logging-service";
 import { MocodyUtil } from "../helpers/mocody-utils";
+import { MocodyInitializerDynamo } from "./dynamo-initializer";
 
 export class DynamoQueryScanProcessor {
   //
@@ -20,9 +21,9 @@ export class DynamoQueryScanProcessor {
     featureEntityValue,
     tableFullName,
   }: {
-    dynamoDb: () => Promise<DynamoDB>;
+    dynamoDb: () => MocodyInitializerDynamo;
     evaluationLimit?: number;
-    params: QueryInput;
+    params: QueryCommandInput;
     resultLimit?: number;
     nextPageHash?: string;
     orderDesc?: boolean;
@@ -69,9 +70,9 @@ export class DynamoQueryScanProcessor {
     featureEntityValue,
     tableFullName,
   }: {
-    dynamoDb: () => Promise<DynamoDB>;
+    dynamoDb: () => MocodyInitializerDynamo;
     evaluationLimit?: number;
-    params: QueryInput;
+    params: QueryCommandInput;
     resultLimit?: number;
     nextPageHash?: string;
     orderDesc?: boolean;
@@ -127,7 +128,7 @@ export class DynamoQueryScanProcessor {
       }
     }
 
-    const params01 = { ...params };
+    const params01: QueryCommandInput = { ...params };
 
     if (orderDesc === true) {
       params01.ScanIndexForward = false;
@@ -153,12 +154,14 @@ export class DynamoQueryScanProcessor {
 
     let hasNext = true;
 
-    const dynamo = await dynamoDb();
+    const dynamo = dynamoDb();
+    const dynamoClient = await dynamo.getInstance();
+
     const itemsLoopedOrderedLength: number[] = [];
 
     while (hasNext) {
       try {
-        const { Items, LastEvaluatedKey } = await dynamo.query(params01);
+        const { Items, LastEvaluatedKey } = await dynamoClient.send(new QueryCommand(params01));
 
         params01.ExclusiveStartKey = undefined;
 
@@ -267,7 +270,7 @@ export class DynamoQueryScanProcessor {
     lastKeyRawObject: Record<string, any>;
     index_partitionAndSortKey: [string, string];
     main_partitionAndSortKey: [string, string];
-    dynamo: DynamoDB;
+    dynamo: MocodyInitializerDynamo;
     tableFullName: string;
     featureEntityValue: string;
   }) {

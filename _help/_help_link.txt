@@ -40,3 +40,13 @@ https://docs.atlas.mongodb.com/reference/faq/connection-changes/
 
 https://docs.mongodb.com/manual/applications/indexes/
 
+https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/example_dynamodb_ExecuteStatement_section.html
+
+https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/getting-started-step-7.html
+
+https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ql-reference.select.html
+
+https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/Welcome.html
+
+
+

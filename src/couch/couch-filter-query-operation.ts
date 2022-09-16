@@ -20,7 +20,7 @@ interface ISelectedQueryConditionsKeys {
 
 type FieldPartial<T> = { [P in keyof T]-?: string };
 
-const keyConditionMap: FieldPartial<IMocodyKeyConditionParams> = {
+const KEY_CONDITION_MAP: FieldPartial<IMocodyKeyConditionParams> = {
   $eq: "$eq",
   $lt: "$lt",
   $lte: "$lte",
@@ -30,7 +30,7 @@ const keyConditionMap: FieldPartial<IMocodyKeyConditionParams> = {
   $beginsWith: "",
 };
 
-const conditionMapPre: FieldPartial<Omit<IMocodyQueryConditionParams, keyof IMocodyKeyConditionParams>> = {
+const QUERY_CONDITION_MAP_PART: FieldPartial<Omit<IMocodyQueryConditionParams, keyof IMocodyKeyConditionParams>> = {
   $ne: "$ne",
   $exists: "",
   $in: "",
@@ -42,7 +42,7 @@ const conditionMapPre: FieldPartial<Omit<IMocodyQueryConditionParams, keyof IMoc
   $nestedMatch: "",
 };
 
-const conditionMap = { ...keyConditionMap, ...conditionMapPre };
+const QUERY_CONDITION_MAP_FULL = { ...KEY_CONDITION_MAP, ...QUERY_CONDITION_MAP_PART };
 
 type FieldPartialQuery<T> = { [P in keyof T]-?: T[P] };
 type IQueryConditions = {
@@ -50,12 +50,12 @@ type IQueryConditions = {
 };
 
 function hasQueryKeyCondition(key: string) {
-  return Object.keys(keyConditionMap).includes(key);
+  return Object.keys(KEY_CONDITION_MAP).includes(key);
 }
 
 function getQueryConditionExpression(key: string): string | null {
-  if (key && Object.keys(conditionMap).includes(key)) {
-    const conditionExpr = conditionMap[key];
+  if (key && Object.keys(QUERY_CONDITION_MAP_FULL).includes(key)) {
+    const conditionExpr = QUERY_CONDITION_MAP_FULL[key];
     if (conditionExpr) {
       return conditionExpr;
     }
@@ -157,7 +157,7 @@ export class CouchFilterQueryOperation {
           });
           mConditions.push(_queryConditions);
         } else {
-          const conditionExpr: string = keyConditionMap[conditionKey];
+          const conditionExpr: string = KEY_CONDITION_MAP[conditionKey];
           if (conditionExpr) {
             const _queryConditions = this.operation__helperFilterBasic({
               fieldName: fieldName,
@@ -258,12 +258,12 @@ export class CouchFilterQueryOperation {
         //
         const conditionKey = condKey as keyof IMocodyKeyConditionParams;
         //
-        if (!Object.keys(keyConditionMap).includes(conditionKey)) {
+        if (!Object.keys(KEY_CONDITION_MAP).includes(conditionKey)) {
           throw MocodyErrorUtilsService.mocody_helper_createFriendlyError(
             `Invalid query key: ${conditionKey} @ NestedMatchObject`,
           );
         }
-        const conditionExpr = keyConditionMap[conditionKey];
+        const conditionExpr = KEY_CONDITION_MAP[conditionKey];
 
         if (conditionExpr) {
           const result = {
