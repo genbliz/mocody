@@ -1,4 +1,4 @@
-import { MongoClient, MongoClientOptions, Collection } from "mongodb";
+import { MongoClient, MongoClientOptions, Document } from "mongodb";
 import throat from "throat";
 const concurrency = throat(1);
 
@@ -31,7 +31,7 @@ export class MocodyInitializerMongo {
 
   async getCustomCollectionInstance<T = any>(collectionName: string) {
     const client = await concurrency(() => this.getInstance());
-    const col: Collection<T> = client.db(this._inits.databaseName).collection<T>(collectionName);
+    const col = client.db(this._inits.databaseName).collection<T & Document>(collectionName);
     return col;
   }
 

@@ -10,7 +10,7 @@ class LoggingServiceBase {
     }
   }
 
-  error(message: any) {
+  error(message: unknown) {
     try {
       if (this.mode) {
         console.error(message);
@@ -20,7 +20,7 @@ class LoggingServiceBase {
     }
   }
 
-  log(message: any, ...optionalParams: any[]) {
+  log(message: unknown, ...optionalParams: unknown[]) {
     try {
       if (this.mode) {
         if (optionalParams?.length) {

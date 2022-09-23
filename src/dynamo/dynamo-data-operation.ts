@@ -680,7 +680,6 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       RequestItems: {
         [tableFullName]: {
           Keys: [...getArray],
-          ConsistentRead: true,
           ProjectionExpression: projectionExpression,
           ExpressionAttributeNames: expressionAttributeNames,
         },
