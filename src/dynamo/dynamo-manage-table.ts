@@ -336,30 +336,24 @@ export class DynamoManageTable<T> {
     const attributeDefinitionsNameList: string[] = [];
 
     secondaryIndexOptions.forEach((sIndex) => {
-      const {
-        indexName,
-        partitionKeyFieldName: keyFieldName,
-        sortKeyFieldName: sortFieldName,
-        dataType,
-        projectionFieldsInclude,
-      } = sIndex;
+      const { indexName, partitionKeyFieldName, sortKeyFieldName, dataTypes, projectionFieldsInclude } = sIndex;
       //
-      const _keyFieldName = keyFieldName as string;
-      const _sortFieldName = sortFieldName as string;
+      const partitionKeyFieldName01 = partitionKeyFieldName as string;
+      const sortKeyFieldName01 = sortKeyFieldName as string;
 
-      if (!attributeDefinitionsNameList.includes(_keyFieldName)) {
-        attributeDefinitionsNameList.push(_keyFieldName);
+      if (!attributeDefinitionsNameList.includes(partitionKeyFieldName01)) {
+        attributeDefinitionsNameList.push(partitionKeyFieldName01);
         params?.AttributeDefinitions?.push({
-          AttributeName: _keyFieldName,
-          AttributeType: dataType,
+          AttributeName: partitionKeyFieldName01,
+          AttributeType: dataTypes.partitionKeyDataType,
         });
       }
 
-      if (!attributeDefinitionsNameList.includes(_sortFieldName)) {
-        attributeDefinitionsNameList.push(_sortFieldName);
+      if (!attributeDefinitionsNameList.includes(sortKeyFieldName01)) {
+        attributeDefinitionsNameList.push(sortKeyFieldName01);
         params?.AttributeDefinitions?.push({
-          AttributeName: _sortFieldName,
-          AttributeType: dataType,
+          AttributeName: sortKeyFieldName01,
+          AttributeType: dataTypes.sortKeyDataType,
         });
       }
 
@@ -369,7 +363,7 @@ export class DynamoManageTable<T> {
       if (projectionFields?.length) {
         // remove frimary keys from include
         projectionFields = projectionFields.filter((field) => {
-          return field !== _keyFieldName && field !== _sortFieldName;
+          return field !== partitionKeyFieldName01 && field !== sortKeyFieldName01;
         });
         if (projectionFields.length === 0) {
           // only keys was projceted
@@ -388,11 +382,11 @@ export class DynamoManageTable<T> {
         },
         KeySchema: [
           {
-            AttributeName: _keyFieldName,
+            AttributeName: partitionKeyFieldName01,
             KeyType: "HASH",
           },
           {
-            AttributeName: _sortFieldName,
+            AttributeName: sortKeyFieldName01,
             KeyType: "RANGE",
           },
         ],

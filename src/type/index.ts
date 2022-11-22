@@ -92,7 +92,10 @@ export interface IMocodyIndexDefinition<T> {
   indexName: string;
   partitionKeyFieldName: keyof T;
   sortKeyFieldName: keyof T;
-  dataType: "N" | "S";
+  dataTypes: {
+    partitionKeyDataType: "N" | "S";
+    sortKeyDataType: "N" | "S";
+  };
   projectionFieldsInclude?: (keyof T)[];
 }
 
