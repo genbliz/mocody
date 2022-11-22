@@ -358,7 +358,7 @@ export class DynamoManageTable<T> {
       }
 
       let projectionFields = (projectionFieldsInclude || []) as string[];
-      let projectionType: ProjectionType = "ALL";
+      let projectionType = ProjectionType.ALL;
 
       if (projectionFields?.length) {
         // remove frimary keys from include
@@ -367,10 +367,10 @@ export class DynamoManageTable<T> {
         });
         if (projectionFields.length === 0) {
           // only keys was projceted
-          projectionType = "KEYS_ONLY";
+          projectionType = ProjectionType.KEYS_ONLY;
         } else {
           // only keys was projceted
-          projectionType = "INCLUDE";
+          projectionType = ProjectionType.INCLUDE;
         }
       }
 
@@ -378,7 +378,7 @@ export class DynamoManageTable<T> {
         IndexName: indexName,
         Projection: {
           ProjectionType: projectionType,
-          NonKeyAttributes: projectionType === "INCLUDE" ? projectionFields : undefined,
+          NonKeyAttributes: projectionType === ProjectionType.INCLUDE ? projectionFields : undefined,
         },
         KeySchema: [
           {
