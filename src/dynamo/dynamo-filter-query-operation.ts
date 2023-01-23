@@ -581,14 +581,14 @@ export class DynamoFilterQueryOperation {
       if (conditionKey === "$or") {
         QueryValidatorCheck.or_query(conditionValue);
 
-        const orArray = conditionValue as any[];
+        const orArray = conditionValue as { [k: string]: any }[];
 
         orArray.forEach((orQuery) => {
           const OR_queryMultiConditionsPrivate: IQueryConditions[] = [];
 
-          const hasMultiField = Object.keys(orQuery || {}).length > 1;
+          Object.entries(orQuery).forEach(([fieldName, orQueryObjectOrValue], _, arr) => {
+            const hasMultiField = arr.length > 1;
 
-          Object.entries(orQuery).forEach(([fieldName, orQueryObjectOrValue]) => {
             if (orQueryObjectOrValue !== undefined) {
               if (orQueryObjectOrValue && typeof orQueryObjectOrValue === "object") {
                 const orQueryCond01 = this.operation__translateAdvancedQueryOperation({
@@ -612,7 +612,11 @@ export class DynamoFilterQueryOperation {
                   fieldName,
                   queryObject: orQueryObjectOrValue,
                 });
-                OR_queryConditions.push(orQueryCondition01);
+                if (hasMultiField) {
+                  OR_queryMultiConditionsPrivate.push(orQueryCondition01);
+                } else {
+                  OR_queryConditions.push(orQueryCondition01);
+                }
               }
             }
           });
