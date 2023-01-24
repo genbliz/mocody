@@ -54,7 +54,6 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
   private readonly _mocody_partitionKeyFieldName: keyof Pick<IModelBase, "id"> = "id";
   private readonly _mocody_sortKeyFieldName: keyof Pick<IModelBase, "featureEntity"> = "featureEntity";
   private readonly _mocody_featureEntity_Key_Value: { featureEntity: string };
-
   //
   private readonly _mocody_dynamoDb: () => MocodyInitializerDynamo;
   private readonly _mocody_dataKeyGenerator: () => string;
@@ -680,7 +679,6 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       RequestItems: {
         [tableFullName]: {
           Keys: [...getArray],
-          ConsistentRead: true,
           ProjectionExpression: projectionExpression,
           ExpressionAttributeNames: expressionAttributeNames,
         },
@@ -817,7 +815,9 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     });
 
     if (!secondaryIndex) {
-      throw this._mocody_createGenericError("Secondary index not named/defined");
+      throw this._mocody_createGenericError(
+        `Secondary index '${paramOption01.indexName}' not named/defined in secondaryIndexOptions`,
+      );
     }
 
     let projectionFields: (keyof TQuery)[] | undefined;

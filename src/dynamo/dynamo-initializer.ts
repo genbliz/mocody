@@ -18,7 +18,7 @@ import throat from "throat";
 const concurrency = throat(1);
 
 export class MocodyInitializerDynamo {
-  private client!: DynamoDBClient | null | undefined;
+  private client: DynamoDBClient | null | undefined;
   private readonly _config: DynamoDBClientConfig;
 
   constructor(inits: DynamoDBClientConfig) {
