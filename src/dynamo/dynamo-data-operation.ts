@@ -578,9 +578,9 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     withCondition,
   }: {
     dataIds: string[];
-    fields?: (keyof T)[];
-    excludeFields?: (keyof T)[];
-    withCondition?: IMocodyFieldCondition<T>;
+    fields?: (keyof T)[] | undefined | null;
+    excludeFields?: (keyof T)[] | undefined | null;
+    withCondition?: IMocodyFieldCondition<T> | undefined | null;
   }) {
     dataIds.forEach((dataId) => {
       this._mocody_errorHelper.mocody_helper_validateRequiredString({
@@ -621,9 +621,9 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     withCondition,
   }: {
     dataIds: string[];
-    fields?: (keyof T)[];
-    excludeFields?: (keyof T)[];
-    withCondition?: IMocodyFieldCondition<T>;
+    fields?: (keyof T)[] | undefined | null;
+    excludeFields?: (keyof T)[] | undefined | null;
+    withCondition?: IMocodyFieldCondition<T> | undefined | null;
   }) {
     const {
       //

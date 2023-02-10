@@ -21,8 +21,8 @@ export abstract class RepoModel<T> {
     withCondition,
   }: {
     dataIds: string[];
-    fields?: (keyof T)[] | null;
-    withCondition?: IMocodyFieldCondition<T> | null;
+    fields?: (keyof T)[] | undefined | null;
+    withCondition?: IMocodyFieldCondition<T> | undefined | null;
   }): Promise<T[]>;
 
   abstract mocody_createOne({ data }: { data: T }): Promise<T>;
