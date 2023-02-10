@@ -2,8 +2,8 @@ class LoggingServiceBase {
   private mode: boolean;
 
   constructor() {
-    const mode = process.env.MOCODY_DEBUG_MODE;
-    if (mode === "true") {
+    const mode = process.env.MOCODY_DEBUG_MODE || "";
+    if (String(mode) === "true") {
       this.mode = true;
     } else {
       this.mode = false;

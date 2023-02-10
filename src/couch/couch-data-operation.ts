@@ -123,8 +123,8 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     excludeFields,
     fields,
   }: {
-    excludeFields?: (keyof TProj)[];
-    fields?: (keyof TProj)[];
+    excludeFields?: (keyof TProj)[] | undefined | null;
+    fields?: (keyof TProj)[] | undefined | null;
   }) {
     return MocodyUtil.getProjectionFields({
       excludeFields,
@@ -138,7 +138,7 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     excludeFields,
   }: {
     dataObj: Record<string, any>;
-    excludeFields?: string[];
+    excludeFields?: string[] | undefined | null;
   }): TData {
     const returnData = {} as any;
     if (dataObj && typeof dataObj === "object" && this._mocody_entityFieldsKeySet.size > 0) {
@@ -177,7 +177,7 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     withCondition,
   }: {
     item: any;
-    withCondition?: IMocodyFieldCondition<T>;
+    withCondition?: IMocodyFieldCondition<T> | undefined | null;
   }) {
     if (item && typeof item === "object" && withCondition?.length) {
       const isPassed = withCondition.every(({ field, equals }) => {
@@ -287,14 +287,17 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     return { validatedData };
   }
 
-  async mocody_getAll({ size, skip }: { size?: number; skip?: number } = {}): Promise<T[]> {
+  async mocody_getAll({
+    size,
+    skip,
+  }: { size?: number | undefined | null; skip?: number | undefined | null } = {}): Promise<T[]> {
     const couch = await this._mocody_couchDbInstance();
     const data = await couch.list({
       include_docs: true,
       startkey: this._mocody_featureEntityValue,
       endkey: `${this._mocody_featureEntityValue}\ufff0`,
-      limit: size,
-      skip,
+      limit: size ?? undefined,
+      skip: skip ?? undefined,
     });
     const dataList: T[] = [];
     data?.rows?.forEach((item) => {
@@ -311,7 +314,7 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     withCondition,
   }: {
     dataId: string;
-    withCondition?: IMocodyFieldCondition<T> | undefined;
+    withCondition?: IMocodyFieldCondition<T> | undefined | null;
   }): Promise<T | null> {
     this._mocody_errorHelper.mocody_helper_validateRequiredString({ dataId });
 
@@ -336,7 +339,7 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   }: {
     dataId: string;
     updateData: Partial<T>;
-    withCondition?: IMocodyFieldCondition<T> | undefined;
+    withCondition?: IMocodyFieldCondition<T> | undefined | null;
   }): Promise<T> {
     this._mocody_errorHelper.mocody_helper_validateRequiredString({ dataId });
 
@@ -404,9 +407,9 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     withCondition,
   }: {
     dataIds: string[];
-    fields?: (keyof T)[];
-    excludeFields?: (keyof T)[];
-    withCondition?: IMocodyFieldCondition<T> | undefined;
+    fields?: (keyof T)[] | undefined | null;
+    excludeFields?: (keyof T)[] | undefined | null;
+    withCondition?: IMocodyFieldCondition<T> | undefined | null;
   }): Promise<T[]> {
     //
     const uniqueIds = this._mocody_removeDuplicateString(dataIds);
@@ -692,7 +695,7 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     withCondition,
   }: {
     dataId: string;
-    withCondition?: IMocodyFieldCondition<T> | undefined;
+    withCondition?: IMocodyFieldCondition<T> | undefined | null;
   }): Promise<T> {
     const nativeId = this._mocody_getNativePouchId(dataId);
     const couch = await this._mocody_couchDbInstance();

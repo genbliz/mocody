@@ -24,8 +24,8 @@ export class DynamoQueryScanProcessor {
     dynamoDb: () => MocodyInitializerDynamo;
     evaluationLimit?: number;
     params: QueryCommandInput;
-    resultLimit?: number;
-    nextPageHash?: string;
+    resultLimit?: number | undefined | null;
+    nextPageHash?: string | undefined | null;
     orderDesc?: boolean;
     canPaginate: boolean;
     featureEntityValue: string;
@@ -73,8 +73,8 @@ export class DynamoQueryScanProcessor {
     dynamoDb: () => MocodyInitializerDynamo;
     evaluationLimit?: number;
     params: QueryCommandInput;
-    resultLimit?: number;
-    nextPageHash?: string;
+    resultLimit?: number | undefined | null;
+    nextPageHash?: string | undefined | null;
     orderDesc?: boolean;
     canPaginate: boolean;
     featureEntityValue: string;

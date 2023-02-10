@@ -149,7 +149,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     withCondition,
   }: {
     item: Record<keyof T, any>;
-    withCondition?: IMocodyFieldCondition<T>;
+    withCondition?: IMocodyFieldCondition<T> | undefined | null;
   }) {
     if (item && typeof item === "object" && withCondition?.length) {
       const isPassed = withCondition.every(({ field, equals }) => {
@@ -188,8 +188,8 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     excludeFields,
     fields,
   }: {
-    excludeFields?: (keyof TProj)[];
-    fields?: (keyof TProj)[];
+    excludeFields?: (keyof TProj)[] | undefined | null;
+    fields?: (keyof TProj)[] | undefined | null;
   }) {
     return MocodyUtil.getProjectionFields({
       excludeFields,
@@ -232,7 +232,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     withCondition,
   }: {
     dataId: string;
-    withCondition?: IMocodyFieldCondition<T> | undefined;
+    withCondition?: IMocodyFieldCondition<T> | undefined | null;
   }): Promise<T | null> {
     this._mocody_errorHelper.mocody_helper_validateRequiredString({ dataId });
 
@@ -259,9 +259,9 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     withCondition,
   }: {
     dataIds: string[];
-    fields?: (keyof T)[] | undefined;
-    excludeFields?: (keyof T)[] | undefined;
-    withCondition?: IMocodyFieldCondition<T> | undefined;
+    fields?: (keyof T)[] | undefined | null;
+    excludeFields?: (keyof T)[] | undefined | null;
+    withCondition?: IMocodyFieldCondition<T> | undefined | null;
   }): Promise<T[]> {
     const uniqueIds = this._mocody_removeDuplicateString(dataIds);
     const fullUniqueIds = uniqueIds.map((id) => this._mocody_getNativeMongoId(id));
@@ -377,7 +377,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   }: {
     dataId: string;
     updateData: Partial<T>;
-    withCondition?: IMocodyFieldCondition<T> | undefined;
+    withCondition?: IMocodyFieldCondition<T> | undefined | null;
   }): Promise<T> {
     this._mocody_errorHelper.mocody_helper_validateRequiredString({ dataId });
 
@@ -706,7 +706,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     withCondition,
   }: {
     dataId: string;
-    withCondition?: IMocodyFieldCondition<T> | undefined;
+    withCondition?: IMocodyFieldCondition<T> | undefined | null;
   }): Promise<T> {
     this._mocody_errorHelper.mocody_helper_validateRequiredString({ dataId });
 
