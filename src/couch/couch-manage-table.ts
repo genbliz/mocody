@@ -63,6 +63,7 @@ export class CouchManageTable<T> {
 
   async mocody_clearAllIndexes() {
     const indexes = await this._mocody_getInstance().getIndexes();
+    LoggingService.log({ indexes });
     if (indexes?.indexes?.length) {
       const deletedIndexes: any[] = [];
       for (const index of indexes.indexes) {
