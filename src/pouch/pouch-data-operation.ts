@@ -104,7 +104,7 @@ export class PouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   }
 
   private _mocody_pouchDbInstance() {
-    return this._mocody_pouchDb().getDocInstance();
+    return this._mocody_pouchDb();
   }
 
   private _mocody_getLocalVariables() {
@@ -229,11 +229,17 @@ export class PouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     return new MocodyGenericError(error);
   }
 
-  async mocody_createOne({ data }: { data: T }): Promise<T> {
+  async mocody_createOne({ dbSegmentName, data }: { dbSegmentName: string; data: T }): Promise<T> {
+    if (!dbSegmentName) {
+      throw this.createDatabaseSegmentNotFoundError();
+    }
+
     const { validatedData } = await this._mocody_validateReady({ data });
 
-    const pouch = await this._mocody_pouchDbInstance();
-    const result = await pouch.insert(validatedData);
+    const result = await this._mocody_pouchDbInstance().createDoc({
+      databaseName: dbSegmentName,
+      validatedData,
+    });
     if (!result.ok) {
       throw this._mocody_createGenericError(this._mocody_operationNotSuccessful);
     }
@@ -290,15 +296,23 @@ export class PouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   async mocody_getAll({
     size,
     skip,
-  }: { size?: number | undefined | null; skip?: number | undefined | null } = {}): Promise<T[]> {
-    const pouch = await this._mocody_pouchDbInstance();
-    const data = await pouch.list({
-      include_docs: true,
-      startkey: this._mocody_featureEntityValue,
-      endkey: `${this._mocody_featureEntityValue}\ufff0`,
-      limit: size ?? undefined,
-      skip: skip ?? undefined,
+    dbSegmentName,
+  }: {
+    size?: number | undefined | null;
+    skip?: number | undefined | null;
+    dbSegmentName?: string;
+  }): Promise<T[]> {
+    if (!dbSegmentName) {
+      throw this.createDatabaseSegmentNotFoundError();
+    }
+
+    const data = await this._mocody_pouchDbInstance().getList({
+      databaseName: dbSegmentName,
+      featureEntity: this._mocody_featureEntityValue,
+      size,
+      skip,
     });
+
     const dataList: T[] = [];
     data?.rows?.forEach((item) => {
       if (item?.doc?.featureEntity === this._mocody_featureEntityValue) {
@@ -312,16 +326,25 @@ export class PouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   async mocody_getOneById({
     dataId,
     withCondition,
+    dbSegmentName,
   }: {
     dataId: string;
     withCondition?: IMocodyFieldCondition<T> | undefined | null;
+    dbSegmentName?: string;
   }): Promise<T | null> {
+    if (!dbSegmentName) {
+      throw this.createDatabaseSegmentNotFoundError();
+    }
+
     this._mocody_errorHelper.mocody_helper_validateRequiredString({ dataId });
 
     const nativeId = this._mocody_getNativePouchId(dataId);
 
-    const pouch = await this._mocody_pouchDbInstance();
-    const dataInDb = await pouch.get(nativeId);
+    const dataInDb = await this._mocody_pouchDbInstance().getById({
+      databaseName: dbSegmentName,
+      nativeId,
+    });
+
     if (!(dataInDb?.id === dataId && dataInDb.featureEntity === this._mocody_featureEntityValue)) {
       return null;
     }
@@ -336,17 +359,26 @@ export class PouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     dataId,
     updateData,
     withCondition,
+    dbSegmentName,
   }: {
     dataId: string;
     updateData: Partial<T>;
     withCondition?: IMocodyFieldCondition<T> | undefined | null;
+    dbSegmentName?: string;
   }): Promise<T> {
+    if (!dbSegmentName) {
+      throw this.createDatabaseSegmentNotFoundError();
+    }
+
     this._mocody_errorHelper.mocody_helper_validateRequiredString({ dataId });
 
     const nativeId = this._mocody_getNativePouchId(dataId);
 
-    const pouch = await this._mocody_pouchDbInstance();
-    const dataInDb = await pouch.get(nativeId);
+    const dataInDb = await this._mocody_pouchDbInstance().getById({
+      databaseName: dbSegmentName,
+      nativeId,
+    });
+
     if (!(dataInDb?.id === dataId && dataInDb.featureEntity === this._mocody_featureEntityValue && dataInDb._rev)) {
       throw this._mocody_createGenericError("Record does not exists");
     }
@@ -371,9 +403,10 @@ export class PouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
 
     this._mocody_checkValidateStrictRequiredFields(validatedData);
 
-    const result = await pouch.insert({
-      ...validatedData,
-      _rev: dataInDb._rev,
+    const result = await this._mocody_pouchDbInstance().updateDoc({
+      databaseName: dbSegmentName,
+      validatedData,
+      docRev: dataInDb._rev,
     });
 
     if (!result.ok) {
@@ -405,20 +438,24 @@ export class PouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     fields,
     excludeFields,
     withCondition,
+    dbSegmentName,
   }: {
     dataIds: string[];
     fields?: (keyof T)[] | undefined | null;
     excludeFields?: (keyof T)[] | undefined | null;
     withCondition?: IMocodyFieldCondition<T> | undefined | null;
+    dbSegmentName?: string;
   }): Promise<T[]> {
-    //
-    const uniqueIds = this._mocody_removeDuplicateString(dataIds);
-    const fullUniqueIds = uniqueIds.map((id) => this._mocody_getNativePouchId(id));
+    if (!dbSegmentName) {
+      throw this.createDatabaseSegmentNotFoundError();
+    }
 
-    const pouch = await this._mocody_pouchDbInstance();
-    const data = await pouch.list({
-      keys: fullUniqueIds,
-      include_docs: true,
+    const uniqueIds = this._mocody_removeDuplicateString(dataIds);
+    const nativeIds = uniqueIds.map((id) => this._mocody_getNativePouchId(id));
+
+    const data = await this._mocody_pouchDbInstance().getManyByIds({
+      databaseName: dbSegmentName,
+      nativeIds,
     });
 
     const dataList: T[] = [];
@@ -504,11 +541,17 @@ export class PouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     paramOption,
     canPaginate,
     enableRelationFetch,
+    dbSegmentName,
   }: {
     paramOption: IMocodyQueryIndexOptions<TQuery, TSortKeyField>;
     canPaginate: boolean;
     enableRelationFetch: boolean;
+    dbSegmentName?: string;
   }): Promise<IMocodyPagingResult<TData[]>> {
+    if (!dbSegmentName) {
+      throw this.createDatabaseSegmentNotFoundError();
+    }
+
     const { secondaryIndexOptions } = this._mocody_getLocalVariables();
 
     if (!secondaryIndexOptions?.length) {
@@ -649,7 +692,7 @@ export class PouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
           }
         }
       } catch (error: any) {
-        LoggingService.log(error?.message);
+        LoggingService.log(error);
       }
       moreFindOption.limit = pagingOptions.limit;
       //
@@ -664,15 +707,15 @@ export class PouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
       }
     }
 
-    const pouch = await this._mocody_pouchDbInstance();
-    const data = await pouch.partitionedFind(this._mocody_featureEntityValue, {
+    const data = await this._mocody_pouchDbInstance().findPartitionedDocs({
+      databaseName: dbSegmentName,
+      featureEntity: this._mocody_featureEntityValue,
       selector: { ...queryDefDataOrdered },
       fields: projection,
       use_index: paramOption.indexName,
       sort: sort01?.length ? sort01 : undefined,
       limit: moreFindOption.limit,
       skip: moreFindOption.skip,
-      // bookmark: paramOption?.pagingParams?.nextPageHash,
     });
 
     const results = data?.docs?.map((item) => {
@@ -690,25 +733,45 @@ export class PouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     };
   }
 
+  private createDatabaseSegmentNotFoundError() {
+    return this._mocody_createGenericError("Record does not exists");
+  }
+
   async mocody_deleteById({
     dataId,
     withCondition,
+    dbSegmentName,
   }: {
     dataId: string;
     withCondition?: IMocodyFieldCondition<T> | undefined | null;
+    dbSegmentName?: string;
   }): Promise<T> {
+    if (!dbSegmentName) {
+      throw this.createDatabaseSegmentNotFoundError();
+    }
+
     const nativeId = this._mocody_getNativePouchId(dataId);
-    const pouch = await this._mocody_pouchDbInstance();
-    const dataInDb = await pouch.get(nativeId);
+
+    const dataInDb = await this._mocody_pouchDbInstance().getById({
+      databaseName: dbSegmentName,
+      nativeId,
+    });
 
     if (!(dataInDb?.id === dataId && dataInDb.featureEntity === this._mocody_featureEntityValue)) {
       throw this._mocody_createGenericError("Record does not exists");
     }
+
     const passed = this._mocody_withConditionPassed({ item: dataInDb, withCondition });
     if (!passed) {
       throw this._mocody_createGenericError("Record with conditions does not exists for deletion");
     }
-    const result = await pouch.destroy(dataInDb._id, dataInDb._rev);
+
+    const result = await this._mocody_pouchDbInstance().deleteById({
+      nativeId: dataInDb._id,
+      docRev: dataInDb._rev,
+      databaseName: dbSegmentName,
+    });
+
     if (!result.ok) {
       throw this._mocody_createGenericError(this._mocody_operationNotSuccessful);
     }
