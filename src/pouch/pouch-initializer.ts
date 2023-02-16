@@ -11,7 +11,6 @@ import { UtilService } from "../helpers/util-service";
 const concurrency = throat(1);
 
 type IFindOptions = {
-  databaseName: string;
   featureEntity: string;
   skip: number | undefined;
   limit: number | undefined;
@@ -35,6 +34,7 @@ type ILocalFirstConfig = {
 type IRemoteFirstConfig = {
   configType: "REMOTE_FIRST";
   couchDbUri: string;
+  databaseName: string;
 };
 
 interface IOptions {
@@ -53,10 +53,12 @@ export class MocodyInitializerPouch {
     this.pouchConfig = pouchConfig;
   }
 
-  async deleteIndex({ databaseName, ddoc, name }: { databaseName: string; ddoc: string; name: string }) {
+  async deleteIndex({ ddoc, name }: { ddoc: string; name: string }) {
     // DELETE /{db}/_index/{designdoc}/json/{name}
     const path = ["_index", ddoc, "json", name].join("/");
     const instance = await this.getInstance();
+    const { databaseName } = this.getRemoteFirstConfig();
+
     const result: { ok: boolean } = await instance.relax({
       db: databaseName,
       method: "DELETE",
@@ -66,7 +68,7 @@ export class MocodyInitializerPouch {
     return result;
   }
 
-  async getIndexes(databaseName: string) {
+  async getIndexes() {
     type IIndexList = {
       indexes: {
         ddoc: string;
@@ -80,6 +82,8 @@ export class MocodyInitializerPouch {
       }[];
       total_rows: number;
     };
+    const { databaseName } = this.getRemoteFirstConfig();
+
     const instance = await this.getInstance();
     const result: IIndexList = await instance.request({
       db: databaseName,
@@ -92,8 +96,10 @@ export class MocodyInitializerPouch {
     //GET /{db}/_index
   }
 
-  async getDocInstance<T>(databaseName: string): Promise<Nano.DocumentScope<IBaseDef<T>>> {
+  async getDocInstance<T>(): Promise<Nano.DocumentScope<IBaseDef<T>>> {
     if (!this._documentScope) {
+      const { databaseName } = this.getRemoteFirstConfig();
+
       const n = await this.getInstance();
       const db = n.db.use<IBaseDef<T>>(databaseName);
       this._documentScope = db;
@@ -101,19 +107,11 @@ export class MocodyInitializerPouch {
     return this._documentScope;
   }
 
-  async createDatabase(databaseName: string) {
-    if (this.isLocalFirst()) {
-      return undefined;
-    }
-    const instance = await this.getInstance();
-    return await instance.db.create(databaseName, { partitioned: true });
-  }
-
-  async getById({ databaseName, nativeId }: { databaseName: string; nativeId: string }) {
+  async getById({ nativeId }: { nativeId: string }) {
     if (this.isLocalFirst()) {
       return await this.pouch_getById({ nativeId });
     }
-    const db01 = await this.getDocInstance(databaseName);
+    const db01 = await this.getDocInstance();
     return await db01.get(nativeId);
   }
 
@@ -122,11 +120,11 @@ export class MocodyInitializerPouch {
     return await db01.get(nativeId);
   }
 
-  async getManyByIds({ databaseName, nativeIds }: { databaseName: string; nativeIds: string[] }) {
+  async getManyByIds({ nativeIds }: { nativeIds: string[] }) {
     if (this.isLocalFirst()) {
       return await this.pouch_getManyByIds({ nativeIds });
     }
-    const db01 = await this.getDocInstance(databaseName);
+    const db01 = await this.getDocInstance();
     const dataList = await db01.list({
       keys: nativeIds,
       include_docs: true,
@@ -143,11 +141,11 @@ export class MocodyInitializerPouch {
     return dataList;
   }
 
-  async createDoc({ databaseName, validatedData }: { databaseName: string; validatedData: any }) {
+  async createDoc({ validatedData }: { validatedData: any }) {
     if (this.isLocalFirst()) {
       return await this.pouch_createDoc({ validatedData });
     }
-    const db01 = await this.getDocInstance(databaseName);
+    const db01 = await this.getDocInstance();
     return await db01.insert(validatedData);
   }
 
@@ -156,19 +154,11 @@ export class MocodyInitializerPouch {
     return await db01.put(validatedData);
   }
 
-  async updateDoc({
-    databaseName,
-    docRev,
-    validatedData,
-  }: {
-    databaseName: string;
-    docRev: string;
-    validatedData: any;
-  }) {
+  async updateDoc({ docRev, validatedData }: { docRev: string; validatedData: any }) {
     if (this.isLocalFirst()) {
       return await this.pouch_updateDoc({ validatedData, docRev });
     }
-    const db01 = await this.getDocInstance(databaseName);
+    const db01 = await this.getDocInstance();
     return await db01.insert({ ...validatedData, _rev: docRev });
   }
 
@@ -177,17 +167,7 @@ export class MocodyInitializerPouch {
     return await db01.put({ ...validatedData, _rev: docRev });
   }
 
-  async getList({
-    databaseName,
-    featureEntity,
-    size,
-    skip,
-  }: {
-    databaseName: string;
-    featureEntity: string;
-    size?: number | null;
-    skip?: number | null;
-  }) {
+  async getList({ featureEntity, size, skip }: { featureEntity: string; size?: number | null; skip?: number | null }) {
     if (this.isLocalFirst()) {
       return await this.pouch_getList({
         featureEntity,
@@ -195,7 +175,7 @@ export class MocodyInitializerPouch {
         skip,
       });
     }
-    const db01 = await this.getDocInstance(databaseName);
+    const db01 = await this.getDocInstance();
     const data = await db01.list({
       include_docs: true,
       startkey: featureEntity,
@@ -228,20 +208,10 @@ export class MocodyInitializerPouch {
     return data;
   }
 
-  async findPartitionedDocs({
-    featureEntity,
-    databaseName,
-    selector,
-    fields,
-    use_index,
-    sort,
-    limit,
-    skip,
-  }: IFindOptions) {
+  async findPartitionedDocs({ featureEntity, selector, fields, use_index, sort, limit, skip }: IFindOptions) {
     if (this.isLocalFirst()) {
       return await this.pouch_findPartitionedDocs({
         featureEntity,
-        databaseName,
         selector,
         fields,
         use_index,
@@ -250,7 +220,7 @@ export class MocodyInitializerPouch {
         skip,
       });
     }
-    const db01 = await this.getDocInstance(databaseName);
+    const db01 = await this.getDocInstance();
     return await db01.partitionedFind(featureEntity, {
       selector: { ...selector },
       fields,
@@ -263,7 +233,6 @@ export class MocodyInitializerPouch {
   }
 
   private async pouch_findPartitionedDocs({
-    databaseName,
     featureEntity,
     selector,
     fields,
@@ -283,8 +252,8 @@ export class MocodyInitializerPouch {
     });
   }
 
-  async deleteById({ databaseName, docRev, nativeId }: { databaseName: string; docRev: string; nativeId: string }) {
-    const db01 = await this.getDocInstance(databaseName);
+  async deleteById({ docRev, nativeId }: { docRev: string; nativeId: string }) {
+    const db01 = await this.getDocInstance();
     return await db01.destroy(nativeId, docRev);
   }
 
@@ -316,16 +285,26 @@ export class MocodyInitializerPouch {
     return this.pouchConfig?.configType === "LOCAL_FIRST";
   }
 
-  private async pouch_getDbInstanceBase<T>() {
-    if (this.pouchConfig?.configType !== "LOCAL_FIRST") {
-      throw new MocodyGenericError("LOCAL_FIRST not configured");
+  private getRemoteFirstConfig() {
+    if (this.pouchConfig?.configType !== "REMOTE_FIRST") {
+      throw new MocodyGenericError("REMOTE_FIRST not configured");
     }
-    if (!this._pouchInstance) {
-      const { sqliteDbFilePath, couchDbSyncUri, liveSync } = this.pouchConfig;
+    if (!this.pouchConfig?.couchDbUri) {
+      throw new MocodyGenericError("couchDbUri not defined");
+    }
+    return this.pouchConfig;
+  }
 
-      if (!sqliteDbFilePath) {
+  private async pouch_getDbInstanceBase<T>() {
+    if (!this._pouchInstance) {
+      if (this.pouchConfig?.configType !== "LOCAL_FIRST") {
+        throw new MocodyGenericError("LOCAL_FIRST not configured");
+      }
+      if (!this.pouchConfig?.sqliteDbFilePath) {
         throw new MocodyGenericError("sqliteDbFilePath not defined");
       }
+
+      const { sqliteDbFilePath, couchDbSyncUri, liveSync } = this.pouchConfig;
 
       PouchDB.plugin(nodAdapter);
 

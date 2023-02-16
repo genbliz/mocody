@@ -229,13 +229,10 @@ export class PouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     return new MocodyGenericError(error);
   }
 
-  async mocody_createOne({ dbSegmentName, data }: { dbSegmentName: string; data: T }): Promise<T> {
-    this.validateDatabaseSegmentName(dbSegmentName);
-
+  async mocody_createOne({ data }: { data: T }): Promise<T> {
     const { validatedData } = await this._mocody_validateReady({ data });
 
     const result = await this._mocody_pouchDbInstance().createDoc({
-      databaseName: dbSegmentName,
       validatedData,
     });
     if (!result.ok) {
@@ -294,16 +291,11 @@ export class PouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   async mocody_getAll({
     size,
     skip,
-    dbSegmentName,
   }: {
     size?: number | undefined | null;
     skip?: number | undefined | null;
-    dbSegmentName: string;
   }): Promise<T[]> {
-    this.validateDatabaseSegmentName(dbSegmentName);
-
     const data = await this._mocody_pouchDbInstance().getList({
-      databaseName: dbSegmentName,
       featureEntity: this._mocody_featureEntityValue,
       size,
       skip,
@@ -322,20 +314,15 @@ export class PouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   async mocody_getOneById({
     dataId,
     withCondition,
-    dbSegmentName,
   }: {
     dataId: string;
     withCondition?: IMocodyFieldCondition<T> | undefined | null;
-    dbSegmentName: string;
   }): Promise<T | null> {
-    this.validateDatabaseSegmentName(dbSegmentName);
-
     this._mocody_errorHelper.mocody_helper_validateRequiredString({ dataId });
 
     const nativeId = this._mocody_getNativePouchId(dataId);
 
     const dataInDb = await this._mocody_pouchDbInstance().getById({
-      databaseName: dbSegmentName,
       nativeId,
     });
 
@@ -353,21 +340,16 @@ export class PouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     dataId,
     updateData,
     withCondition,
-    dbSegmentName,
   }: {
     dataId: string;
     updateData: Partial<T>;
     withCondition?: IMocodyFieldCondition<T> | undefined | null;
-    dbSegmentName: string;
   }): Promise<T> {
-    this.validateDatabaseSegmentName(dbSegmentName);
-
     this._mocody_errorHelper.mocody_helper_validateRequiredString({ dataId });
 
     const nativeId = this._mocody_getNativePouchId(dataId);
 
     const dataInDb = await this._mocody_pouchDbInstance().getById({
-      databaseName: dbSegmentName,
       nativeId,
     });
 
@@ -396,7 +378,6 @@ export class PouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     this._mocody_checkValidateStrictRequiredFields(validatedData);
 
     const result = await this._mocody_pouchDbInstance().updateDoc({
-      databaseName: dbSegmentName,
       validatedData,
       docRev: dataInDb._rev,
     });
@@ -430,21 +411,16 @@ export class PouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     fields,
     excludeFields,
     withCondition,
-    dbSegmentName,
   }: {
     dataIds: string[];
     fields?: (keyof T)[] | undefined | null;
     excludeFields?: (keyof T)[] | undefined | null;
     withCondition?: IMocodyFieldCondition<T> | undefined | null;
-    dbSegmentName: string;
   }): Promise<T[]> {
-    this.validateDatabaseSegmentName(dbSegmentName);
-
     const uniqueIds = this._mocody_removeDuplicateString(dataIds);
     const nativeIds = uniqueIds.map((id) => this._mocody_getNativePouchId(id));
 
     const data = await this._mocody_pouchDbInstance().getManyByIds({
-      databaseName: dbSegmentName,
       nativeIds,
     });
 
@@ -480,13 +456,12 @@ export class PouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   }
 
   async mocody_getManyByIndex<TData = T, TSortKeyField = string>(
-    paramOption: IMocodyQueryIndexOptionsNoPaging<TData, TSortKeyField> & { dbSegmentName: string },
+    paramOption: IMocodyQueryIndexOptionsNoPaging<TData, TSortKeyField>,
   ): Promise<TData[]> {
     const result = await this._mocody_getManyBySecondaryIndexPaginateBase<TData, TData, TSortKeyField>({
       paramOption,
       canPaginate: false,
       enableRelationFetch: false,
-      dbSegmentName: paramOption.dbSegmentName,
     });
     if (result?.paginationResults?.length) {
       return result.paginationResults;
@@ -495,26 +470,22 @@ export class PouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   }
 
   async mocody_getManyByIndexPaginate<TData = T, TSortKeyField = string>(
-    paramOption: IMocodyQueryIndexOptions<TData, TSortKeyField> & { dbSegmentName: string },
+    paramOption: IMocodyQueryIndexOptions<TData, TSortKeyField>,
   ): Promise<IMocodyPagingResult<TData[]>> {
     return this._mocody_getManyBySecondaryIndexPaginateBase<TData, TData, TSortKeyField>({
       paramOption,
       canPaginate: true,
       enableRelationFetch: false,
-      dbSegmentName: paramOption.dbSegmentName,
     });
   }
 
   async mocody_getManyWithRelation<TQuery = T, TData = T, TSortKeyField = string>(
-    paramOption: Omit<IMocodyQueryIndexOptions<TQuery, TSortKeyField>, "pagingParams"> & {
-      dbSegmentName: string;
-    },
+    paramOption: Omit<IMocodyQueryIndexOptions<TQuery, TSortKeyField>, "pagingParams"> & {},
   ): Promise<TData[]> {
     const result = await this._mocody_getManyBySecondaryIndexPaginateBase<TQuery, TData, TSortKeyField>({
       paramOption,
       canPaginate: false,
       enableRelationFetch: true,
-      dbSegmentName: paramOption.dbSegmentName,
     });
     if (result?.paginationResults) {
       return result.paginationResults;
@@ -523,13 +494,12 @@ export class PouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   }
 
   async mocody_getManyWithRelationPaginate<TQuery = T, TData = T, TSortKeyField = string>(
-    paramOption: IMocodyQueryIndexOptions<TQuery, TSortKeyField> & { dbSegmentName: string },
+    paramOption: IMocodyQueryIndexOptions<TQuery, TSortKeyField>,
   ): Promise<IMocodyPagingResult<TData[]>> {
     return this._mocody_getManyBySecondaryIndexPaginateBase<TQuery, TData, TSortKeyField>({
       paramOption,
       canPaginate: true,
       enableRelationFetch: true,
-      dbSegmentName: paramOption.dbSegmentName,
     });
   }
 
@@ -537,15 +507,11 @@ export class PouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     paramOption,
     canPaginate,
     enableRelationFetch,
-    dbSegmentName,
   }: {
     paramOption: IMocodyQueryIndexOptions<TQuery, TSortKeyField>;
     canPaginate: boolean;
     enableRelationFetch: boolean;
-    dbSegmentName: string;
   }): Promise<IMocodyPagingResult<TData[]>> {
-    this.validateDatabaseSegmentName(dbSegmentName);
-
     const { secondaryIndexOptions } = this._mocody_getLocalVariables();
 
     if (!secondaryIndexOptions?.length) {
@@ -702,7 +668,6 @@ export class PouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     }
 
     const data = await this._mocody_pouchDbInstance().findPartitionedDocs({
-      databaseName: dbSegmentName,
       featureEntity: this._mocody_featureEntityValue,
       selector: { ...queryDefDataOrdered },
       fields: projection,
@@ -727,27 +692,16 @@ export class PouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     };
   }
 
-  private validateDatabaseSegmentName(dbSegmentName: string) {
-    if (!(dbSegmentName && dbSegmentName.length > 30)) {
-      throw this._mocody_createGenericError("Invalid db segment name");
-    }
-  }
-
   async mocody_deleteById({
     dataId,
     withCondition,
-    dbSegmentName,
   }: {
     dataId: string;
     withCondition?: IMocodyFieldCondition<T> | undefined | null;
-    dbSegmentName: string;
   }): Promise<T> {
-    this.validateDatabaseSegmentName(dbSegmentName);
-
     const nativeId = this._mocody_getNativePouchId(dataId);
 
     const dataInDb = await this._mocody_pouchDbInstance().getById({
-      databaseName: dbSegmentName,
       nativeId,
     });
 
@@ -763,7 +717,6 @@ export class PouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     const result = await this._mocody_pouchDbInstance().deleteById({
       nativeId: dataInDb._id,
       docRev: dataInDb._rev,
-      databaseName: dbSegmentName,
     });
 
     if (!result.ok) {

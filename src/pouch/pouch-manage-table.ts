@@ -42,16 +42,8 @@ export class PouchManageTable<T> {
     return this.pouchDb();
   }
 
-  async mocody_createIndex({
-    databaseName,
-    indexName,
-    fields,
-  }: {
-    databaseName: string;
-    indexName: string;
-    fields: string[];
-  }) {
-    const instance = await this._mocody_getInstance().getDocInstance(databaseName);
+  async mocody_createIndex({ indexName, fields }: { indexName: string; fields: string[] }) {
+    const instance = await this._mocody_getInstance().getDocInstance();
     const result = await instance.createIndex({
       index: {
         fields: fields,
@@ -69,8 +61,8 @@ export class PouchManageTable<T> {
     };
   }
 
-  async mocody_clearAllIndexes(databaseName: string) {
-    const indexes = await this._mocody_getInstance().getIndexes(databaseName);
+  async mocody_clearAllIndexes() {
+    const indexes = await this._mocody_getInstance().getIndexes();
     LoggingService.log({ indexes });
     if (indexes?.indexes?.length) {
       const deletedIndexes: any[] = [];
@@ -78,7 +70,6 @@ export class PouchManageTable<T> {
         if (index?.type !== "special") {
           deletedIndexes.push(index);
           await this._mocody_getInstance().deleteIndex({
-            databaseName,
             ddoc: index.ddoc,
             name: index.name,
           });
@@ -93,21 +84,16 @@ export class PouchManageTable<T> {
     };
   }
 
-  async mocody_getIndexes(databaseName: string) {
-    return await this._mocody_getInstance().getIndexes(databaseName);
+  async mocody_getIndexes() {
+    return await this._mocody_getInstance().getIndexes();
   }
 
-  async mocody_createDatabase(databaseName: string) {
-    return await this._mocody_getInstance().createDatabase(databaseName);
-  }
-
-  async mocody_createDefinedIndexes(databaseName: string): Promise<string[]> {
+  async mocody_createDefinedIndexes(): Promise<string[]> {
     const results: string[] = [];
     if (this.secondaryIndexOptions?.length) {
       for (const indexOption of this.secondaryIndexOptions) {
         if (indexOption?.indexName) {
           const resultData = await this.mocody_createIndex({
-            databaseName,
             fields: [indexOption.partitionKeyFieldName, indexOption.sortKeyFieldName] as any[],
             indexName: indexOption.indexName,
           });
