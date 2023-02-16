@@ -101,18 +101,10 @@ export class MocodyInitializerPouch {
     return this._documentScope;
   }
 
-  async checkDatabaseExists(databaseName: string) {
-    const instance = await this.getInstance();
-    const checkDbExistResult = await instance.relax({
-      db: databaseName,
-      method: "HEAD",
-      content_type: "application/json",
-    });
-    LoggingService.log(JSON.stringify({ checkDbExistResult }, null, 2));
-    return checkDbExistResult;
-  }
-
   async createDatabase(databaseName: string) {
+    if (this.isLocalFirst()) {
+      return undefined;
+    }
     const instance = await this.getInstance();
     return await instance.db.create(databaseName, { partitioned: true });
   }
@@ -121,7 +113,6 @@ export class MocodyInitializerPouch {
     if (this.isLocalFirst()) {
       return await this.pouch_getById({ nativeId });
     }
-
     const db01 = await this.getDocInstance(databaseName);
     return await db01.get(nativeId);
   }

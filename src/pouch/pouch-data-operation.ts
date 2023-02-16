@@ -230,9 +230,7 @@ export class PouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   }
 
   async mocody_createOne({ dbSegmentName, data }: { dbSegmentName: string; data: T }): Promise<T> {
-    if (!dbSegmentName) {
-      throw this.createDatabaseSegmentNotFoundError();
-    }
+    this.validateDatabaseSegmentName(dbSegmentName);
 
     const { validatedData } = await this._mocody_validateReady({ data });
 
@@ -300,11 +298,9 @@ export class PouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   }: {
     size?: number | undefined | null;
     skip?: number | undefined | null;
-    dbSegmentName?: string;
+    dbSegmentName: string;
   }): Promise<T[]> {
-    if (!dbSegmentName) {
-      throw this.createDatabaseSegmentNotFoundError();
-    }
+    this.validateDatabaseSegmentName(dbSegmentName);
 
     const data = await this._mocody_pouchDbInstance().getList({
       databaseName: dbSegmentName,
@@ -330,11 +326,9 @@ export class PouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   }: {
     dataId: string;
     withCondition?: IMocodyFieldCondition<T> | undefined | null;
-    dbSegmentName?: string;
+    dbSegmentName: string;
   }): Promise<T | null> {
-    if (!dbSegmentName) {
-      throw this.createDatabaseSegmentNotFoundError();
-    }
+    this.validateDatabaseSegmentName(dbSegmentName);
 
     this._mocody_errorHelper.mocody_helper_validateRequiredString({ dataId });
 
@@ -364,11 +358,9 @@ export class PouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     dataId: string;
     updateData: Partial<T>;
     withCondition?: IMocodyFieldCondition<T> | undefined | null;
-    dbSegmentName?: string;
+    dbSegmentName: string;
   }): Promise<T> {
-    if (!dbSegmentName) {
-      throw this.createDatabaseSegmentNotFoundError();
-    }
+    this.validateDatabaseSegmentName(dbSegmentName);
 
     this._mocody_errorHelper.mocody_helper_validateRequiredString({ dataId });
 
@@ -444,11 +436,9 @@ export class PouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     fields?: (keyof T)[] | undefined | null;
     excludeFields?: (keyof T)[] | undefined | null;
     withCondition?: IMocodyFieldCondition<T> | undefined | null;
-    dbSegmentName?: string;
+    dbSegmentName: string;
   }): Promise<T[]> {
-    if (!dbSegmentName) {
-      throw this.createDatabaseSegmentNotFoundError();
-    }
+    this.validateDatabaseSegmentName(dbSegmentName);
 
     const uniqueIds = this._mocody_removeDuplicateString(dataIds);
     const nativeIds = uniqueIds.map((id) => this._mocody_getNativePouchId(id));
@@ -490,12 +480,13 @@ export class PouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   }
 
   async mocody_getManyByIndex<TData = T, TSortKeyField = string>(
-    paramOption: IMocodyQueryIndexOptionsNoPaging<TData, TSortKeyField>,
+    paramOption: IMocodyQueryIndexOptionsNoPaging<TData, TSortKeyField> & { dbSegmentName: string },
   ): Promise<TData[]> {
     const result = await this._mocody_getManyBySecondaryIndexPaginateBase<TData, TData, TSortKeyField>({
       paramOption,
       canPaginate: false,
       enableRelationFetch: false,
+      dbSegmentName: paramOption.dbSegmentName,
     });
     if (result?.paginationResults?.length) {
       return result.paginationResults;
@@ -504,22 +495,26 @@ export class PouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   }
 
   async mocody_getManyByIndexPaginate<TData = T, TSortKeyField = string>(
-    paramOption: IMocodyQueryIndexOptions<TData, TSortKeyField>,
+    paramOption: IMocodyQueryIndexOptions<TData, TSortKeyField> & { dbSegmentName: string },
   ): Promise<IMocodyPagingResult<TData[]>> {
     return this._mocody_getManyBySecondaryIndexPaginateBase<TData, TData, TSortKeyField>({
       paramOption,
       canPaginate: true,
       enableRelationFetch: false,
+      dbSegmentName: paramOption.dbSegmentName,
     });
   }
 
   async mocody_getManyWithRelation<TQuery = T, TData = T, TSortKeyField = string>(
-    paramOption: Omit<IMocodyQueryIndexOptions<TQuery, TSortKeyField>, "pagingParams">,
+    paramOption: Omit<IMocodyQueryIndexOptions<TQuery, TSortKeyField>, "pagingParams"> & {
+      dbSegmentName: string;
+    },
   ): Promise<TData[]> {
     const result = await this._mocody_getManyBySecondaryIndexPaginateBase<TQuery, TData, TSortKeyField>({
       paramOption,
       canPaginate: false,
       enableRelationFetch: true,
+      dbSegmentName: paramOption.dbSegmentName,
     });
     if (result?.paginationResults) {
       return result.paginationResults;
@@ -528,12 +523,13 @@ export class PouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   }
 
   async mocody_getManyWithRelationPaginate<TQuery = T, TData = T, TSortKeyField = string>(
-    paramOption: IMocodyQueryIndexOptions<TQuery, TSortKeyField>,
+    paramOption: IMocodyQueryIndexOptions<TQuery, TSortKeyField> & { dbSegmentName: string },
   ): Promise<IMocodyPagingResult<TData[]>> {
     return this._mocody_getManyBySecondaryIndexPaginateBase<TQuery, TData, TSortKeyField>({
       paramOption,
       canPaginate: true,
       enableRelationFetch: true,
+      dbSegmentName: paramOption.dbSegmentName,
     });
   }
 
@@ -546,11 +542,9 @@ export class PouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     paramOption: IMocodyQueryIndexOptions<TQuery, TSortKeyField>;
     canPaginate: boolean;
     enableRelationFetch: boolean;
-    dbSegmentName?: string;
+    dbSegmentName: string;
   }): Promise<IMocodyPagingResult<TData[]>> {
-    if (!dbSegmentName) {
-      throw this.createDatabaseSegmentNotFoundError();
-    }
+    this.validateDatabaseSegmentName(dbSegmentName);
 
     const { secondaryIndexOptions } = this._mocody_getLocalVariables();
 
@@ -733,8 +727,10 @@ export class PouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     };
   }
 
-  private createDatabaseSegmentNotFoundError() {
-    return this._mocody_createGenericError("Record does not exists");
+  private validateDatabaseSegmentName(dbSegmentName: string) {
+    if (!(dbSegmentName && dbSegmentName.length > 30)) {
+      throw this._mocody_createGenericError("Invalid db segment name");
+    }
   }
 
   async mocody_deleteById({
@@ -744,11 +740,9 @@ export class PouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   }: {
     dataId: string;
     withCondition?: IMocodyFieldCondition<T> | undefined | null;
-    dbSegmentName?: string;
+    dbSegmentName: string;
   }): Promise<T> {
-    if (!dbSegmentName) {
-      throw this.createDatabaseSegmentNotFoundError();
-    }
+    this.validateDatabaseSegmentName(dbSegmentName);
 
     const nativeId = this._mocody_getNativePouchId(dataId);
 
