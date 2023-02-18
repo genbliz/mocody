@@ -43,22 +43,10 @@ export class PouchManageTable<T> {
   }
 
   async mocody_createIndex({ indexName, fields }: { indexName: string; fields: string[] }) {
-    const instance = await this._mocody_getInstance().getDocInstance();
-    const result = await instance.createIndex({
-      index: {
-        fields: fields,
-      },
-      name: indexName,
-      ddoc: indexName,
-      type: "json",
-      partitioned: true,
+    return await this._mocody_getInstance().createIndex({
+      indexName,
+      fields,
     });
-    LoggingService.log(result);
-    return {
-      id: result.id,
-      name: result.name,
-      result: result.result,
-    };
   }
 
   async mocody_clearAllIndexes() {
@@ -70,7 +58,7 @@ export class PouchManageTable<T> {
         if (index?.type !== "special") {
           deletedIndexes.push(index);
           await this._mocody_getInstance().deleteIndex({
-            ddoc: index.ddoc,
+            ddoc: index.ddoc || "",
             name: index.name,
           });
         }
@@ -89,7 +77,7 @@ export class PouchManageTable<T> {
   }
 
   async mocody_createDefinedIndexes(): Promise<string[]> {
-    const results: string[] = [];
+    const results: any[] = [];
     if (this.secondaryIndexOptions?.length) {
       for (const indexOption of this.secondaryIndexOptions) {
         if (indexOption?.indexName) {
@@ -98,7 +86,7 @@ export class PouchManageTable<T> {
             indexName: indexOption.indexName,
           });
           LoggingService.log(resultData);
-          results.push(resultData.result);
+          results.push(resultData);
         }
       }
     }

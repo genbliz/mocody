@@ -2,6 +2,7 @@ import Nano from "nano";
 import throat from "throat";
 import PouchDB from "pouchdb";
 import nodAdapter from "pouchdb-adapter-node-websql";
+import pouchdbFind from "pouchdb-find";
 
 import { LoggingService } from "../helpers/logging-service";
 import type { IMocodyCoreEntityModel } from "../core/base-schema";
@@ -54,6 +55,9 @@ export class MocodyInitializerPouch {
   }
 
   async deleteIndex({ ddoc, name }: { ddoc: string; name: string }) {
+    if (this.isLocalFirst()) {
+      return await this.pouch_deleteIndex({ ddoc, name });
+    }
     // DELETE /{db}/_index/{designdoc}/json/{name}
     const path = ["_index", ddoc, "json", name].join("/");
     const instance = await this.getInstance();
@@ -68,7 +72,16 @@ export class MocodyInitializerPouch {
     return result;
   }
 
+  private async pouch_deleteIndex({ ddoc, name }: { ddoc: string; name: string }) {
+    const db01 = await this.pouch_getDbInstance();
+    return await db01.deleteIndex({ ddoc, name });
+  }
+
   async getIndexes() {
+    if (this.isLocalFirst()) {
+      return await this.pouch_getIndexes();
+    }
+
     type IIndexList = {
       indexes: {
         ddoc: string;
@@ -82,6 +95,7 @@ export class MocodyInitializerPouch {
       }[];
       total_rows: number;
     };
+
     const { databaseName } = this.getRemoteFirstConfig();
 
     const instance = await this.getInstance();
@@ -94,6 +108,56 @@ export class MocodyInitializerPouch {
     LoggingService.log({ indexes: result });
     return result;
     //GET /{db}/_index
+  }
+
+  private async pouch_getIndexes() {
+    const db01 = await this.pouch_getDbInstance();
+    return await db01.getIndexes();
+  }
+
+  async createIndex({ indexName, fields }: { indexName: string; fields: string[] }) {
+    if (this.isLocalFirst()) {
+      return await this.pouch_createIndex({ indexName, fields });
+    }
+    const instance = await this.getDocInstance();
+    const result = await instance.createIndex({
+      index: {
+        fields: fields,
+      },
+      name: indexName,
+      ddoc: indexName,
+      type: "json",
+      partitioned: true,
+    });
+    LoggingService.log(result);
+    return {
+      id: result.id,
+      name: result.name,
+      result: result.result,
+    };
+  }
+
+  private async pouch_createIndex({ indexName, fields }: { indexName: string; fields: string[] }) {
+    const db01 = await this.pouch_getDbInstance();
+    return await new Promise((resolve, reject) => {
+      return db01.createIndex(
+        {
+          index: {
+            fields: fields,
+            name: indexName,
+            ddoc: indexName,
+            type: "json",
+          },
+        },
+        (error, result) => {
+          if (error) {
+            reject(error);
+          } else {
+            resolve(result);
+          }
+        },
+      );
+    });
   }
 
   async getDocInstance<T>(): Promise<Nano.DocumentScope<IBaseDef<T>>> {
@@ -307,6 +371,7 @@ export class MocodyInitializerPouch {
       const { sqliteDbFilePath, couchDbSyncUri, liveSync } = this.pouchConfig;
 
       PouchDB.plugin(nodAdapter);
+      PouchDB.plugin(pouchdbFind);
 
       this._pouchInstance = new PouchDB(sqliteDbFilePath, { adapter: "websql" });
 
