@@ -30,12 +30,14 @@ type ILocalFirstConfig = {
   sqliteDbFilePath: string;
   couchDbSyncUri?: string;
   liveSync?: boolean;
+  indexes?: { indexName: string; fields: string[] }[];
 };
 
 type IRemoteFirstConfig = {
   configType: "REMOTE_FIRST";
   couchDbUri: string;
   databaseName: string;
+  indexes?: { indexName: string; fields: string[] }[];
 };
 
 interface IOptions {
@@ -119,7 +121,19 @@ export class MocodyInitializerPouch {
     if (this.isLocalFirst()) {
       return await this.pouch_createIndex({ indexName, fields });
     }
-    const instance = await this.getDocInstance();
+    return this.couch_createIndex({ indexName, fields });
+  }
+
+  private async couch_createIndex({
+    indexName,
+    fields,
+    dbx,
+  }: {
+    indexName: string;
+    fields: string[];
+    dbx?: Nano.DocumentScope<IBaseDef<any>>;
+  }) {
+    const instance = dbx || (await this.getDocInstance());
     const result = await instance.createIndex({
       index: {
         fields: fields,
@@ -137,8 +151,16 @@ export class MocodyInitializerPouch {
     };
   }
 
-  private async pouch_createIndex({ indexName, fields }: { indexName: string; fields: string[] }) {
-    const db01 = await this.pouch_getDbInstance();
+  private async pouch_createIndex({
+    indexName,
+    fields,
+    dbx,
+  }: {
+    indexName: string;
+    fields: string[];
+    dbx?: PouchDB.Database<IBaseDef<unknown>>;
+  }) {
+    const db01 = dbx || (await this.pouch_getDbInstance());
     return await new Promise((resolve, reject) => {
       return db01.createIndex(
         {
@@ -162,10 +184,21 @@ export class MocodyInitializerPouch {
 
   async getDocInstance<T>(): Promise<Nano.DocumentScope<IBaseDef<T>>> {
     if (!this._documentScope) {
-      const { databaseName } = this.getRemoteFirstConfig();
+      const { databaseName, indexes } = this.getRemoteFirstConfig();
 
-      const n = await this.getInstance();
-      const db = n.db.use<IBaseDef<T>>(databaseName);
+      const serverScope = await this.getInstance();
+      const db = serverScope.db.use<IBaseDef<T>>(databaseName);
+
+      try {
+        if (indexes?.length) {
+          for (const indexItem of indexes) {
+            await this.couch_createIndex({ ...indexItem, dbx: db });
+          }
+        }
+      } catch (error) {
+        LoggingService.error(error);
+      }
+
       this._documentScope = db;
     }
     return this._documentScope;
@@ -368,12 +401,22 @@ export class MocodyInitializerPouch {
         throw new MocodyGenericError("sqliteDbFilePath not defined");
       }
 
-      const { sqliteDbFilePath, couchDbSyncUri, liveSync } = this.pouchConfig;
+      const { sqliteDbFilePath, couchDbSyncUri, liveSync, indexes } = this.pouchConfig;
 
       PouchDB.plugin(nodAdapter);
       PouchDB.plugin(pouchdbFind);
 
       this._pouchInstance = new PouchDB(sqliteDbFilePath, { adapter: "websql" });
+
+      try {
+        if (indexes?.length) {
+          for (const indexItem of indexes) {
+            await this.pouch_createIndex({ ...indexItem, dbx: this._pouchInstance });
+          }
+        }
+      } catch (error) {
+        LoggingService.error(error);
+      }
 
       if (couchDbSyncUri) {
         if (liveSync) {
