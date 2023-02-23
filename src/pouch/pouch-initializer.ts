@@ -1,7 +1,6 @@
 import Nano from "nano";
 import throat from "throat";
 import PouchDB from "pouchdb";
-import nodAdapter from "pouchdb-adapter-node-websql";
 import pouchdbFind from "pouchdb-find";
 
 import { LoggingService } from "../helpers/logging-service";
@@ -339,14 +338,19 @@ export class MocodyInitializerPouch {
     skip,
   }: IFindOptions) {
     const db01 = await this.pouch_getDbInstance();
-    return await db01.find({
+
+    const paramsQ = {
       selector: { ...selector },
       fields,
       use_index,
       sort: sort?.length ? sort : undefined,
       limit,
       skip,
-    });
+    };
+
+    LoggingService.log(JSON.stringify(paramsQ, null, 2));
+
+    return await db01.find(paramsQ);
   }
 
   async deleteById({ docRev, nativeId }: { docRev: string; nativeId: string }) {
@@ -403,7 +407,7 @@ export class MocodyInitializerPouch {
 
       const { sqliteDbFilePath, couchDbSyncUri, liveSync, indexes } = this.pouchConfig;
 
-      PouchDB.plugin(nodAdapter);
+      PouchDB.plugin(require("pouchdb-adapter-node-websql"));
       PouchDB.plugin(pouchdbFind);
 
       this._pouchInstance = new PouchDB(sqliteDbFilePath, { adapter: "websql" });
