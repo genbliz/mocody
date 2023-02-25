@@ -27,7 +27,14 @@ type IBaseDef<T> = Omit<T & IMocodyCoreEntityModel, "">;
 type ILocalFirstConfig = {
   configType: "LOCAL_FIRST";
   sqliteDbFilePath: string;
-  couchDbSyncUri?: string;
+  couchConfig?: {
+    host: string;
+    password: string;
+    username: string;
+    databaseName: string;
+    port?: number;
+    protocol?: "http" | "https";
+  };
   liveSync?: boolean;
   indexes?: { indexName: string; fields: string[] }[];
 };
@@ -52,20 +59,17 @@ type IRemoteFirstConfig = {
   indexes?: { indexName: string; fields: string[] }[];
 };
 
-interface IOptions {
-  //http://admin:mypassword@localhost:5984
-  pouchConfig: ILocalFirstConfig | IRemoteFirstConfig;
-}
+type IOptions = ILocalFirstConfig | IRemoteFirstConfig;
 
 export class MocodyInitializerPouch {
   private _databaseInstance!: Nano.ServerScope | null;
   private _pouchInstance!: PouchDB.Database<IBaseDef<any>> | null;
   private _documentScope!: Nano.DocumentScope<any> | null;
 
-  private readonly pouchConfig: IOptions["pouchConfig"];
+  private readonly baseConfig: IOptions;
 
-  constructor({ pouchConfig }: IOptions) {
-    this.pouchConfig = pouchConfig;
+  constructor(baseConfig: IOptions) {
+    this.baseConfig = baseConfig;
   }
 
   async deleteIndex({ ddoc, name }: { ddoc: string; name: string }) {
@@ -376,10 +380,10 @@ export class MocodyInitializerPouch {
   }
 
   private async getInstanceBase() {
-    if (this.pouchConfig?.configType !== "REMOTE_FIRST") {
+    if (this.baseConfig?.configType !== "REMOTE_FIRST") {
       throw new MocodyGenericError("Remote database uri not defined");
     }
-    const { pouchConfig } = this.pouchConfig;
+    const { pouchConfig } = this.baseConfig;
 
     if (!pouchConfig?.databaseName) {
       throw new MocodyGenericError("Remote database config not defined");
@@ -410,29 +414,29 @@ export class MocodyInitializerPouch {
   }
 
   private isLocalFirst() {
-    return this.pouchConfig?.configType === "LOCAL_FIRST";
+    return this.baseConfig?.configType === "LOCAL_FIRST";
   }
 
   private getRemoteFirstConfig() {
-    if (this.pouchConfig?.configType !== "REMOTE_FIRST") {
+    if (this.baseConfig?.configType !== "REMOTE_FIRST") {
       throw new MocodyGenericError("REMOTE_FIRST not configured");
     }
-    if (!this.pouchConfig?.pouchConfig) {
+    if (!this.baseConfig?.pouchConfig) {
       throw new MocodyGenericError("couchDbUri not defined");
     }
-    return this.pouchConfig;
+    return this.baseConfig;
   }
 
   private async pouch_getDbInstanceBase<T>() {
     if (!this._pouchInstance) {
-      if (this.pouchConfig?.configType !== "LOCAL_FIRST") {
+      if (this.baseConfig?.configType !== "LOCAL_FIRST") {
         throw new MocodyGenericError("LOCAL_FIRST not configured");
       }
-      if (!this.pouchConfig?.sqliteDbFilePath) {
+      if (!this.baseConfig?.sqliteDbFilePath) {
         throw new MocodyGenericError("sqliteDbFilePath not defined");
       }
 
-      const { sqliteDbFilePath, couchDbSyncUri, liveSync, indexes } = this.pouchConfig;
+      const { sqliteDbFilePath, liveSync, indexes } = this.baseConfig;
 
       PouchDB.plugin(require("pouchdb-adapter-node-websql"));
       PouchDB.plugin(pouchdbFind);
@@ -449,7 +453,14 @@ export class MocodyInitializerPouch {
         LoggingService.error(error);
       }
 
-      if (couchDbSyncUri) {
+      if (this.baseConfig.couchConfig) {
+        const { password, protocol, username, host, port } = this.baseConfig.couchConfig;
+
+        const pw = encodeURIComponent(password);
+        const uname = encodeURIComponent(username);
+
+        const couchDbSyncUri = `${protocol}://${uname}:${pw}@${host}:${port}`;
+
         if (liveSync) {
           this._pouchInstance
             .sync(couchDbSyncUri, {
