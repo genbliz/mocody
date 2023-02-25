@@ -34,8 +34,21 @@ type ILocalFirstConfig = {
 
 type IRemoteFirstConfig = {
   configType: "REMOTE_FIRST";
-  couchDbUri: string;
-  databaseName: string;
+  pouchConfig: {
+    /**
+     * eg: ```127.0.0.1, localhost, example.com```
+     */
+    host: string;
+    password?: string;
+    username?: string;
+    databaseName: string;
+    port: number;
+    /**
+     * default: ```http```
+     */
+    protocol?: "http" | "https";
+    cookie?: string;
+  };
   indexes?: { indexName: string; fields: string[] }[];
 };
 
@@ -62,10 +75,10 @@ export class MocodyInitializerPouch {
     // DELETE /{db}/_index/{designdoc}/json/{name}
     const path = ["_index", ddoc, "json", name].join("/");
     const instance = await this.getInstance();
-    const { databaseName } = this.getRemoteFirstConfig();
+    const config = this.getRemoteFirstConfig();
 
     const result: { ok: boolean } = await instance.relax({
-      db: databaseName,
+      db: config.pouchConfig.databaseName,
       method: "DELETE",
       path,
       content_type: "application/json",
@@ -97,11 +110,11 @@ export class MocodyInitializerPouch {
       total_rows: number;
     };
 
-    const { databaseName } = this.getRemoteFirstConfig();
+    const config = this.getRemoteFirstConfig();
 
     const instance = await this.getInstance();
     const result: IIndexList = await instance.request({
-      db: databaseName,
+      db: config.pouchConfig.databaseName,
       method: "GET",
       path: "_index",
       content_type: "application/json",
@@ -183,14 +196,14 @@ export class MocodyInitializerPouch {
 
   async getDocInstance<T>(): Promise<Nano.DocumentScope<IBaseDef<T>>> {
     if (!this._documentScope) {
-      const { databaseName, indexes } = this.getRemoteFirstConfig();
+      const config = this.getRemoteFirstConfig();
 
       const serverScope = await this.getInstance();
-      const db = serverScope.db.use<IBaseDef<T>>(databaseName);
+      const db = serverScope.db.use<IBaseDef<T>>(config.pouchConfig.databaseName);
 
       try {
-        if (indexes?.length) {
-          for (const indexItem of indexes) {
+        if (config?.indexes?.length) {
+          for (const indexItem of config.indexes) {
             await this.couch_createIndex({ ...indexItem, dbx: db });
           }
         }
@@ -366,14 +379,28 @@ export class MocodyInitializerPouch {
     if (this.pouchConfig?.configType !== "REMOTE_FIRST") {
       throw new MocodyGenericError("Remote database uri not defined");
     }
-    const { couchDbUri } = this.pouchConfig;
+    const { pouchConfig } = this.pouchConfig;
 
-    if (!couchDbUri) {
-      throw new MocodyGenericError("Remote database uri not defined");
+    if (!pouchConfig?.databaseName) {
+      throw new MocodyGenericError("Remote database config not defined");
     }
 
     if (!this._databaseInstance) {
-      this._databaseInstance = Nano(couchDbUri);
+      // http://username:password@hostname:port
+
+      const { host, port, cookie } = pouchConfig;
+      const protocol = pouchConfig.protocol || "http";
+
+      if (pouchConfig.password && pouchConfig.username) {
+        const pw = encodeURIComponent(pouchConfig.password);
+        const uname = encodeURIComponent(pouchConfig.username);
+
+        const url = `${protocol}://${uname}:${pw}@${host}:${port}`;
+        this._databaseInstance = Nano({ url, cookie });
+      } else {
+        const url = `${protocol}://${host}:${port}`;
+        this._databaseInstance = Nano({ url, cookie });
+      }
     }
     return await Promise.resolve(this._databaseInstance);
   }
@@ -390,7 +417,7 @@ export class MocodyInitializerPouch {
     if (this.pouchConfig?.configType !== "REMOTE_FIRST") {
       throw new MocodyGenericError("REMOTE_FIRST not configured");
     }
-    if (!this.pouchConfig?.couchDbUri) {
+    if (!this.pouchConfig?.pouchConfig) {
       throw new MocodyGenericError("couchDbUri not defined");
     }
     return this.pouchConfig;
