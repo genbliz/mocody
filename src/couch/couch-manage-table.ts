@@ -43,22 +43,11 @@ export class CouchManageTable<T> {
   }
 
   async mocody_createIndex({ indexName, fields }: { indexName: string; fields: string[] }) {
-    const instance = await this._mocody_getInstance().getDocInstance();
-    const result = await instance.createIndex({
-      index: {
-        fields: fields,
-      },
-      name: indexName,
-      ddoc: indexName,
-      type: "json",
-      partitioned: true,
+    const result = await this._mocody_getInstance().createIndex({
+      indexName,
+      fields,
     });
-    LoggingService.log(result);
-    return {
-      id: result.id,
-      name: result.name,
-      result: result.result,
-    };
+    return result;
   }
 
   async mocody_clearAllIndexes() {

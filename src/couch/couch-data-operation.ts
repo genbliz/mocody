@@ -104,7 +104,7 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   }
 
   private _mocody_couchDbInstance() {
-    return this._mocody_couchDb().getDocInstance();
+    return this._mocody_couchDb();
   }
 
   private _mocody_getLocalVariables() {
@@ -232,8 +232,7 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   async mocody_createOne({ data }: { data: T }): Promise<T> {
     const { validatedData } = await this._mocody_validateReady({ data });
 
-    const couch = await this._mocody_couchDbInstance();
-    const result = await couch.insert(validatedData);
+    const result = await this._mocody_couchDbInstance().createDoc({ validatedData });
     if (!result.ok) {
       throw this._mocody_createGenericError(this._mocody_operationNotSuccessful);
     }
@@ -291,14 +290,12 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     size,
     skip,
   }: { size?: number | undefined | null; skip?: number | undefined | null } = {}): Promise<T[]> {
-    const couch = await this._mocody_couchDbInstance();
-    const data = await couch.list({
-      include_docs: true,
-      startkey: this._mocody_featureEntityValue,
-      endkey: `${this._mocody_featureEntityValue}\ufff0`,
-      limit: size ?? undefined,
-      skip: skip ?? undefined,
+    const data = await this._mocody_couchDbInstance().getList({
+      featureEntity: this._mocody_featureEntityValue,
+      size,
+      skip,
     });
+
     const dataList: T[] = [];
     data?.rows?.forEach((item) => {
       if (item?.doc?.featureEntity === this._mocody_featureEntityValue) {
@@ -320,8 +317,7 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
 
     const nativeId = this._mocody_getNativePouchId(dataId);
 
-    const couch = await this._mocody_couchDbInstance();
-    const dataInDb = await couch.get(nativeId);
+    const dataInDb = await this._mocody_couchDbInstance().getById({ nativeId });
     if (!(dataInDb?.id === dataId && dataInDb.featureEntity === this._mocody_featureEntityValue)) {
       return null;
     }
@@ -345,8 +341,8 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
 
     const nativeId = this._mocody_getNativePouchId(dataId);
 
-    const couch = await this._mocody_couchDbInstance();
-    const dataInDb = await couch.get(nativeId);
+    const dataInDb = await this._mocody_couchDbInstance().getById({ nativeId });
+
     if (!(dataInDb?.id === dataId && dataInDb.featureEntity === this._mocody_featureEntityValue && dataInDb._rev)) {
       throw this._mocody_createGenericError("Record does not exists");
     }
@@ -371,7 +367,7 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
 
     this._mocody_checkValidateStrictRequiredFields(validatedData);
 
-    const result = await couch.insert({
+    const result = await this._mocody_couchDbInstance().createDoc({
       ...validatedData,
       _rev: dataInDb._rev,
     });
@@ -413,13 +409,9 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   }): Promise<T[]> {
     //
     const uniqueIds = this._mocody_removeDuplicateString(dataIds);
-    const fullUniqueIds = uniqueIds.map((id) => this._mocody_getNativePouchId(id));
+    const nativeIds = uniqueIds.map((id) => this._mocody_getNativePouchId(id));
 
-    const couch = await this._mocody_couchDbInstance();
-    const data = await couch.list({
-      keys: fullUniqueIds,
-      include_docs: true,
-    });
+    const data = await this._mocody_couchDbInstance().getManyByIds({ nativeIds });
 
     const dataList: T[] = [];
 
@@ -664,15 +656,14 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
       }
     }
 
-    const couch = await this._mocody_couchDbInstance();
-    const data = await couch.partitionedFind(this._mocody_featureEntityValue, {
+    const data = await this._mocody_couchDbInstance().findPartitionedDocs({
+      featureEntity: this._mocody_featureEntityValue,
       selector: { ...queryDefDataOrdered },
       fields: projection,
       use_index: paramOption.indexName,
       sort: sort01?.length ? sort01 : undefined,
       limit: moreFindOption.limit,
       skip: moreFindOption.skip,
-      // bookmark: paramOption?.pagingParams?.nextPageHash,
     });
 
     const results = data?.docs?.map((item) => {
@@ -698,8 +689,7 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     withCondition?: IMocodyFieldCondition<T> | undefined | null;
   }): Promise<T> {
     const nativeId = this._mocody_getNativePouchId(dataId);
-    const couch = await this._mocody_couchDbInstance();
-    const dataInDb = await couch.get(nativeId);
+    const dataInDb = await this._mocody_couchDbInstance().getById({ nativeId });
 
     if (!(dataInDb?.id === dataId && dataInDb.featureEntity === this._mocody_featureEntityValue)) {
       throw this._mocody_createGenericError("Record does not exists");
@@ -708,7 +698,9 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     if (!passed) {
       throw this._mocody_createGenericError("Record with conditions does not exists for deletion");
     }
-    const result = await couch.destroy(dataInDb._id, dataInDb._rev);
+
+    const result = await this._mocody_couchDbInstance().deleteById({ nativeId, docRev: dataInDb._rev });
+
     if (!result.ok) {
       throw this._mocody_createGenericError(this._mocody_operationNotSuccessful);
     }

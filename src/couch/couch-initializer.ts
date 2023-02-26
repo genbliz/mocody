@@ -7,6 +7,18 @@ const concurrency = throat(1);
 
 type IBaseDef<T> = Omit<T & IMocodyCoreEntityModel, "">;
 
+type IFindOptions = {
+  featureEntity: string;
+  skip: number | undefined;
+  limit: number | undefined;
+  selector: Nano.MangoSelector;
+  fields: string[] | undefined;
+  use_index: string;
+  sort?: {
+    [propName: string]: "asc" | "desc";
+  }[];
+};
+
 interface IBasisOptions {
   //http://admin:mypassword@localhost:5984
   authType: "basic";
@@ -100,7 +112,62 @@ export class MocodyInitializerCouch {
     //GET /{db}/_index
   }
 
-  async getDocInstance<T>(): Promise<Nano.DocumentScope<IBaseDef<T>>> {
+  async findPartitionedDocs({ featureEntity, selector, fields, use_index, sort, limit, skip }: IFindOptions) {
+    const db01 = await this.getDocInstance();
+    return await db01.partitionedFind(featureEntity, {
+      selector: { ...selector },
+      fields,
+      use_index,
+      sort: sort?.length ? sort : undefined,
+      limit,
+      skip,
+      // bookmark: paramOption?.pagingParams?.nextPageHash,
+    });
+  }
+
+  async getById({ nativeId }: { nativeId: string }) {
+    const db01 = await this.getDocInstance();
+    return await db01.get(nativeId);
+  }
+
+  async getManyByIds({ nativeIds }: { nativeIds: string[] }) {
+    const db01 = await this.getDocInstance();
+    const dataList = await db01.list({
+      keys: nativeIds,
+      include_docs: true,
+    });
+    return dataList;
+  }
+
+  async createDoc({ validatedData }: { validatedData: any }) {
+    const db01 = await this.getDocInstance();
+    return await db01.insert(validatedData);
+  }
+
+  async updateDoc({ docRev, validatedData }: { docRev: string; validatedData: any }) {
+    const db01 = await this.getDocInstance();
+    return await db01.insert({ ...validatedData, _rev: docRev });
+  }
+
+  async getList({ featureEntity, size, skip }: { featureEntity: string; size?: number | null; skip?: number | null }) {
+    const db01 = await this.getDocInstance();
+    const data = await db01.list({
+      include_docs: true,
+      startkey: featureEntity,
+      endkey: `${featureEntity}\ufff0`,
+      inclusive_end: true,
+      limit: size ?? undefined,
+      skip: skip ?? undefined,
+    });
+    return data;
+  }
+
+  async deleteById({ docRev, nativeId }: { docRev: string; nativeId: string }) {
+    const db01 = await this.getDocInstance();
+    return await db01.destroy(nativeId, docRev);
+  }
+
+  private async getDocInstance<T>(): Promise<Nano.DocumentScope<IBaseDef<T>>> {
     if (!this._documentScope) {
       const serverScope = await this.getInstance();
       const db = serverScope.db.use<IBaseDef<T>>(this.baseConfig.couchConfig.databaseName);
@@ -108,7 +175,7 @@ export class MocodyInitializerCouch {
       try {
         if (this.baseConfig?.indexes?.length) {
           for (const indexItem of this.baseConfig.indexes) {
-            await this.couch_createIndex({ ...indexItem, dbx: db });
+            await this.createIndex({ ...indexItem, dbx: db });
           }
         }
       } catch (error) {
@@ -120,7 +187,7 @@ export class MocodyInitializerCouch {
     return this._documentScope;
   }
 
-  private async couch_createIndex({
+  async createIndex({
     indexName,
     fields,
     dbx,
