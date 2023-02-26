@@ -30,7 +30,7 @@ interface ICookieOptions {
     port?: number;
     protocol?: "http" | "https";
     cookie: string;
-    headers?: Record<string, string>;
+    headers?: { [key: string]: string };
   };
   indexes?: { indexName: string; fields: string[] }[];
 }
@@ -44,11 +44,7 @@ interface IProxyOptions {
     port?: number;
     protocol?: "http" | "https";
     //
-    proxy: {
-      username: string;
-      roles: string[];
-      token: string;
-    };
+    proxyHeaders: { [key: string]: string };
   };
   indexes?: { indexName: string; fields: string[] }[];
 }
@@ -185,17 +181,15 @@ export class MocodyInitializerCouch {
 
         const url = `${protocol}://${uname}:${pw}@${host}:${port}`;
         this._databaseInstance = Nano({ url });
+        //
       } else if (this.baseConfig.authType === "proxy") {
-        const { roles, username, token } = this.baseConfig.couchConfig.proxy;
-
-        const headers: Record<string, string> = {};
-        headers["X-Auth-CouchDB-UserName"] = username;
-        headers["X-Auth-CouchDB-Roles"] = roles.join(",");
-        headers["X-Auth-CouchDB-Token"] = token;
+        const proxyHeaders = this.baseConfig.couchConfig.proxyHeaders;
 
         const url = `${protocol}://${host}:${port}`;
-        this._databaseInstance = Nano({ url, requestDefaults: { headers } });
+        this._databaseInstance = Nano({ url, requestDefaults: { headers: proxyHeaders } });
+        //
       } else if (this.baseConfig.authType === "cookie") {
+        //
         const url = `${protocol}://${host}:${port}`;
         this._databaseInstance = Nano({ url, cookie: this.baseConfig.couchConfig.cookie });
       } else {
