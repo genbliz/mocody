@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "es2020",
+    "target": "es2021",
     "module": "CommonJS",
     "declaration": true,
     "noImplicitAny": false,
@@ -15,6 +15,7 @@
     "noUnusedLocals": true,
     "resolveJsonModule": true,
     "useDefineForClassFields": true,
+    "skipLibCheck": true,
     "strict": true,
     "outDir": "./dist",
     "baseUrl": "./",

@@ -1,7 +1,7 @@
-import { MocodyUtil } from "./../helpers/mocody-utils";
-import { SettingDefaults } from "./../helpers/constants";
-import { UtilService } from "./../helpers/util-service";
-import { LoggingService } from "./../helpers/logging-service";
+import { MocodyUtil } from "../helpers/mocody-utils";
+import { SettingDefaults } from "../helpers/constants";
+import { UtilService } from "../helpers/util-service";
+import { LoggingService } from "../helpers/logging-service";
 import {
   IMocodyFieldCondition,
   IMocodyIndexDefinition,
@@ -13,16 +13,16 @@ import {
 } from "../type";
 import { RepoModel } from "../model";
 import Joi from "joi";
-import type { MocodyInitializerCouch } from "./couch-initializer";
+import type { MocodyInitializerPouch } from "./pouch-initializer";
 import { coreSchemaDefinition, IMocodyCoreEntityModel } from "../core/base-schema";
 import { MocodyErrorUtils, MocodyGenericError } from "../helpers/errors";
 import { getJoiValidationErrors } from "../helpers/base-joi-helper";
-import { CouchFilterQueryOperation } from "./couch-filter-query-operation";
-import { CouchManageTable } from "./couch-manage-table";
+import { PouchFilterQueryOperation } from "./pouch-filter-query-operation";
+import { PouchManageTable } from "./pouch-manage-table";
 
 interface IOptions<T> {
   schemaDef: Joi.SchemaMap;
-  couchDbInitializer: () => MocodyInitializerCouch;
+  pouchDbInitializer: () => MocodyInitializerPouch;
   dataKeyGenerator: () => string;
   featureEntityValue: string;
   secondaryIndexOptions: IMocodyIndexDefinition<T>[];
@@ -34,13 +34,13 @@ type IModelBase = IMocodyCoreEntityModel;
 
 type IFullEntity<T> = IMocodyCoreEntityModel & T;
 
-export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> {
+export class PouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> {
   private readonly _mocody_partitionKeyFieldName: keyof Pick<IModelBase, "id"> = "id";
   private readonly _mocody_sortKeyFieldName: keyof Pick<IModelBase, "featureEntity"> = "featureEntity";
   //
   private readonly _mocody_operationNotSuccessful = "Operation Not Successful";
   private readonly _mocody_entityFieldsKeySet: Set<keyof T>;
-  private readonly _mocody_couchDb: () => MocodyInitializerCouch;
+  private readonly _mocody_pouchDb: () => MocodyInitializerPouch;
   private readonly _mocody_dataKeyGenerator: () => string;
   private readonly _mocody_schema: Joi.Schema;
   private readonly _mocody_tableFullName: string;
@@ -48,13 +48,13 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   private readonly _mocody_featureEntityValue: string;
   private readonly _mocody_secondaryIndexOptions: IMocodyIndexDefinition<T>[];
   private readonly _mocody_errorHelper: MocodyErrorUtils;
-  private readonly _mocody_filterQueryOperation = new CouchFilterQueryOperation();
+  private readonly _mocody_filterQueryOperation = new PouchFilterQueryOperation();
   //
-  private _mocody_tableManager!: CouchManageTable<T>;
+  private _mocody_tableManager!: PouchManageTable<T>;
 
   constructor({
     schemaDef,
-    couchDbInitializer,
+    pouchDbInitializer,
     secondaryIndexOptions,
     featureEntityValue,
     baseTableName,
@@ -62,7 +62,7 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     dataKeyGenerator,
   }: IOptions<T>) {
     super();
-    this._mocody_couchDb = couchDbInitializer;
+    this._mocody_pouchDb = pouchDbInitializer;
     this._mocody_dataKeyGenerator = dataKeyGenerator;
     this._mocody_tableFullName = baseTableName;
     this._mocody_featureEntityValue = featureEntityValue;
@@ -88,8 +88,8 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
 
   mocody_tableManager() {
     if (!this._mocody_tableManager) {
-      this._mocody_tableManager = new CouchManageTable<T>({
-        couchDb: () => this._mocody_couchDb(),
+      this._mocody_tableManager = new PouchManageTable<T>({
+        pouchDb: () => this._mocody_pouchDb(),
         secondaryIndexOptions: this._mocody_secondaryIndexOptions,
         tableFullName: this._mocody_tableFullName,
         partitionKeyFieldName: this._mocody_partitionKeyFieldName,
@@ -103,8 +103,8 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     return this._mocody_dataKeyGenerator();
   }
 
-  private _mocody_couchDbInstance() {
-    return this._mocody_couchDb();
+  private _mocody_pouchDbInstance() {
+    return this._mocody_pouchDb();
   }
 
   private _mocody_getLocalVariables() {
@@ -232,7 +232,9 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   async mocody_createOne({ data }: { data: T }): Promise<T> {
     const { validatedData } = await this._mocody_validateReady({ data });
 
-    const result = await this._mocody_couchDbInstance().createDoc({ validatedData });
+    const result = await this._mocody_pouchDbInstance().createDoc({
+      validatedData,
+    });
     if (!result.ok) {
       throw this._mocody_createGenericError(this._mocody_operationNotSuccessful);
     }
@@ -289,8 +291,11 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   async mocody_getAll({
     size,
     skip,
-  }: { size?: number | undefined | null; skip?: number | undefined | null } = {}): Promise<T[]> {
-    const data = await this._mocody_couchDbInstance().getList({
+  }: {
+    size?: number | undefined | null;
+    skip?: number | undefined | null;
+  }): Promise<T[]> {
+    const data = await this._mocody_pouchDbInstance().getList({
       featureEntity: this._mocody_featureEntityValue,
       size,
       skip,
@@ -317,7 +322,10 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
 
     const nativeId = this._mocody_getNativePouchId(dataId);
 
-    const dataInDb = await this._mocody_couchDbInstance().getById({ nativeId });
+    const dataInDb = await this._mocody_pouchDbInstance().getById({
+      nativeId,
+    });
+
     if (!(dataInDb?.id === dataId && dataInDb.featureEntity === this._mocody_featureEntityValue)) {
       return null;
     }
@@ -341,7 +349,9 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
 
     const nativeId = this._mocody_getNativePouchId(dataId);
 
-    const dataInDb = await this._mocody_couchDbInstance().getById({ nativeId });
+    const dataInDb = await this._mocody_pouchDbInstance().getById({
+      nativeId,
+    });
 
     if (!(dataInDb?.id === dataId && dataInDb.featureEntity === this._mocody_featureEntityValue && dataInDb._rev)) {
       throw this._mocody_createGenericError("Record does not exists");
@@ -367,9 +377,9 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
 
     this._mocody_checkValidateStrictRequiredFields(validatedData);
 
-    const result = await this._mocody_couchDbInstance().createDoc({
-      ...validatedData,
-      _rev: dataInDb._rev,
+    const result = await this._mocody_pouchDbInstance().updateDoc({
+      validatedData,
+      docRev: dataInDb._rev,
     });
 
     if (!result.ok) {
@@ -387,13 +397,13 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     transactPrepareInfo: IMocodyTransactionPrepare<T>[];
   }): Promise<IMocodyPreparedTransaction[]> {
     await Promise.resolve();
-    throw new Error("Couch:PrepareTransaction not implemented.");
+    throw new Error("Pouch:PrepareTransaction not implemented.");
   }
 
   /** Not implemented */
   async mocody_executeTransaction({ transactInfo }: { transactInfo: IMocodyPreparedTransaction[] }): Promise<void> {
     await Promise.resolve();
-    throw new Error("Couch:ExecuteTransaction not implemented.");
+    throw new Error("Pouch:ExecuteTransaction not implemented.");
   }
 
   async mocody_getManyByIds({
@@ -407,11 +417,12 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     excludeFields?: (keyof T)[] | undefined | null;
     withCondition?: IMocodyFieldCondition<T> | undefined | null;
   }): Promise<T[]> {
-    //
     const uniqueIds = this._mocody_removeDuplicateString(dataIds);
     const nativeIds = uniqueIds.map((id) => this._mocody_getNativePouchId(id));
 
-    const data = await this._mocody_couchDbInstance().getManyByIds({ nativeIds });
+    const data = await this._mocody_pouchDbInstance().getManyByIds({
+      nativeIds,
+    });
 
     const dataList: T[] = [];
 
@@ -469,7 +480,7 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   }
 
   async mocody_getManyWithRelation<TQuery = T, TData = T, TSortKeyField = string>(
-    paramOption: Omit<IMocodyQueryIndexOptions<TQuery, TSortKeyField>, "pagingParams">,
+    paramOption: Omit<IMocodyQueryIndexOptions<TQuery, TSortKeyField>, "pagingParams"> & {},
   ): Promise<TData[]> {
     const result = await this._mocody_getManyBySecondaryIndexPaginateBase<TQuery, TData, TSortKeyField>({
       paramOption,
@@ -641,7 +652,7 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
           }
         }
       } catch (error: any) {
-        LoggingService.log(error?.message);
+        LoggingService.log(error);
       }
       moreFindOption.limit = pagingOptions.limit;
       //
@@ -656,7 +667,7 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
       }
     }
 
-    const data = await this._mocody_couchDbInstance().findPartitionedDocs({
+    const data = await this._mocody_pouchDbInstance().findPartitionedDocs({
       featureEntity: this._mocody_featureEntityValue,
       selector: { ...queryDefDataOrdered },
       fields: projection,
@@ -689,17 +700,24 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     withCondition?: IMocodyFieldCondition<T> | undefined | null;
   }): Promise<T> {
     const nativeId = this._mocody_getNativePouchId(dataId);
-    const dataInDb = await this._mocody_couchDbInstance().getById({ nativeId });
+
+    const dataInDb = await this._mocody_pouchDbInstance().getById({
+      nativeId,
+    });
 
     if (!(dataInDb?.id === dataId && dataInDb.featureEntity === this._mocody_featureEntityValue)) {
       throw this._mocody_createGenericError("Record does not exists");
     }
+
     const passed = this._mocody_withConditionPassed({ item: dataInDb, withCondition });
     if (!passed) {
       throw this._mocody_createGenericError("Record with conditions does not exists for deletion");
     }
 
-    const result = await this._mocody_couchDbInstance().deleteById({ nativeId, docRev: dataInDb._rev });
+    const result = await this._mocody_pouchDbInstance().deleteById({
+      nativeId: dataInDb._id,
+      docRev: dataInDb._rev,
+    });
 
     if (!result.ok) {
       throw this._mocody_createGenericError(this._mocody_operationNotSuccessful);
