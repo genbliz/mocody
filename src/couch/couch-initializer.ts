@@ -126,8 +126,25 @@ export class MocodyInitializerCouch {
   }
 
   async getById({ nativeId }: { nativeId: string }) {
-    const db01 = await this.getDocInstance();
-    return await db01.get(nativeId);
+    try {
+      const db01 = await this.getDocInstance();
+      return await db01.get(nativeId);
+    } catch (error) {
+      type IErrorById = {
+        error: "not_found";
+        reason: "missing";
+        statusCode: 404;
+      };
+
+      const error01 = error as IErrorById;
+
+      if (error01?.error === "not_found" || error01?.statusCode === 404) {
+        return null;
+      }
+
+      LoggingService.error(error);
+      throw error;
+    }
   }
 
   async getManyByIds({ nativeIds }: { nativeIds: string[] }) {
