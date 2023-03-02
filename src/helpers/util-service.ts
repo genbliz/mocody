@@ -1,9 +1,7 @@
-import { v4 as uuidv4 } from "uuid";
+import { randomUUID } from "node:crypto";
 import { customAlphabet } from "nanoid";
 
 class UtilServiceBase {
-  /** generate uuid */
-
   convertHexadecimalToNumber(hexString: string) {
     return parseInt(hexString, 16);
   }
@@ -111,7 +109,7 @@ class UtilServiceBase {
       `${_now.getMinutes()}`.padStart(2, "0"),
       `${_now.getSeconds()}`.padStart(2, "0"),
       "-",
-      uuidv4(),
+      randomUUID(),
     ];
     return key.join("");
   }

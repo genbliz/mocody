@@ -176,7 +176,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     withCondition,
   }: {
     item: any;
-    withCondition?: IMocodyFieldCondition<T>;
+    withCondition?: IMocodyFieldCondition<T> | undefined | null;
   }) {
     if (item && typeof item === "object" && withCondition?.length) {
       const isPassed = withCondition.every(({ field, equals }) => {
@@ -348,7 +348,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
   }: {
     dataId: string;
     updateData: Partial<T>;
-    withCondition?: IMocodyFieldCondition<T>;
+    withCondition?: IMocodyFieldCondition<T> | undefined | null;
   }) {
     const { tableFullName, partitionKeyFieldName, sortKeyFieldName } = this._mocody_getLocalVariables();
 
@@ -561,8 +561,8 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     excludeFields,
     fields,
   }: {
-    excludeFields?: (keyof TProj)[];
-    fields?: (keyof TProj)[];
+    excludeFields?: (keyof TProj)[] | undefined | null;
+    fields?: (keyof TProj)[] | undefined | null;
   }) {
     return MocodyUtil.getProjectionFields({
       excludeFields,
@@ -578,9 +578,9 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     withCondition,
   }: {
     dataIds: string[];
-    fields?: (keyof T)[];
-    excludeFields?: (keyof T)[];
-    withCondition?: IMocodyFieldCondition<T>;
+    fields?: (keyof T)[] | undefined | null;
+    excludeFields?: (keyof T)[] | undefined | null;
+    withCondition?: IMocodyFieldCondition<T> | undefined | null;
   }) {
     dataIds.forEach((dataId) => {
       this._mocody_errorHelper.mocody_helper_validateRequiredString({
@@ -621,9 +621,9 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     withCondition,
   }: {
     dataIds: string[];
-    fields?: (keyof T)[];
-    excludeFields?: (keyof T)[];
-    withCondition?: IMocodyFieldCondition<T>;
+    fields?: (keyof T)[] | undefined | null;
+    excludeFields?: (keyof T)[] | undefined | null;
+    withCondition?: IMocodyFieldCondition<T> | undefined | null;
   }) {
     const {
       //

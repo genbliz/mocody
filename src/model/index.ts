@@ -12,7 +12,7 @@ export abstract class RepoModel<T> {
     withCondition,
   }: {
     dataId: string;
-    withCondition?: IMocodyFieldCondition<T>;
+    withCondition?: IMocodyFieldCondition<T> | null;
   }): Promise<T | null>;
 
   abstract mocody_getManyByIds({
@@ -21,8 +21,8 @@ export abstract class RepoModel<T> {
     withCondition,
   }: {
     dataIds: string[];
-    fields?: (keyof T)[];
-    withCondition?: IMocodyFieldCondition<T>;
+    fields?: (keyof T)[] | undefined | null;
+    withCondition?: IMocodyFieldCondition<T> | undefined | null;
   }): Promise<T[]>;
 
   abstract mocody_createOne({ data }: { data: T }): Promise<T>;
@@ -45,7 +45,7 @@ export abstract class RepoModel<T> {
   }: {
     dataId: string;
     updateData: Partial<T>;
-    withCondition?: IMocodyFieldCondition<T>;
+    withCondition?: IMocodyFieldCondition<T> | null;
   }): Promise<T>;
 
   abstract mocody_getManyByIndex<TData = T, TSortKeyField = string>(
@@ -61,7 +61,7 @@ export abstract class RepoModel<T> {
     withCondition,
   }: {
     dataId: string;
-    withCondition?: IMocodyFieldCondition<T>;
+    withCondition?: IMocodyFieldCondition<T> | null;
   }): Promise<T>;
 
   abstract mocody_getManyWithRelation<TQuery = T, TData = T, TSortKeyField = string>(

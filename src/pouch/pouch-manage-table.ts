@@ -1,30 +1,30 @@
-import { LoggingService } from "./../helpers/logging-service";
+import { LoggingService } from "../helpers/logging-service";
 import type { IMocodyIndexDefinition } from "../type";
-import type { MocodyInitializerCouch } from "./couch-initializer";
+import type { MocodyInitializerPouch } from "./pouch-initializer";
 
 interface ITableOptions<T> {
-  couchDb: () => MocodyInitializerCouch;
+  pouchDb: () => MocodyInitializerPouch;
   secondaryIndexOptions: IMocodyIndexDefinition<T>[];
   tableFullName: string;
   partitionKeyFieldName: string;
   sortKeyFieldName: string;
 }
 
-export class CouchManageTable<T> {
+export class PouchManageTable<T> {
   private readonly partitionKeyFieldName: string;
   private readonly sortKeyFieldName: string;
-  private readonly couchDb: () => MocodyInitializerCouch;
+  private readonly pouchDb: () => MocodyInitializerPouch;
   private readonly tableFullName: string;
   private readonly secondaryIndexOptions: IMocodyIndexDefinition<T>[];
 
   constructor({
-    couchDb,
+    pouchDb,
     secondaryIndexOptions,
     tableFullName,
     partitionKeyFieldName,
     sortKeyFieldName,
   }: ITableOptions<T>) {
-    this.couchDb = couchDb;
+    this.pouchDb = pouchDb;
     this.tableFullName = tableFullName;
     this.partitionKeyFieldName = partitionKeyFieldName;
     this.sortKeyFieldName = sortKeyFieldName;
@@ -39,15 +39,14 @@ export class CouchManageTable<T> {
   }
 
   private _mocody_getInstance() {
-    return this.couchDb();
+    return this.pouchDb();
   }
 
   async mocody_createIndex({ indexName, fields }: { indexName: string; fields: string[] }) {
-    const result = await this._mocody_getInstance().createIndex({
+    return await this._mocody_getInstance().createIndex({
       indexName,
       fields,
     });
-    return result;
   }
 
   async mocody_clearAllIndexes() {
@@ -59,7 +58,7 @@ export class CouchManageTable<T> {
         if (index?.type !== "special") {
           deletedIndexes.push(index);
           await this._mocody_getInstance().deleteIndex({
-            ddoc: index.ddoc,
+            ddoc: index.ddoc || "",
             name: index.name,
           });
         }
@@ -77,12 +76,8 @@ export class CouchManageTable<T> {
     return await this._mocody_getInstance().getIndexes();
   }
 
-  async mocody_createDatabase() {
-    return await this._mocody_getInstance().createDatabase();
-  }
-
   async mocody_createDefinedIndexes(): Promise<string[]> {
-    const results: string[] = [];
+    const results: any[] = [];
     if (this.secondaryIndexOptions?.length) {
       for (const indexOption of this.secondaryIndexOptions) {
         if (indexOption?.indexName) {
@@ -91,7 +86,7 @@ export class CouchManageTable<T> {
             indexName: indexOption.indexName,
           });
           LoggingService.log(resultData);
-          results.push(resultData.result);
+          results.push(resultData);
         }
       }
     }

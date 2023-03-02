@@ -19,8 +19,8 @@ class MocodyUtilBase {
     fields,
     entityFields,
   }: {
-    excludeFields?: (keyof T)[];
-    fields?: (keyof T)[];
+    excludeFields?: (keyof T)[] | undefined | null;
+    fields?: (keyof T)[] | undefined | null;
     entityFields: (keyof T)[] | string[];
   }) {
     type TProj = keyof T;

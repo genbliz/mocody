@@ -56,14 +56,14 @@ type IQueryNested<T> = {
 };
 
 export interface IMocodyPagingResult<T> {
-  nextPageHash: string | undefined;
+  nextPageHash: string | undefined | null;
   paginationResults: T;
   // count: number | undefined;
 }
 
 export type IMocodyPagingParams = {
-  evaluationLimit?: number;
-  nextPageHash?: string;
+  evaluationLimit?: number | undefined | null;
+  nextPageHash?: string | undefined | null;
 };
 
 type IQueryDefOr<T> = { $or?: IQueryAll<RequireAtLeastOne<T>>[] };
@@ -75,12 +75,12 @@ export interface IMocodyQueryIndexOptions<T, TSortKeyField = string> {
   indexName: string;
   partitionKeyValue: string | number;
   sortKeyQuery?: IMocodyKeyConditionParams<TSortKeyField>;
-  query?: IMocodyQueryDefinition<T>;
-  fields?: (keyof T)[];
-  excludeFields?: (keyof T)[];
-  pagingParams?: IMocodyPagingParams;
-  limit?: number | null;
-  sort?: "asc" | "desc" | null;
+  query?: IMocodyQueryDefinition<T> | undefined | null;
+  fields?: (keyof T)[] | undefined | null;
+  excludeFields?: (keyof T)[] | undefined | null;
+  pagingParams?: IMocodyPagingParams | undefined | null;
+  limit?: number | undefined | null;
+  sort?: "asc" | "desc" | undefined | null;
 }
 
 export type IMocodyQueryIndexOptionsNoPaging<T, TSortKeyField = string> = Omit<

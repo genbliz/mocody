@@ -6,5 +6,5 @@ export function getJoiValidationErrors(err: Joi.ValidationError): string | null 
     const joiData = details.map((x) => x.message.replace(new RegExp('"', "g"), ""));
     return joiData.join("; ");
   }
-  return "";
+  return null;
 }
