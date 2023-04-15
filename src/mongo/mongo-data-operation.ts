@@ -490,7 +490,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     }
   }
 
-  async mocody_getManyByIndex<TData = T, TSortKeyField = string>(
+  async mocody_getManyByIndex<TData = T, TSortKeyField extends string | number = string>(
     paramOption: IMocodyQueryIndexOptionsNoPaging<TData, TSortKeyField>,
   ): Promise<TData[]> {
     const result = await this._mocody_getManyBySecondaryIndexPaginateBase<TData, TData, TSortKeyField>({
@@ -504,7 +504,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     return [];
   }
 
-  mocody_getManyByIndexPaginate<TData = T, TSortKeyField = string>(
+  mocody_getManyByIndexPaginate<TData = T, TSortKeyField extends string | number = string>(
     paramOption: IMocodyQueryIndexOptions<TData, TSortKeyField>,
   ): Promise<IMocodyPagingResult<TData[]>> {
     return this._mocody_getManyBySecondaryIndexPaginateBase<TData, TData, TSortKeyField>({
@@ -514,7 +514,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     });
   }
 
-  async mocody_getManyWithRelation<TQuery = T, TData = T, TSortKeyField = string>(
+  async mocody_getManyWithRelation<TQuery = T, TData = T, TSortKeyField extends string | number = string>(
     paramOption: Omit<IMocodyQueryIndexOptions<TQuery, TSortKeyField>, "pagingParams">,
   ): Promise<TData[]> {
     const result = await this._mocody_getManyBySecondaryIndexPaginateBase<TQuery, TData, TSortKeyField>({
@@ -528,7 +528,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     return [];
   }
 
-  async mocody_getManyWithRelationPaginate<TQuery = T, TData = T, TSortKeyField = string>(
+  async mocody_getManyWithRelationPaginate<TQuery = T, TData = T, TSortKeyField extends string | number = string>(
     paramOption: IMocodyQueryIndexOptions<TQuery, TSortKeyField>,
   ): Promise<IMocodyPagingResult<TData[]>> {
     return this._mocody_getManyBySecondaryIndexPaginateBase<TQuery, TData, TSortKeyField>({
@@ -538,7 +538,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     });
   }
 
-  private async _mocody_getManyBySecondaryIndexPaginateBase<TQuery, TData, TSortKeyField>({
+  private async _mocody_getManyBySecondaryIndexPaginateBase<TQuery, TData, TSortKeyField extends string | number>({
     paramOption,
     canPaginate,
     enableRelationFetch,
@@ -594,7 +594,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
         } as any;
       } else if (index_PartitionKeyFieldName !== localVariables.sortKeyFieldName) {
         if (localVariables.sortKeyFieldName === index_SortKeyFieldName) {
-          partitionSortKeyQuery[index_SortKeyFieldName] = { $eq: localVariables.featureEntityValue as any };
+          partitionSortKeyQuery[index_SortKeyFieldName] = { $eq: localVariables.featureEntityValue } as any;
         }
       }
     }

@@ -48,11 +48,11 @@ export abstract class RepoModel<T> {
     withCondition?: IMocodyFieldCondition<T> | null;
   }): Promise<T>;
 
-  abstract mocody_getManyByIndex<TData = T, TSortKeyField = string>(
+  abstract mocody_getManyByIndex<TData = T, TSortKeyField extends string | number = string>(
     paramOption: Omit<IMocodyQueryIndexOptions<TData, TSortKeyField>, "pagingParams">,
   ): Promise<TData[]>;
 
-  abstract mocody_getManyByIndexPaginate<TData = T, TSortKeyField = string>(
+  abstract mocody_getManyByIndexPaginate<TData = T, TSortKeyField extends string | number = string>(
     paramOption: IMocodyQueryIndexOptions<TData, TSortKeyField>,
   ): Promise<IMocodyPagingResult<TData[]>>;
 
@@ -64,11 +64,11 @@ export abstract class RepoModel<T> {
     withCondition?: IMocodyFieldCondition<T> | null;
   }): Promise<T>;
 
-  abstract mocody_getManyWithRelation<TQuery = T, TData = T, TSortKeyField = string>(
+  abstract mocody_getManyWithRelation<TQuery = T, TData = T, TSortKeyField extends string | number = string>(
     paramOption: Omit<IMocodyQueryIndexOptions<TQuery, TSortKeyField>, "pagingParams">,
   ): Promise<TData[]>;
 
-  abstract mocody_getManyWithRelationPaginate<TQuery = T, TData = T, TSortKeyField = string>(
+  abstract mocody_getManyWithRelationPaginate<TQuery = T, TData = T, TSortKeyField extends string | number = string>(
     paramOption: IMocodyQueryIndexOptions<TQuery, TSortKeyField>,
   ): Promise<IMocodyPagingResult<TData[]>>;
 }

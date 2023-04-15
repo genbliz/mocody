@@ -5,7 +5,7 @@ type RequireAtLeastOneBase<T, Keys extends keyof T = keyof T> = Pick<T, Exclude<
   }[Keys];
 type RequireAtLeastOne<T> = RequireAtLeastOneBase<T, keyof T>;
 
-type TypeFallBackStringOnly<T> = Extract<T, string>;
+type TypeFallBackStringOnly<T> = T extends string ? Extract<T, string> : never;
 type TypeFallBack<T> = undefined extends T ? Exclude<T, undefined> : T;
 type TypeFallBackArray<T> = number extends T ? number[] : string extends T ? string[] : T;
 type TypeFallBackArrayAdvanced<T> = number extends T
