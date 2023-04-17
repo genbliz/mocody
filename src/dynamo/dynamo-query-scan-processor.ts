@@ -86,19 +86,19 @@ export class DynamoQueryScanProcessor {
     const xMinEvaluationLimit = 5;
     const xMaxEvaluationLimit = 500;
 
-    LoggingService.log({
-      processorParamsInit: {
-        resultLimit,
-        orderDesc,
-        canPaginate,
-        nextPageHash,
-        evaluationLimit,
-        featureEntityValue,
-        index_partitionAndSortKey,
-        main_partitionAndSortKey,
-        params,
-      },
-    });
+    const processorParamsInit = {
+      resultLimit,
+      orderDesc,
+      canPaginate,
+      nextPageHash,
+      evaluationLimit,
+      featureEntityValue,
+      index_partitionAndSortKey,
+      main_partitionAndSortKey,
+      params,
+    };
+
+    LoggingService.log(JSON.stringify({ processorParamsInit }, null, 2));
 
     let returnedItems: any[] = [];
     let evaluationLimit01: number = 0;
@@ -158,6 +158,8 @@ export class DynamoQueryScanProcessor {
     const dynamoClient = await dynamo.getInstance();
 
     const itemsLoopedOrderedLength: number[] = [];
+
+    LoggingService.log(JSON.stringify({ query_start: params01 }, null, 2));
 
     while (hasNext) {
       try {
