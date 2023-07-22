@@ -74,7 +74,7 @@ export type IMocodyQueryDefinition<T> = IQueryAll<RequireAtLeastOne<T & IQueryDe
 export interface IMocodyQueryIndexOptions<T, TSortKeyField = string> {
   indexName: string;
   partitionKeyValue: string | number;
-  sortKeyQuery?: IMocodyKeyConditionParams<TSortKeyField>;
+  sortKeyQuery?: IMocodyKeyConditionParams<TSortKeyField> | undefined | null;
   query?: IMocodyQueryDefinition<T> | undefined | null;
   fields?: (keyof T)[] | undefined | null;
   excludeFields?: (keyof T)[] | undefined | null;
