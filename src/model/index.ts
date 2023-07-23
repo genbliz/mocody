@@ -25,7 +25,13 @@ export abstract class RepoModel<T> {
     withCondition?: IMocodyFieldCondition<T> | undefined | null;
   }): Promise<T[]>;
 
-  abstract mocody_createOne({ data }: { data: T }): Promise<T>;
+  abstract mocody_createOne({
+    data,
+    fieldAliases,
+  }: {
+    data: T;
+    fieldAliases?: [keyof T, keyof T][] | undefined | null;
+  }): Promise<T>;
 
   abstract mocody_prepareTransaction({
     transactPrepareInfo,
@@ -42,10 +48,12 @@ export abstract class RepoModel<T> {
     dataId,
     updateData,
     withCondition,
+    fieldAliases,
   }: {
     dataId: string;
     updateData: Partial<T>;
     withCondition?: IMocodyFieldCondition<T> | null;
+    fieldAliases?: [keyof T, keyof T][] | undefined | null;
   }): Promise<T>;
 
   abstract mocody_getManyByIndex<TData = T, TSortKeyField extends string | number = string>(

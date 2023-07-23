@@ -315,8 +315,20 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     return JSON.stringify(validatedDataWithTTL);
   }
 
-  async mocody_createOne({ data }: { data: T }): Promise<T> {
+  async mocody_createOne({
+    data,
+    fieldAliases,
+  }: {
+    data: T;
+    fieldAliases?: [keyof T, keyof T][] | undefined | null;
+  }): Promise<T> {
     const { validatedData, validatedDataWithTTL } = await this._mocody_validateReady({ data });
+
+    MocodyUtil.validateFieldAlias({
+      fieldAliases,
+      data: validatedData,
+      featureEntity: this._mocody_featureEntityValue,
+    });
 
     const mongo = await this._mocody_getDbInstance();
     const result = await mongo.insertOne(validatedDataWithTTL);
@@ -374,10 +386,12 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     dataId,
     updateData,
     withCondition,
+    fieldAliases,
   }: {
     dataId: string;
     updateData: Partial<T>;
     withCondition?: IMocodyFieldCondition<T> | undefined | null;
+    fieldAliases?: [keyof T, keyof T][] | undefined | null;
   }): Promise<T> {
     this._mocody_errorHelper.mocody_helper_validateRequiredString({ dataId });
 
@@ -398,11 +412,17 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
 
     const dataMust = this._mocody_getBaseObject({ dataId });
 
-    const data: IFullEntity<T> = {
+    const data = {
       ...dataInDb,
       ...updateData,
       ...dataMust,
-    } as any;
+    } as IFullEntity<T>;
+
+    MocodyUtil.validateFieldAlias({
+      data,
+      fieldAliases,
+      featureEntity: this._mocody_featureEntityValue,
+    });
 
     const { validatedData } = await this._mocody_allHelpValidateGetValue(data);
 

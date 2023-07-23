@@ -1,4 +1,5 @@
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
+import { MocodyErrorUtilsService } from "./errors";
 
 class MocodyUtilBase {
   marshallFromJson(jsonData: Record<string, any>) {
@@ -58,6 +59,24 @@ class MocodyUtilBase {
       return [...fieldSet01];
     }
     return undefined;
+  }
+
+  validateFieldAlias<T>({
+    data,
+    fieldAliases,
+    featureEntity,
+  }: {
+    data: Partial<T>;
+    fieldAliases: [keyof T, keyof T][] | undefined | null;
+    featureEntity: string;
+  }) {
+    if (fieldAliases?.length && typeof data === "object" && featureEntity) {
+      fieldAliases.forEach(([field01, field02]) => {
+        if (data[field01] !== data[field02]) {
+          throw MocodyErrorUtilsService.mocody_helper_createFriendlyError(`Aliases mismatched for '${featureEntity}'`);
+        }
+      });
+    }
   }
 }
 

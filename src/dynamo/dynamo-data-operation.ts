@@ -147,7 +147,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     return dataMust;
   }
 
-  private _mocody_checkValidateMustBeAnObjectDataType(data: any) {
+  private _mocody_checkValidateMustBeAnObjectDataType(data: unknown) {
     if (!data || typeof data !== "object") {
       throw this._mocody_createGenericError(`Data MUST be valid object`);
     }
@@ -213,8 +213,8 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     return fullData;
   }
 
-  async mocody_createOne({ data }: { data: T }) {
-    const { tableFullName, partitionKeyFieldName } = this._mocody_getLocalVariables();
+  async mocody_createOne({ data, fieldAliases }: { data: T; fieldAliases?: [keyof T, keyof T][] | undefined | null }) {
+    const { tableFullName, partitionKeyFieldName, featureEntityValue } = this._mocody_getLocalVariables();
 
     try {
       const { marshalled, validatedData } = await this._mocody_validateReady({ data });
@@ -222,6 +222,12 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       const query01: IMocodyQueryDefinition<IMocodyCoreEntityModel> = {
         [partitionKeyFieldName]: { $exists: false },
       };
+
+      MocodyUtil.validateFieldAlias({
+        fieldAliases,
+        data: validatedData,
+        featureEntity: featureEntityValue,
+      });
 
       const {
         //
@@ -345,12 +351,20 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     dataId,
     updateData,
     withCondition,
+    fieldAliases,
   }: {
     dataId: string;
     updateData: Partial<T>;
     withCondition?: IMocodyFieldCondition<T> | undefined | null;
+    fieldAliases?: [keyof T, keyof T][] | undefined | null;
   }) {
-    const { tableFullName, partitionKeyFieldName, sortKeyFieldName } = this._mocody_getLocalVariables();
+    const {
+      //
+      tableFullName,
+      partitionKeyFieldName,
+      sortKeyFieldName,
+      featureEntityValue,
+    } = this._mocody_getLocalVariables();
 
     this._mocody_errorHelper.mocody_helper_validateRequiredString({ Update1DataId: dataId });
 
@@ -359,7 +373,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     if (!dataInDb?.[partitionKeyFieldName]) {
       throw this._mocody_errorHelper.mocody_helper_createFriendlyError("Data does NOT exists");
     }
-    if (dataInDb?.[sortKeyFieldName] !== this._mocody_featureEntityValue) {
+    if (dataInDb?.[sortKeyFieldName] !== featureEntityValue) {
       throw this._mocody_createGenericError("Record does not exists");
     }
 
@@ -381,6 +395,13 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     };
 
     const { validatedData } = await this._mocody_allHelpValidateGetValue(fullData);
+
+    MocodyUtil.validateFieldAlias({
+      data: validatedData,
+      fieldAliases,
+      featureEntity: featureEntityValue,
+    });
+
     this._mocody_checkValidateStrictRequiredFields(validatedData);
 
     const validatedData01 = this._mocody_formatTTL(validatedData);
@@ -797,8 +818,14 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     canPaginate: boolean;
     enableRelationFetch: boolean;
   }): Promise<IMocodyPagingResult<TData[]>> {
-    const { tableFullName, secondaryIndexOptions, partitionKeyFieldName, sortKeyFieldName, featureEntityValue } =
-      this._mocody_getLocalVariables();
+    const {
+      //
+      tableFullName,
+      secondaryIndexOptions,
+      partitionKeyFieldName,
+      sortKeyFieldName,
+      featureEntityValue,
+    } = this._mocody_getLocalVariables();
 
     if (!secondaryIndexOptions?.length) {
       throw this._mocody_createGenericError("Invalid secondary index definitions");
@@ -880,7 +907,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
         } as any;
       } else if (index_PartitionKeyFieldName !== localVariables.sortKeyFieldName) {
         if (localVariables.sortKeyFieldName === index_SortKeyFieldName) {
-          partitionSortKeyQuery[index_SortKeyFieldName] = { $eq: localVariables.featureEntityValue  } as any;
+          partitionSortKeyQuery[index_SortKeyFieldName] = { $eq: localVariables.featureEntityValue } as any;
         }
       }
     }
@@ -970,8 +997,13 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     //
     this._mocody_errorHelper.mocody_helper_validateRequiredString({ Del1SortKey: dataId });
 
-    const { tableFullName, partitionKeyFieldName, sortKeyFieldName, featureEntityValue } =
-      this._mocody_getLocalVariables();
+    const {
+      //
+      tableFullName,
+      partitionKeyFieldName,
+      sortKeyFieldName,
+      featureEntityValue,
+    } = this._mocody_getLocalVariables();
 
     const dataExist = await this.mocody_getOneById({ dataId, withCondition });
 
