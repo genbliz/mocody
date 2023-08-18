@@ -522,7 +522,7 @@ export class MongoFilterQueryOperation {
     if (queryOrConditions?.length) {
       queryAllConditions.$or = queryOrConditions;
     }
-    LoggingService.log(JSON.stringify({ queryAllConditions }, null, 2));
+    LoggingService.logAsString({ queryAllConditions });
     return queryAllConditions;
   }
 }

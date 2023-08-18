@@ -98,7 +98,7 @@ export class DynamoQueryScanProcessor {
       params,
     };
 
-    LoggingService.log(JSON.stringify({ processorParamsInit }, null, 2));
+    LoggingService.logAsString({ processorParamsInit });
 
     let returnedItems: any[] = [];
     let evaluationLimit01: number = 0;
@@ -159,7 +159,7 @@ export class DynamoQueryScanProcessor {
 
     const itemsLoopedOrderedLength: number[] = [];
 
-    LoggingService.log(JSON.stringify({ query_start: params01 }, null, 2));
+    LoggingService.logAsString({ query_start: params01 });
 
     while (hasNext) {
       try {

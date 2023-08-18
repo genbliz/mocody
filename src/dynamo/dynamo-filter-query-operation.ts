@@ -312,7 +312,7 @@ export class DynamoFilterQueryOperation {
 
     resultQuery.xFilterExpression = xFilterExpression;
 
-    LoggingService.log(JSON.stringify({ queryNested: resultQuery }, null, 2));
+    LoggingService.logAsString({ queryNested: resultQuery });
     return resultQuery;
   }
 
@@ -589,22 +589,23 @@ export class DynamoFilterQueryOperation {
           Object.entries(orQuery).forEach(([fieldName, orQueryObjectOrValue], _, arr) => {
             const hasMultiField = arr.length > 1;
 
+            LoggingService.logAsString({ orQuery, fieldName, arr, orQueryObjectOrValue, hasMultiField });
+
             if (orQueryObjectOrValue !== undefined) {
               if (orQueryObjectOrValue && typeof orQueryObjectOrValue === "object") {
                 const orQueryCond01 = this.operation__translateAdvancedQueryOperation({
                   fieldName,
                   queryObject: orQueryObjectOrValue,
                 });
+
+                LoggingService.logAsString({ orQueryCond01 });
+
                 if (orQueryCond01?.queryConditions?.length) {
                   if (hasMultiField) {
                     OR_queryMultiConditionsPrivate.push(...orQueryCond01.queryConditions);
                   } else {
-                    OR_queryConditions = [...OR_queryConditions, ...orQueryCond01.queryConditions];
-                    NOT_inside_OR_queryConditions = [
-                      ...NOT_inside_OR_queryConditions,
-                      ...orQueryCond01.notConditions,
-                      //
-                    ];
+                    OR_queryConditions.push(...orQueryCond01.queryConditions);
+                    NOT_inside_OR_queryConditions.push(...orQueryCond01.notConditions);
                   }
                 }
               } else {
@@ -620,9 +621,11 @@ export class DynamoFilterQueryOperation {
               }
             }
           });
+
           if (OR_queryMultiConditionsPrivate.length) {
             OR_queryConditions_multiFields.push(OR_queryMultiConditionsPrivate);
           }
+          LoggingService.logAsString({ OR_queryMultiConditionsPrivate, OR_queryConditions_multiFields });
         });
       } else if (conditionKey === "$and") {
         const andArray = conditionValue as any[];
@@ -637,15 +640,15 @@ export class DynamoFilterQueryOperation {
                   fieldName,
                   queryObject: andQueryObjectOrValue,
                 });
-                AND_queryConditions = [...AND_queryConditions, ...andQueryCond01.queryConditions];
-                NOT_queryConditions = [...NOT_queryConditions, ...andQueryCond01.notConditions];
-                OR_queryConditions = [...OR_queryConditions, ...andQueryCond01.orConditions];
+                AND_queryConditions.push(...andQueryCond01.queryConditions);
+                NOT_queryConditions.push(...andQueryCond01.notConditions);
+                OR_queryConditions.push(...andQueryCond01.orConditions);
               } else {
                 const andQueryCondition01 = this.operation_translateBasicQueryOperation({
                   fieldName,
                   queryObject: andQueryObjectOrValue,
                 });
-                AND_queryConditions = [...AND_queryConditions, andQueryCondition01];
+                AND_queryConditions.push(andQueryCondition01);
               }
             }
           });
@@ -658,15 +661,15 @@ export class DynamoFilterQueryOperation {
                 fieldName: conditionKey,
                 queryObject: conditionValue,
               });
-              AND_queryConditions = [...AND_queryConditions, ...queryCond01.queryConditions];
-              NOT_queryConditions = [...NOT_queryConditions, ...queryCond01.notConditions];
-              OR_queryConditions = [...OR_queryConditions, ...queryCond01.orConditions];
+              AND_queryConditions.push(...queryCond01.queryConditions);
+              NOT_queryConditions.push(...queryCond01.notConditions);
+              OR_queryConditions.push(...queryCond01.orConditions);
             } else {
               const queryCondition01 = this.operation_translateBasicQueryOperation({
                 fieldName: conditionKey,
                 queryObject: conditionValue,
               });
-              AND_queryConditions = [...AND_queryConditions, queryCondition01];
+              AND_queryConditions.push(queryCondition01);
             }
           }
         }
@@ -815,7 +818,7 @@ export class DynamoFilterQueryOperation {
       projectionExpressionAttr: _projectionExpression,
       expressionAttributeNames: _expressionAttributeNamesFinal,
     };
-    LoggingService.log(JSON.stringify({ queryExpressions }, null, 2));
+    LoggingService.logAsString({ queryExpressions });
     return queryExpressions;
   }
 }
@@ -828,4 +831,4 @@ export class DynamoFilterQueryOperation {
 //   },
 // });
 
-// console.log(JSON.stringify(result01, null, 2));
+// console.logAsString((result01));

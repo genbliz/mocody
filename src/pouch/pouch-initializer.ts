@@ -365,7 +365,7 @@ export class MocodyInitializerPouch {
       skip,
     };
 
-    LoggingService.log(JSON.stringify(paramsQ, null, 2));
+    LoggingService.logAsString(paramsQ);
 
     return await db01.find(paramsQ);
   }
