@@ -545,7 +545,7 @@ export class DynamoFilterQueryOperation {
         }
       }
     });
-    LoggingService.log(queryConditions);
+    LoggingService.logAsString({ queryConditions, notConditions, orConditions });
     return { queryConditions, notConditions, orConditions };
   }
 
@@ -587,18 +587,19 @@ export class DynamoFilterQueryOperation {
           const OR_queryMultiConditionsPrivate: IQueryConditions[] = [];
 
           Object.entries(orQuery).forEach(([fieldName, orQueryObjectOrValue], _, arr) => {
-            const hasMultiField = arr.length > 1;
-
-            LoggingService.logAsString({ orQuery, fieldName, arr, orQueryObjectOrValue, hasMultiField });
+            // LoggingService.logAsString({ orQuery, fieldName, arr, orQueryObjectOrValue });
 
             if (orQueryObjectOrValue !== undefined) {
               if (orQueryObjectOrValue && typeof orQueryObjectOrValue === "object") {
+                //
+                const hasMultiField = Object.keys(orQueryObjectOrValue).length > 1;
+
                 const orQueryCond01 = this.operation__translateAdvancedQueryOperation({
                   fieldName,
                   queryObject: orQueryObjectOrValue,
                 });
 
-                LoggingService.logAsString({ orQueryCond01 });
+                // LoggingService.logAsString({ hasMultiField, orQueryCond01 });
 
                 if (orQueryCond01?.queryConditions?.length) {
                   if (hasMultiField) {
@@ -613,11 +614,8 @@ export class DynamoFilterQueryOperation {
                   fieldName,
                   queryObject: orQueryObjectOrValue,
                 });
-                if (hasMultiField) {
-                  OR_queryMultiConditionsPrivate.push(orQueryCondition01);
-                } else {
-                  OR_queryConditions.push(orQueryCondition01);
-                }
+
+                OR_queryConditions.push(orQueryCondition01);
               }
             }
           });
@@ -625,7 +623,7 @@ export class DynamoFilterQueryOperation {
           if (OR_queryMultiConditionsPrivate.length) {
             OR_queryConditions_multiFields.push(OR_queryMultiConditionsPrivate);
           }
-          LoggingService.logAsString({ OR_queryMultiConditionsPrivate, OR_queryConditions_multiFields });
+          // LoggingService.logAsString({ OR_queryMultiConditionsPrivate, OR_queryConditions_multiFields });
         });
       } else if (conditionKey === "$and") {
         const andArray = conditionValue as any[];
