@@ -206,7 +206,7 @@ export class DynamoQueryScanProcessor {
                   dynamo,
                   tableFullName,
                 });
-                LoggingService.log({ customLastEvaluationKey });
+                LoggingService.logAsString({ customLastEvaluationKey });
                 if (customLastEvaluationKey) {
                   outResult.nextPageHash = this.__encodeLastKey(customLastEvaluationKey);
                 }
@@ -219,7 +219,7 @@ export class DynamoQueryScanProcessor {
           break;
         } else if (LastEvaluatedKey && Object.keys(LastEvaluatedKey).length) {
           params01.ExclusiveStartKey = LastEvaluatedKey;
-          LoggingService.log({
+          LoggingService.logAsString({
             LastEvaluatedKey_RAW: LastEvaluatedKey,
             dynamoProcessorParams: params01,
           });
