@@ -939,11 +939,11 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       TableName: tableFullName,
       IndexName: paramOption01.indexName,
       KeyConditionExpression: mainFilter.filterExpression,
+      FilterExpression: otherFilterExpression ?? undefined,
       ExpressionAttributeValues: {
         ...otherExpressionAttributeValues,
         ...mainFilter.expressionAttributeValues,
       },
-      FilterExpression: otherFilterExpression ?? undefined,
       ExpressionAttributeNames: {
         ...otherExpressionAttributeNames,
         ...mainFilter.expressionAttributeNames,
