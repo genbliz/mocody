@@ -163,7 +163,7 @@ export class DynamoQueryScanProcessor {
 
     while (hasNext) {
       try {
-        const { Items, LastEvaluatedKey } = await dynamoClient.send(new QueryCommand(params01));
+        const { Items, LastEvaluatedKey,  } = await dynamoClient.send(new QueryCommand(params01));
 
         params01.ExclusiveStartKey = undefined;
 

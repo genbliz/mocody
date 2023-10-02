@@ -396,7 +396,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     this._mocody_errorHelper.mocody_helper_validateRequiredString({ dataId });
 
     const nativeId = this._mocody_getNativeMongoId(dataId);
-    const query = { _id: nativeId } as IFullEntityNative<T>;
+    const query = { _id: nativeId } as IFullEntityNative<T> as any;
 
     const mongo = await this._mocody_getDbInstance();
 
@@ -733,7 +733,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     const db = await this._mocody_getDbInstance();
 
     const nativeId = this._mocody_getNativeMongoId(dataId);
-    const query = { _id: nativeId } as IFullEntityNative<T>;
+    const query = { _id: nativeId } as IFullEntityNative<T> as any;
     const dataInDb = await db.findOne(query);
 
     if (!(dataInDb?.id === dataId && dataInDb.featureEntity === this._mocody_featureEntityValue)) {
