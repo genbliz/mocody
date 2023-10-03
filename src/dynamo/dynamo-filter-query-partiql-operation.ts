@@ -563,32 +563,32 @@ export class DynamoFilterQueryPartiQlOperation {
   }
 }
 
-const multiVal1 = "term1";
-const multiVal2 = "term2";
+// const multiVal1 = "term1";
+// const multiVal2 = "term2";
 
-const query = {
-  targetId: `caa603bf4b9dcffb715afaf312b480c8`,
-  amount: { $gte: 0 },
-  $or: [
-    {
-      firstName: { $beginsWith: multiVal1, $exists: true },
-      lastName: { $beginsWith: multiVal2, $exists: true },
-    },
-    {
-      firstName: { $beginsWith: multiVal2 },
-      lastName: { $beginsWith: multiVal1 },
-    },
-  ],
-  source: {
-    $nestedMatch: {
-      name: "INVENTORY_OUPUT",
-      dataId: { $eq: "inventoryOuputId" },
-    },
-  },
-};
+// const query = {
+//   targetId: `caa603bf4b9dcffb715afaf312b480c8`,
+//   amount: { $gte: 0 },
+//   $or: [
+//     {
+//       firstName: { $beginsWith: multiVal1, $exists: true },
+//       lastName: { $beginsWith: multiVal2, $exists: true },
+//     },
+//     {
+//       firstName: { $beginsWith: multiVal2 },
+//       lastName: { $beginsWith: multiVal1 },
+//     },
+//   ],
+//   source: {
+//     $nestedMatch: {
+//       name: "INVENTORY_OUPUT",
+//       dataId: { $eq: "inventoryOuputId" },
+//     },
+//   },
+// };
 
-const otherFilter = new DynamoFilterQueryPartiQlOperation().processQueryFilter({
-  queryDefs: query,
-});
+// const otherFilter = new DynamoFilterQueryPartiQlOperation().processQueryFilter({
+//   queryDefs: query,
+// });
 
-console.log({ otherFilter });
+// console.log({ otherFilter });
