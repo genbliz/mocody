@@ -33,7 +33,7 @@ export class DynamoQueryPartiqlProcessor {
     params: IParamInput;
     resultLimit?: number | undefined | null;
     nextPageHash?: string | undefined | null;
-    orderDesc?: boolean;
+    orderDesc?: boolean | undefined | null;
     canPaginate: boolean;
     featureEntityValue: string;
     indexName: string;
@@ -42,13 +42,6 @@ export class DynamoQueryPartiqlProcessor {
     current_partitionAndSortKey: [string, string];
     default_partitionAndSortKey: [string, string];
   }) {
-    // if (params?.ExpressionAttributeValues) {
-    //   const marshalled = marshall(params.ExpressionAttributeValues, {
-    //     convertEmptyValues: false,
-    //     removeUndefinedValues: true,
-    //   });
-    //   params.ExpressionAttributeValues = marshalled;
-    // }
     const results = await this.__helperDynamoQueryPartiqlProcessor<T>({
       dynamoDb,
       evaluationLimit,
@@ -88,7 +81,7 @@ export class DynamoQueryPartiqlProcessor {
     params: IParamInput;
     resultLimit?: number | undefined | null;
     nextPageHash?: string | undefined | null;
-    orderDesc?: boolean;
+    orderDesc?: boolean | undefined | null;
     canPaginate: boolean;
     featureEntityValue: string;
     indexName: string;
@@ -152,21 +145,26 @@ export class DynamoQueryPartiqlProcessor {
 
     const tableName = `${tableFullName}.${indexName}`;
 
-    const statementText: string[] = [`SELECT ${projectionField01} FROM "${tableName}" WHERE `];
+    const [current_PartitionKeyFieldName, current_SortKeyFieldName] = current_partitionAndSortKey;
+    if (current_PartitionKeyFieldName) {
+      //
+    }
+
+    const statementText: string[] = [`SELECT ${projectionField01} FROM "${tableName}"`];
 
     statementText.push(...params.subStatement);
+
+    if (orderDesc) {
+      statementText.push(`ORDER BY ${current_SortKeyFieldName} DESC`);
+    } else {
+      statementText.push(`ORDER BY ${current_SortKeyFieldName} ASC`);
+    }
 
     const params01: ExecuteStatementCommandInput = {
       Statement: statementText.join(" "),
       NextToken: undefined,
       Parameters: params.subParameter,
     };
-
-    if (orderDesc === true) {
-      // params01.ScanIndexForward = false;
-    } else {
-      // params01.ScanIndexForward = true;
-    }
 
     if (evaluationLimit01) {
       params01.Limit = evaluationLimit01;
@@ -189,7 +187,7 @@ export class DynamoQueryPartiqlProcessor {
     const dynamo = dynamoDb();
     const itemsLoopedOrderedLength: number[] = [];
 
-    LoggingService.logAsString({ query_start: params01 });
+    LoggingService.logAsString({ query_start_params: params01 });
 
     while (hasNext) {
       try {

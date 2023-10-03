@@ -259,9 +259,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       return result;
     } catch (error: any) {
       if (error?.name === "ConditionalCheckFailedException") {
-        throw this._mocody_errorHelper.mocody_helper_createFriendlyError(
-          `Field, ${partitionKeyFieldName} already exists`,
-        );
+        throw this._mocody_errorHelper.mocody_helper_createFriendlyError(`Field, ${partitionKeyFieldName} already exists`);
       }
       throw error;
     }
@@ -809,6 +807,14 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
   async mocody_getManyWithRelationPaginate<TQuery = T, TData = T, TSortKeyField extends string | number = string>(
     paramOption: IMocodyQueryIndexOptions<TQuery, TSortKeyField>,
   ): Promise<IMocodyPagingResult<TData[]>> {
+    if (process.env.MOCODY_USE_PARTIQL_QUERY_FILTER === "true") {
+      return this._mocody_getManyBySecondaryIndexPartiQlPaginateBase<TQuery, TData, TSortKeyField>({
+        paramOption,
+        canPaginate: true,
+        enableRelationFetch: true,
+      });
+    }
+
     return this._mocody_getManyBySecondaryIndexPaginateBase<TQuery, TData, TSortKeyField>({
       paramOption,
       canPaginate: true,
@@ -994,12 +1000,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     return result;
   }
 
-  //@ts-ignore
-  private async _mocody_getManyBySecondaryIndexPartiQlPaginateBase<
-    TQuery,
-    TData,
-    TSortKeyField extends string | number,
-  >({
+  private async _mocody_getManyBySecondaryIndexPartiQlPaginateBase<TQuery, TData, TSortKeyField extends string | number>({
     paramOption,
     canPaginate,
     enableRelationFetch,
@@ -1073,8 +1074,8 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
 
     const partitionSortKeyQuery = paramOption01.sortKeyQuery
       ? {
-          ...{ [current_SortKeyFieldName]: paramOption01.sortKeyQuery },
           ...{ [current_PartitionKeyFieldName]: paramOption01.partitionKeyValue },
+          ...{ [current_SortKeyFieldName]: paramOption01.sortKeyQuery },
         }
       : { [current_PartitionKeyFieldName]: paramOption01.partitionKeyValue };
 
@@ -1109,6 +1110,8 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       queryDefs: partitionSortKeyQuery,
     });
 
+    LoggingService.logAsString({ mainFilter });
+
     if (mainFilter?.subStatement) {
       subStatement.push(mainFilter.subStatement);
       subParameter.push(...mainFilter.subParameter);
@@ -1118,6 +1121,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       const otherFilter = this._mocody_queryPartiQlFilter.processQueryFilter({
         queryDefs: paramOption01.query,
       });
+      LoggingService.logAsString({ otherFilter });
       subStatement.push(otherFilter.subStatement);
       subParameter.push(...otherFilter.subParameter);
     }
@@ -1133,6 +1137,8 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     if (nextPageHash01 === "null") {
       nextPageHash01 = undefined;
     }
+
+    LoggingService.logAsString({ subStatement, subParameter });
 
     const result = await this._mocody_queryPartiQlProcessor.mocody__helperDynamoQueryProcessor<TData>({
       dynamoDb: () => this._mocody_dynamoInit(),
@@ -1152,13 +1158,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     return result;
   }
 
-  async mocody_deleteById({
-    dataId,
-    withCondition,
-  }: {
-    dataId: string;
-    withCondition?: IMocodyFieldCondition<T>;
-  }): Promise<T> {
+  async mocody_deleteById({ dataId, withCondition }: { dataId: string; withCondition?: IMocodyFieldCondition<T> }): Promise<T> {
     //
     this._mocody_errorHelper.mocody_helper_validateRequiredString({ Del1SortKey: dataId });
 

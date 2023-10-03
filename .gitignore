@@ -43,7 +43,6 @@ jspm_packages/
 
 # TypeScript v1 declaration files
 typings/
-src/dynamo/operation-data.ts
 
 # TypeScript cache
 *.tsbuildinfo
