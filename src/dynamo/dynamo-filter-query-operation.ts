@@ -345,15 +345,7 @@ export class DynamoFilterQueryOperation {
     return result;
   }
 
-  private operation__filterBetween({
-    fieldName,
-    from,
-    to,
-  }: {
-    fieldName: string;
-    from: any;
-    to: any;
-  }): IQueryConditions {
+  private operation__filterBetween({ fieldName, from, to }: { fieldName: string; from: any; to: any }): IQueryConditions {
     const attrKeyHash01 = getDynamoRandomKeyOrHash("#");
     const fromValueHash = getDynamoRandomKeyOrHash(":");
     const toValueHash = getDynamoRandomKeyOrHash(":");
@@ -401,35 +393,40 @@ export class DynamoFilterQueryOperation {
         if (conditionKey === "$between") {
           QueryValidatorCheck.between(conditionValue);
           const [from, to] = conditionValue;
-          const _queryConditions = this.operation__filterBetween({
+
+          const query01 = this.operation__filterBetween({
             fieldName: fieldName,
             from,
             to,
           });
-          queryConditions.push(_queryConditions);
+          queryConditions.push(query01);
         } else if (conditionKey === "$beginsWith") {
           QueryValidatorCheck.beginWith(conditionValue);
-          const _queryConditions = this.operation__filterBeginsWith({
+
+          const query01 = this.operation__filterBeginsWith({
             fieldName: fieldName,
             term: conditionValue,
           });
-          queryConditions.push(_queryConditions);
+          queryConditions.push(query01);
         } else if (conditionKey === "$contains") {
           QueryValidatorCheck.contains(conditionValue);
-          const _queryConditions = this.operation__filterContains({
+
+          const query01 = this.operation__filterContains({
             fieldName: fieldName,
             term: conditionValue,
           });
-          queryConditions.push(_queryConditions);
+          queryConditions.push(query01);
         } else if (conditionKey === "$in") {
           QueryValidatorCheck.in_query(conditionValue);
-          const _queryConditions = this.operation__filterIn({
+
+          const query01 = this.operation__filterIn({
             fieldName: fieldName,
             attrValues: conditionValue,
           });
-          queryConditions.push(_queryConditions);
+          queryConditions.push(query01);
         } else if (conditionKey === "$nin") {
           QueryValidatorCheck.notIn(conditionValue);
+
           const queryConditions01 = this.operation__filterIn({
             fieldName: fieldName,
             attrValues: conditionValue,
@@ -442,10 +439,12 @@ export class DynamoFilterQueryOperation {
           queryConditions.push(queryConditions01);
         } else if (conditionKey === "$elemMatch") {
           QueryValidatorCheck.elemMatch(conditionValue);
+
           const elemMatchConditions = this.operation__filterElemMatch({
             fieldName: fieldName,
             attrValues: conditionValue,
           });
+
           if (elemMatchConditions?.length) {
             elemMatchConditions.forEach((cond) => {
               orConditions.push(cond);
@@ -462,23 +461,24 @@ export class DynamoFilterQueryOperation {
           }
         } else if (conditionKey === "$notContains") {
           QueryValidatorCheck.notContains(conditionValue);
-          const _queryConditions = this.operation__filterNotContains({
+          const query01 = this.operation__filterNotContains({
             fieldName: fieldName,
             term: conditionValue,
           });
-          queryConditions.push(_queryConditions);
+          queryConditions.push(query01);
         } else if (conditionKey === "$exists") {
           QueryValidatorCheck.exists(conditionValue);
+
           if (String(conditionValue) === "true") {
-            const _queryConditions = this.operation__filterFieldExist({
-              fieldName: fieldName,
+            const query01 = this.operation__filterFieldExist({
+              fieldName,
             });
-            queryConditions.push(_queryConditions);
+            queryConditions.push(query01);
           } else if (String(conditionValue) === "false") {
-            const _queryConditions = this.operation__filterFieldNotExist({
-              fieldName: fieldName,
+            const query01 = this.operation__filterFieldNotExist({
+              fieldName,
             });
-            queryConditions.push(_queryConditions);
+            queryConditions.push(query01);
           }
         } else {
           const conditionExpr = QUERY_CONDITION_MAP_FULL[conditionKey];
@@ -599,18 +599,19 @@ export class DynamoFilterQueryOperation {
         if (conditionKey) {
           if (conditionValue !== undefined) {
             if (conditionValue && typeof conditionValue === "object") {
-              const queryCond01 = this.operation__translateAdvancedQueryOperation({
+              const query01 = this.operation__translateAdvancedQueryOperation({
                 fieldName: conditionKey,
                 queryObject: conditionValue,
               });
-              AND_queryConditions.push(...queryCond01.queryConditions);
-              OR_queryConditions.push(...queryCond01.orConditions);
+
+              AND_queryConditions.push(...query01.queryConditions);
+              OR_queryConditions.push(...query01.orConditions);
             } else {
-              const queryCondition01 = this.operation_translateBasicQueryOperation({
+              const query01 = this.operation_translateBasicQueryOperation({
                 fieldName: conditionKey,
                 queryObject: conditionValue,
               });
-              AND_queryConditions.push(queryCondition01);
+              AND_queryConditions.push(query01);
             }
           }
         }

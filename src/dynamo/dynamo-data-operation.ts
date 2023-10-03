@@ -807,14 +807,6 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
   async mocody_getManyWithRelationPaginate<TQuery = T, TData = T, TSortKeyField extends string | number = string>(
     paramOption: IMocodyQueryIndexOptions<TQuery, TSortKeyField>,
   ): Promise<IMocodyPagingResult<TData[]>> {
-    if (process.env.MOCODY_USE_PARTIQL_QUERY_FILTER === "true") {
-      return this._mocody_getManyBySecondaryIndexPartiQlPaginateBase<TQuery, TData, TSortKeyField>({
-        paramOption,
-        canPaginate: true,
-        enableRelationFetch: true,
-      });
-    }
-
     return this._mocody_getManyBySecondaryIndexPaginateBase<TQuery, TData, TSortKeyField>({
       paramOption,
       canPaginate: true,
@@ -831,6 +823,18 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     canPaginate: boolean;
     enableRelationFetch: boolean;
   }): Promise<IMocodyPagingResult<TData[]>> {
+    LoggingService.log({
+      MOCODY_USE_PARTIQL_QUERY_FILTER: process.env.MOCODY_USE_PARTIQL_QUERY_FILTER,
+    });
+
+    if (process.env.MOCODY_USE_PARTIQL_QUERY_FILTER === "true") {
+      return this._mocody_getManyBySecondaryIndexPartiQlPaginateBase<TQuery, TData, TSortKeyField>({
+        paramOption,
+        canPaginate,
+        enableRelationFetch,
+      });
+    }
+
     const {
       //
       tableFullName,
@@ -1072,12 +1076,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     const default_partitionAndSortKey: [string, string] = [partitionKeyFieldName, sortKeyFieldName];
     const current_partitionAndSortKey: [string, string] = [current_PartitionKeyFieldName, current_SortKeyFieldName];
 
-    const partitionSortKeyQuery = paramOption01.sortKeyQuery
-      ? {
-          ...{ [current_PartitionKeyFieldName]: paramOption01.partitionKeyValue },
-          ...{ [current_SortKeyFieldName]: paramOption01.sortKeyQuery },
-        }
-      : { [current_PartitionKeyFieldName]: paramOption01.partitionKeyValue };
+    const partitionSortKeyQuery = paramOption01.sortKeyQuery || {};
 
     if (!enableRelationFetch) {
       /** This block avoids query data leak */
@@ -1106,15 +1105,15 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     const subStatement: string[] = [];
     const subParameter: any[] = [];
 
-    const mainFilter = this._mocody_queryPartiQlFilter.processQueryFilter({
+    const sortFilter = this._mocody_queryPartiQlFilter.processQueryFilter({
       queryDefs: partitionSortKeyQuery,
     });
 
-    LoggingService.logAsString({ mainFilter });
+    LoggingService.logAsString({ sortFilter });
 
-    if (mainFilter?.subStatement) {
-      subStatement.push(mainFilter.subStatement);
-      subParameter.push(...mainFilter.subParameter);
+    if (sortFilter?.subStatement) {
+      subStatement.push(sortFilter.subStatement);
+      subParameter.push(...sortFilter.subParameter);
     }
 
     if (paramOption01.query) {
@@ -1149,6 +1148,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       indexName: paramOption01.indexName,
       featureEntityValue,
       projectionFields: projectionFields as string[],
+      current_partitionValue: paramOption01.partitionKeyValue,
       default_partitionAndSortKey,
       current_partitionAndSortKey,
       evaluationLimit: evaluationLimit01,

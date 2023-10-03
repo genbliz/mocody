@@ -2,13 +2,29 @@ import { UtilService } from "../helpers/util-service";
 import { GetItemCommandInput } from "@aws-sdk/client-dynamodb";
 import type { IMocodyPagingResult } from "../type";
 import { LoggingService } from "../helpers/logging-service";
-import { MocodyUtil } from "../helpers/mocody-utils";
 import { MocodyInitializerDynamo } from "./dynamo-initializer";
 import { ExecuteStatementCommandInput } from "@aws-sdk/lib-dynamodb";
 
 interface IParamInput {
   subStatement: string[];
   subParameter: any[];
+}
+
+interface IDynamoQueryPartiqlProcessorParams {
+  dynamoDb: () => MocodyInitializerDynamo;
+  evaluationLimit?: number;
+  params: IParamInput;
+  resultLimit?: number | undefined | null;
+  nextPageHash?: string | undefined | null;
+  orderDesc?: boolean | undefined | null;
+  canPaginate: boolean;
+  featureEntityValue: string;
+  indexName: string;
+  tableFullName: string;
+  projectionFields: string[] | undefined | null;
+  current_partitionValue: string | number;
+  current_partitionAndSortKey: [string, string];
+  default_partitionAndSortKey: [string, string];
 }
 
 export class DynamoQueryPartiqlProcessor {
@@ -22,74 +38,13 @@ export class DynamoQueryPartiqlProcessor {
     dynamoDb,
     canPaginate,
     projectionFields,
+    current_partitionValue,
     current_partitionAndSortKey,
     default_partitionAndSortKey,
     featureEntityValue,
     tableFullName,
     indexName,
-  }: {
-    dynamoDb: () => MocodyInitializerDynamo;
-    evaluationLimit?: number;
-    params: IParamInput;
-    resultLimit?: number | undefined | null;
-    nextPageHash?: string | undefined | null;
-    orderDesc?: boolean | undefined | null;
-    canPaginate: boolean;
-    featureEntityValue: string;
-    indexName: string;
-    tableFullName: string;
-    projectionFields: string[] | undefined | null;
-    current_partitionAndSortKey: [string, string];
-    default_partitionAndSortKey: [string, string];
-  }) {
-    const results = await this.__helperDynamoQueryPartiqlProcessor<T>({
-      dynamoDb,
-      evaluationLimit,
-      params,
-      resultLimit,
-      nextPageHash,
-      orderDesc,
-      canPaginate,
-      featureEntityValue,
-      indexName,
-      tableFullName,
-      projectionFields,
-      current_partitionAndSortKey,
-      default_partitionAndSortKey,
-    });
-    results.paginationResults = this.__unmarshallToJson(results.paginationResults);
-    return results;
-  }
-
-  private async __helperDynamoQueryPartiqlProcessor<T>({
-    evaluationLimit,
-    params,
-    resultLimit,
-    nextPageHash,
-    orderDesc,
-    dynamoDb,
-    canPaginate,
-    featureEntityValue,
-    tableFullName,
-    indexName,
-    projectionFields,
-    default_partitionAndSortKey,
-    current_partitionAndSortKey,
-  }: {
-    dynamoDb: () => MocodyInitializerDynamo;
-    evaluationLimit?: number;
-    params: IParamInput;
-    resultLimit?: number | undefined | null;
-    nextPageHash?: string | undefined | null;
-    orderDesc?: boolean | undefined | null;
-    canPaginate: boolean;
-    featureEntityValue: string;
-    indexName: string;
-    tableFullName: string;
-    projectionFields: string[] | undefined | null;
-    current_partitionAndSortKey: [string, string];
-    default_partitionAndSortKey: [string, string];
-  }) {
+  }: IDynamoQueryPartiqlProcessorParams) {
     const xDefaultEvaluationLimit = 20;
     const xMinEvaluationLimit = 5;
     const xMaxEvaluationLimit = 500;
@@ -150,9 +105,17 @@ export class DynamoQueryPartiqlProcessor {
       //
     }
 
-    const statementText: string[] = [`SELECT ${projectionField01} FROM "${tableName}"`];
+    const statementText: string[] = [`SELECT ${projectionField01} FROM ${tableName} WHERE ${current_PartitionKeyFieldName}=?`];
 
-    statementText.push(...params.subStatement);
+    if (params.subStatement?.length) {
+      if (!params.subStatement[0].startsWith("AND")) {
+        statementText.push("AND");
+      }
+      statementText.push(...params.subStatement);
+    }
+
+    const parameters: any[] = [current_partitionValue];
+    parameters.push(...params.subParameter);
 
     if (orderDesc) {
       statementText.push(`ORDER BY ${current_SortKeyFieldName} DESC`);
@@ -160,10 +123,12 @@ export class DynamoQueryPartiqlProcessor {
       statementText.push(`ORDER BY ${current_SortKeyFieldName} ASC`);
     }
 
+    LoggingService.logAsString({ statementText });
+
     const params01: ExecuteStatementCommandInput = {
       Statement: statementText.join(" "),
       NextToken: undefined,
-      Parameters: params.subParameter,
+      Parameters: parameters,
     };
 
     if (evaluationLimit01) {
@@ -177,6 +142,8 @@ export class DynamoQueryPartiqlProcessor {
       }
     }
 
+    LoggingService.logAsString({ query_start_params: params01 });
+
     const outResult: IMocodyPagingResult<T[]> = {
       paginationResults: [],
       nextPageHash: undefined,
@@ -186,8 +153,6 @@ export class DynamoQueryPartiqlProcessor {
 
     const dynamo = dynamoDb();
     const itemsLoopedOrderedLength: number[] = [];
-
-    LoggingService.logAsString({ query_start_params: params01 });
 
     while (hasNext) {
       try {
@@ -282,13 +247,6 @@ export class DynamoQueryPartiqlProcessor {
     return { ...outResult };
   }
 
-  private __unmarshallToJson(items: any[]) {
-    if (items?.length) {
-      return items.map((item) => MocodyUtil.unmarshallToJson(item));
-    }
-    return items;
-  }
-
   private async __createCustomLastEvaluationKey({
     lastKeyRawObject,
     current_partitionAndSortKey,
@@ -332,9 +290,7 @@ export class DynamoQueryPartiqlProcessor {
       return obj;
     }
 
-    const itemJson = MocodyUtil.unmarshallToJson(lastKeyRawObject);
-
-    const dataId: string | undefined = itemJson?.[partitionKeyFieldName];
+    const dataId: string | undefined = lastKeyRawObject?.[partitionKeyFieldName];
 
     if (!dataId) {
       return null;

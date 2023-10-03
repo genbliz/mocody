@@ -97,21 +97,21 @@ export class DynamoFilterQueryPartiQlOperation {
 
   private operation__filterBeginsWith({ fieldName, term }: { fieldName: string; term: any }) {
     return {
-      subStatement: `begins_with("${fieldName}", ?)`,
+      subStatement: `begins_with(${fieldName}, ?)`,
       subParameters: [term],
     };
   }
 
   private operation__filterContains({ fieldName, term }: { fieldName: string; term: string }): IQueryConditions {
     return {
-      subStatement: `contains("${fieldName}", ?)`,
+      subStatement: `contains(${fieldName}, ?)`,
       subParameters: [term],
     };
   }
 
   private operation__filterNotContains({ fieldName, term }: { fieldName: string; term: string }): IQueryConditions {
     return {
-      subStatement: `NOT (contains("${fieldName}", ?))`,
+      subStatement: `NOT (contains(${fieldName}, ?))`,
       subParameters: [term],
     };
   }
@@ -185,25 +185,25 @@ export class DynamoFilterQueryPartiQlOperation {
         const conditionExpr = QUERY_CONDITION_MAP_NESTED[conditionKey];
         //
         if (conditionExpr) {
-          const queryCondition01 = this.operation__helperFilterBasic({
+          const query01 = this.operation__helperFilterBasic({
             fieldName: `${parentHashKey}.${childKeyHash}`,
             conditionExpr: conditionExpr,
             val: conditionValue,
           });
 
-          queryList.push(queryCondition01);
+          queryList.push(query01);
         } else if (conditionKey === "$between") {
           QueryValidatorCheck.between(conditionValue);
 
           const [from, to] = conditionValue;
 
-          const queryCondition01 = this.operation__filterBetween({
+          const query01 = this.operation__filterBetween({
             fieldName: `${parentHashKey}.${childKeyHash}`,
             from,
             to,
           });
 
-          queryList.push(queryCondition01);
+          queryList.push(query01);
         } else if (conditionKey === "$beginsWith") {
           const queryCondition01 = this.operation__filterBeginsWith({
             fieldName: `${parentHashKey}.${childKeyHash}`,
@@ -279,22 +279,26 @@ export class DynamoFilterQueryPartiQlOperation {
       if (conditionValue !== undefined) {
         if (conditionKey === "$between") {
           QueryValidatorCheck.between(conditionValue);
+
           const [from, to] = conditionValue;
-          const queryCondition01 = this.operation__filterBetween({
+
+          const query01 = this.operation__filterBetween({
             fieldName,
             from,
             to,
           });
-          queryConditions.push(queryCondition01);
+          queryConditions.push(query01);
         } else if (conditionKey === "$beginsWith") {
           QueryValidatorCheck.beginWith(conditionValue);
-          const _queryConditions = this.operation__filterBeginsWith({
+
+          const query01 = this.operation__filterBeginsWith({
             fieldName: fieldName,
             term: conditionValue,
           });
-          queryConditions.push(_queryConditions);
+          queryConditions.push(query01);
         } else if (conditionKey === "$contains") {
           QueryValidatorCheck.contains(conditionValue);
+
           const query01 = this.operation__filterContains({
             fieldName: fieldName,
             term: conditionValue,
@@ -302,6 +306,7 @@ export class DynamoFilterQueryPartiQlOperation {
           queryConditions.push(query01);
         } else if (conditionKey === "$in") {
           QueryValidatorCheck.in_query(conditionValue);
+
           const query01 = this.operation__filterIn({
             fieldName: fieldName,
             attrValues: conditionValue,
@@ -310,12 +315,12 @@ export class DynamoFilterQueryPartiQlOperation {
         } else if (conditionKey === "$nin") {
           QueryValidatorCheck.notIn(conditionValue);
 
-          const queryConditions01 = this.operation__filterNotIn({
+          const query01 = this.operation__filterNotIn({
             fieldName: fieldName,
             attrValues: conditionValue,
           });
 
-          queryConditions.push(queryConditions01);
+          queryConditions.push(query01);
         } else if (conditionKey === "$elemMatch") {
           QueryValidatorCheck.elemMatch(conditionValue);
 
