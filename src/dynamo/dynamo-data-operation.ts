@@ -882,18 +882,18 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       evaluationLimit01 = resultLimit01;
     }
 
-    const index_PartitionKeyFieldName = secondaryIndex.partitionKeyFieldName as string;
-    const index_SortKeyFieldName = secondaryIndex.sortKeyFieldName as string;
+    const current_PartitionKeyFieldName = secondaryIndex.partitionKeyFieldName as string;
+    const current_SortKeyFieldName = secondaryIndex.sortKeyFieldName as string;
 
-    const main_partitionAndSortKey: [string, string] = [partitionKeyFieldName, sortKeyFieldName];
-    const index_partitionAndSortKey: [string, string] = [index_PartitionKeyFieldName, index_SortKeyFieldName];
+    const default_partitionAndSortKey: [string, string] = [partitionKeyFieldName, sortKeyFieldName];
+    const current_partitionAndSortKey: [string, string] = [current_PartitionKeyFieldName, current_SortKeyFieldName];
 
     const partitionSortKeyQuery = paramOption01.sortKeyQuery
       ? {
-          ...{ [index_SortKeyFieldName]: paramOption01.sortKeyQuery },
-          ...{ [index_PartitionKeyFieldName]: paramOption01.partitionKeyValue },
+          ...{ [current_SortKeyFieldName]: paramOption01.sortKeyQuery },
+          ...{ [current_PartitionKeyFieldName]: paramOption01.partitionKeyValue },
         }
-      : { [index_PartitionKeyFieldName]: paramOption01.partitionKeyValue };
+      : { [current_PartitionKeyFieldName]: paramOption01.partitionKeyValue };
 
     if (!enableRelationFetch) {
       /** This block avoids query data leak */
@@ -901,8 +901,8 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
 
       const hasFeatureEntity = [
         //
-        index_PartitionKeyFieldName,
-        index_SortKeyFieldName,
+        current_PartitionKeyFieldName,
+        current_SortKeyFieldName,
       ].includes(localVariables.sortKeyFieldName);
 
       if (!hasFeatureEntity) {
@@ -912,9 +912,9 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
           ...paramOption01.query,
           ...this._mocody_featureEntity_Key_Value,
         } as any;
-      } else if (index_PartitionKeyFieldName !== localVariables.sortKeyFieldName) {
-        if (localVariables.sortKeyFieldName === index_SortKeyFieldName) {
-          partitionSortKeyQuery[index_SortKeyFieldName] = { $eq: localVariables.featureEntityValue } as any;
+      } else if (current_PartitionKeyFieldName !== localVariables.sortKeyFieldName) {
+        if (localVariables.sortKeyFieldName === current_SortKeyFieldName) {
+          partitionSortKeyQuery[current_SortKeyFieldName] = { $eq: localVariables.featureEntityValue } as any;
         }
       }
     }
@@ -985,8 +985,8 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       canPaginate,
       tableFullName,
       featureEntityValue,
-      main_partitionAndSortKey,
-      index_partitionAndSortKey,
+      default_partitionAndSortKey,
+      current_partitionAndSortKey,
       evaluationLimit: evaluationLimit01,
       nextPageHash: nextPageHash01,
       resultLimit: resultLimit01,
@@ -1065,18 +1065,18 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       evaluationLimit01 = resultLimit01;
     }
 
-    const index_PartitionKeyFieldName = secondaryIndex.partitionKeyFieldName as string;
-    const index_SortKeyFieldName = secondaryIndex.sortKeyFieldName as string;
+    const current_PartitionKeyFieldName = secondaryIndex.partitionKeyFieldName as string;
+    const current_SortKeyFieldName = secondaryIndex.sortKeyFieldName as string;
 
-    const main_partitionAndSortKey: [string, string] = [partitionKeyFieldName, sortKeyFieldName];
-    const index_partitionAndSortKey: [string, string] = [index_PartitionKeyFieldName, index_SortKeyFieldName];
+    const default_partitionAndSortKey: [string, string] = [partitionKeyFieldName, sortKeyFieldName];
+    const current_partitionAndSortKey: [string, string] = [current_PartitionKeyFieldName, current_SortKeyFieldName];
 
     const partitionSortKeyQuery = paramOption01.sortKeyQuery
       ? {
-          ...{ [index_SortKeyFieldName]: paramOption01.sortKeyQuery },
-          ...{ [index_PartitionKeyFieldName]: paramOption01.partitionKeyValue },
+          ...{ [current_SortKeyFieldName]: paramOption01.sortKeyQuery },
+          ...{ [current_PartitionKeyFieldName]: paramOption01.partitionKeyValue },
         }
-      : { [index_PartitionKeyFieldName]: paramOption01.partitionKeyValue };
+      : { [current_PartitionKeyFieldName]: paramOption01.partitionKeyValue };
 
     if (!enableRelationFetch) {
       /** This block avoids query data leak */
@@ -1084,8 +1084,8 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
 
       const hasFeatureEntity = [
         //
-        index_PartitionKeyFieldName,
-        index_SortKeyFieldName,
+        current_PartitionKeyFieldName,
+        current_SortKeyFieldName,
       ].includes(localVariables.sortKeyFieldName);
 
       if (!hasFeatureEntity) {
@@ -1095,9 +1095,9 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
           ...paramOption01.query,
           ...this._mocody_featureEntity_Key_Value,
         } as any;
-      } else if (index_PartitionKeyFieldName !== localVariables.sortKeyFieldName) {
-        if (localVariables.sortKeyFieldName === index_SortKeyFieldName) {
-          partitionSortKeyQuery[index_SortKeyFieldName] = { $eq: localVariables.featureEntityValue } as any;
+      } else if (current_PartitionKeyFieldName !== localVariables.sortKeyFieldName) {
+        if (localVariables.sortKeyFieldName === current_SortKeyFieldName) {
+          partitionSortKeyQuery[current_SortKeyFieldName] = { $eq: localVariables.featureEntityValue } as any;
         }
       }
     }
@@ -1143,8 +1143,8 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       indexName: paramOption01.indexName,
       featureEntityValue,
       projectionFields: projectionFields as string[],
-      main_partitionAndSortKey,
-      index_partitionAndSortKey,
+      default_partitionAndSortKey,
+      current_partitionAndSortKey,
       evaluationLimit: evaluationLimit01,
       nextPageHash: nextPageHash01,
       resultLimit: resultLimit01,

@@ -14,8 +14,8 @@ export class DynamoQueryScanProcessor {
     resultLimit,
     nextPageHash,
     orderDesc,
-    index_partitionAndSortKey,
-    main_partitionAndSortKey,
+    current_partitionAndSortKey,
+    default_partitionAndSortKey,
     dynamoDb,
     canPaginate,
     featureEntityValue,
@@ -30,8 +30,8 @@ export class DynamoQueryScanProcessor {
     canPaginate: boolean;
     featureEntityValue: string;
     tableFullName: string;
-    index_partitionAndSortKey: [string, string];
-    main_partitionAndSortKey: [string, string];
+    current_partitionAndSortKey: [string, string];
+    default_partitionAndSortKey: [string, string];
   }) {
     if (params?.ExpressionAttributeValues) {
       const marshalled = marshall(params.ExpressionAttributeValues, {
@@ -48,8 +48,8 @@ export class DynamoQueryScanProcessor {
       nextPageHash,
       orderDesc,
       canPaginate,
-      index_partitionAndSortKey,
-      main_partitionAndSortKey,
+      current_partitionAndSortKey,
+      default_partitionAndSortKey,
       featureEntityValue,
       tableFullName,
     });
@@ -63,8 +63,8 @@ export class DynamoQueryScanProcessor {
     resultLimit,
     nextPageHash,
     orderDesc,
-    index_partitionAndSortKey,
-    main_partitionAndSortKey,
+    current_partitionAndSortKey,
+    default_partitionAndSortKey,
     dynamoDb,
     canPaginate,
     featureEntityValue,
@@ -79,8 +79,8 @@ export class DynamoQueryScanProcessor {
     canPaginate: boolean;
     featureEntityValue: string;
     tableFullName: string;
-    index_partitionAndSortKey: [string, string];
-    main_partitionAndSortKey: [string, string];
+    current_partitionAndSortKey: [string, string];
+    default_partitionAndSortKey: [string, string];
   }) {
     const xDefaultEvaluationLimit = 20;
     const xMinEvaluationLimit = 5;
@@ -93,8 +93,8 @@ export class DynamoQueryScanProcessor {
       nextPageHash,
       evaluationLimit,
       featureEntityValue,
-      index_partitionAndSortKey,
-      main_partitionAndSortKey,
+      current_partitionAndSortKey,
+      default_partitionAndSortKey,
       params,
     };
 
@@ -163,7 +163,7 @@ export class DynamoQueryScanProcessor {
 
     while (hasNext) {
       try {
-        const { Items, LastEvaluatedKey,  } = await dynamoClient.send(new QueryCommand(params01));
+        const { Items, LastEvaluatedKey } = await dynamoClient.send(new QueryCommand(params01));
 
         params01.ExclusiveStartKey = undefined;
 
@@ -201,8 +201,8 @@ export class DynamoQueryScanProcessor {
                 const customLastEvaluationKey = await this.__createCustomLastEvaluationKey({
                   lastKeyRawObject,
                   featureEntityValue,
-                  index_partitionAndSortKey,
-                  main_partitionAndSortKey,
+                  default_partitionAndSortKey,
+                  current_partitionAndSortKey,
                   dynamo,
                   tableFullName,
                 });
@@ -263,15 +263,15 @@ export class DynamoQueryScanProcessor {
 
   private async __createCustomLastEvaluationKey({
     lastKeyRawObject,
-    index_partitionAndSortKey,
-    main_partitionAndSortKey,
+    default_partitionAndSortKey,
+    current_partitionAndSortKey,
     dynamo,
     tableFullName,
     featureEntityValue,
   }: {
     lastKeyRawObject: Record<string, any>;
-    index_partitionAndSortKey: [string, string];
-    main_partitionAndSortKey: [string, string];
+    current_partitionAndSortKey: [string, string];
+    default_partitionAndSortKey: [string, string];
     dynamo: MocodyInitializerDynamo;
     tableFullName: string;
     featureEntityValue: string;
@@ -280,24 +280,15 @@ export class DynamoQueryScanProcessor {
       return null;
     }
 
-    const [partitionKeyFieldName, sortKeyFieldName] = main_partitionAndSortKey;
-    const [index_PartitionKeyFieldName, index_SortKeyFieldName] = index_partitionAndSortKey;
-
-    /*
-     ExclusiveStartKey: {
-      createdAtDate: [Object],
-      id: [Object],
-      featureEntity: [Object],
-      featureEntityTenantId: [Object]
-    }
-    */
+    const [partitionKeyFieldName, sortKeyFieldName] = default_partitionAndSortKey;
+    const [current_PartitionKeyFieldName, current_SortKeyFieldName] = current_partitionAndSortKey;
 
     const fields01 = [
       //
       partitionKeyFieldName,
       sortKeyFieldName,
-      index_PartitionKeyFieldName,
-      index_SortKeyFieldName,
+      current_PartitionKeyFieldName,
+      current_SortKeyFieldName,
     ];
 
     const fields = Array.from(new Set(fields01));
