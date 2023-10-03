@@ -6,6 +6,11 @@ import { MocodyUtil } from "../helpers/mocody-utils";
 import { MocodyInitializerDynamo } from "./dynamo-initializer";
 import { ExecuteStatementCommandInput } from "@aws-sdk/lib-dynamodb";
 
+interface IParamInput {
+  subStatement: string[];
+  subParameter: any[];
+}
+
 export class DynamoQueryPartiqlProcessor {
   //
   async mocody__helperDynamoQueryProcessor<T>({
@@ -21,15 +26,17 @@ export class DynamoQueryPartiqlProcessor {
     main_partitionAndSortKey,
     featureEntityValue,
     tableFullName,
+    indexName,
   }: {
     dynamoDb: () => MocodyInitializerDynamo;
     evaluationLimit?: number;
-    params: ExecuteStatementCommandInput;
+    params: IParamInput;
     resultLimit?: number | undefined | null;
     nextPageHash?: string | undefined | null;
     orderDesc?: boolean;
     canPaginate: boolean;
     featureEntityValue: string;
+    indexName: string;
     tableFullName: string;
     projectionFields: string[] | undefined | null;
     index_partitionAndSortKey: [string, string];
@@ -51,6 +58,7 @@ export class DynamoQueryPartiqlProcessor {
       orderDesc,
       canPaginate,
       featureEntityValue,
+      indexName,
       tableFullName,
       projectionFields,
       index_partitionAndSortKey,
@@ -70,18 +78,20 @@ export class DynamoQueryPartiqlProcessor {
     canPaginate,
     featureEntityValue,
     tableFullName,
+    indexName,
     projectionFields,
     main_partitionAndSortKey,
     index_partitionAndSortKey,
   }: {
     dynamoDb: () => MocodyInitializerDynamo;
     evaluationLimit?: number;
-    params: ExecuteStatementCommandInput;
+    params: IParamInput;
     resultLimit?: number | undefined | null;
     nextPageHash?: string | undefined | null;
     orderDesc?: boolean;
     canPaginate: boolean;
     featureEntityValue: string;
+    indexName: string;
     tableFullName: string;
     projectionFields: string[] | undefined | null;
     index_partitionAndSortKey: [string, string];
@@ -133,9 +143,24 @@ export class DynamoQueryPartiqlProcessor {
       }
     }
 
-    // const statementText: string[] = [`SELECT * FROM "${tableFullName}"`];
+    const projectionField01 = (() => {
+      if (projectionFields?.length) {
+        return projectionFields.join(",").trim();
+      }
+      return "*";
+    })();
 
-    const params01: ExecuteStatementCommandInput = { ...params };
+    const tableName = `${tableFullName}.${indexName}`;
+
+    const statementText: string[] = [`SELECT ${projectionField01} FROM "${tableName}" WHERE `];
+
+    statementText.push(...params.subStatement);
+
+    const params01: ExecuteStatementCommandInput = {
+      Statement: statementText.join(" "),
+      NextToken: undefined,
+      Parameters: params.subParameter,
+    };
 
     if (orderDesc === true) {
       // params01.ScanIndexForward = false;

@@ -563,32 +563,43 @@ export class DynamoFilterQueryPartiQlOperation {
   }
 }
 
-// const multiVal1 = "term1";
-// const multiVal2 = "term2";
+const multiVal1 = "term1";
+const multiVal2 = "term2";
 
-// const query = {
-//   targetId: `caa603bf4b9dcffb715afaf312b480c8`,
-//   amount: { $gte: 0 },
-//   $or: [
-//     {
-//       firstName: { $beginsWith: multiVal1, $exists: true },
-//       lastName: { $beginsWith: multiVal2, $exists: true },
-//     },
-//     {
-//       firstName: { $beginsWith: multiVal2 },
-//       lastName: { $beginsWith: multiVal1 },
-//     },
-//   ],
-//   source: {
-//     $nestedMatch: {
-//       name: "INVENTORY_OUPUT",
-//       dataId: { $eq: "inventoryOuputId" },
-//     },
-//   },
-// };
+const query = {
+  targetId: `caa603bf4b9dcffb715afaf312b480c8`,
+  amount: { $gte: 0 },
+  $and: [
+    {
+      firstName: { $beginsWith: multiVal1, $exists: true },
+      lastName: { $beginsWith: multiVal2, $exists: true },
+    },
+    {
+      firstName: { $beginsWith: multiVal2 },
+      lastName: { $beginsWith: multiVal1 },
+    },
+  ],
+  source: {
+    $nestedMatch: {
+      name: "INVENTORY_OUPUT",
+      dataId: { $eq: "inventoryOuputId" },
+    },
+  },
+};
 
-// const otherFilter = new DynamoFilterQueryPartiQlOperation().processQueryFilter({
-//   queryDefs: query,
-// });
+const hmoProviderId = "20230808-091602-3c419182-c6ce-40e2-a66e-a938ed4f1491";
 
-// console.log({ otherFilter });
+const query02 = {
+  subscribedHmoProviders: { $exists: true },
+  "subscribedHmoProviders[0].hmoProviderId": hmoProviderId,
+};
+
+if (query02 && query) {
+  //
+}
+
+const otherFilter = new DynamoFilterQueryPartiQlOperation().processQueryFilter({
+  queryDefs: query02,
+});
+
+console.log({ otherFilter });

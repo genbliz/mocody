@@ -91,6 +91,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     this._mocody_secondaryIndexOptions = secondaryIndexOptions;
     this._mocody_strictRequiredFields = strictRequiredFields as string[];
     this._mocody_queryFilter = new DynamoFilterQueryOperation();
+    this._mocody_queryPartiQlFilter = new DynamoFilterQueryPartiQlOperation();
     this._mocody_queryScanProcessor = new DynamoQueryScanProcessor();
     this._mocody_queryPartiQlProcessor = new DynamoQueryPartiqlProcessor();
     this._mocody_errorHelper = new MocodyErrorUtils();
@@ -1102,15 +1103,23 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     }
 
     const subStatement: string[] = [];
+    const subParameter: any[] = [];
 
     const mainFilter = this._mocody_queryPartiQlFilter.processQueryFilter({
       queryDefs: partitionSortKeyQuery,
     });
 
+    if (mainFilter?.subStatement) {
+      subStatement.push(mainFilter.subStatement);
+      subParameter.push(...mainFilter.subParameter);
+    }
+
     if (paramOption01.query) {
       const otherFilter = this._mocody_queryPartiQlFilter.processQueryFilter({
         queryDefs: paramOption01.query,
       });
+      subStatement.push(otherFilter.subStatement);
+      subParameter.push(...otherFilter.subParameter);
     }
 
     const orderDesc = paramOption01?.sort === "desc";
@@ -1127,10 +1136,11 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
 
     const result = await this._mocody_queryPartiQlProcessor.mocody__helperDynamoQueryProcessor<TData>({
       dynamoDb: () => this._mocody_dynamoInit(),
-      params: { Statement: "" },
+      params: { subStatement, subParameter },
       orderDesc,
       canPaginate,
       tableFullName,
+      indexName: paramOption01.indexName,
       featureEntityValue,
       projectionFields: projectionFields as string[],
       main_partitionAndSortKey,
