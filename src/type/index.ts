@@ -31,7 +31,6 @@ export type IMocodyQueryConditionParams<T = any> = IMocodyKeyConditionParams<T> 
   $in?: TypeFallBackArrayAdvanced<T>;
   $nin?: TypeFallBackArrayAdvanced<T>;
   $exists?: boolean;
-  $not?: IMocodyKeyConditionParams<T>;
   $elemMatch?: { $in: TypeFallBackArray<T> };
   //
   $contains?: TypeFallBackStringOnly<T>;

@@ -48,5 +48,12 @@ https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ql-reference.se
 
 https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/Welcome.html
 
+https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ql-operators.html
+
+https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/example_dynamodb_ExecuteStatement_section.html
+
+https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/example_dynamodb_BatchExecuteStatement_section.html
+
+https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ql-reference.select.html
 
 

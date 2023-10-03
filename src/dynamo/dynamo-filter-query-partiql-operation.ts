@@ -5,6 +5,12 @@ import { MocodyErrorUtilsService } from "../helpers/errors";
 
 // https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.OperatorsAndFunctions.html
 // https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/example_dynamodb_ExecuteStatement_section.html
+//
+// https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ql-operators.html
+// https://repost.aws/questions/QUgNPbBYWiRoOlMsJv-XzrWg/how-to-use-lastevaluatedkey-in-executestatement-request
+// https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.OperatorsAndFunctions.html
+// https://dynobase.dev/dynamodb-partiql/
+// https://thomasstep.com/blog/api-pagination-with-dynamodb
 
 type FieldPartial<T> = { [P in keyof T]-?: string };
 
@@ -23,7 +29,6 @@ const QUERY_CONDITION_MAP_PART: FieldPartial<Omit<IMocodyQueryConditionParams, k
   $exists: "",
   $in: "",
   $nin: "",
-  $not: "",
   $contains: "",
   $notContains: "",
   $elemMatch: "",
@@ -41,6 +46,11 @@ const QUERY_CONDITION_MAP_NESTED = {
 
 const QUERY_CONDITION_MAP_FULL = { ...KEY_CONDITION_MAP, ...QUERY_CONDITION_MAP_PART } as const;
 
+type IQueryConditions = {
+  subStatement: string;
+  subParameters: any[];
+};
+
 function hasQueryConditionValue(key: string) {
   if (key && Object.keys(QUERY_CONDITION_MAP_FULL).includes(key) && QUERY_CONDITION_MAP_FULL[key]) {
     return true;
@@ -48,13 +58,19 @@ function hasQueryConditionValue(key: string) {
   return false;
 }
 
-export class DynamoFilterQueryOperation {
+export class DynamoFilterQueryPartiQlOperation {
   private operation__filterFieldExist({ fieldName }: { fieldName: string }) {
-    return `attribute_exists (${fieldName})`;
+    return {
+      subStatement: `NOT (${fieldName} is MISSING)`,
+      subParameters: [],
+    };
   }
 
   private operation__filterFieldNotExist({ fieldName }: { fieldName: string }) {
-    return `attribute_not_exists (${fieldName})`;
+    return {
+      subStatement: `(${fieldName} is MISSING)`,
+      subParameters: [],
+    };
   }
 
   private operation__helperFilterBasic({
@@ -65,8 +81,69 @@ export class DynamoFilterQueryOperation {
     fieldName: string;
     conditionExpr: string;
     val: string | number;
-  }) {
-    return [fieldName, conditionExpr, val].join(" ");
+  }): IQueryConditions {
+    return {
+      subStatement: `${fieldName} ${conditionExpr} ?`,
+      subParameters: [val],
+    };
+  }
+
+  private operation__filterBetween({
+    fieldName,
+    from,
+    to,
+  }: {
+    fieldName: string;
+    from: any;
+    to: any;
+  }): IQueryConditions {
+    return {
+      subStatement: `(${fieldName} BETWEEN ? AND ?)`,
+      subParameters: [from, to],
+    };
+  }
+
+  private operation__filterBeginsWith({ fieldName, term }: { fieldName: string; term: any }) {
+    return {
+      subStatement: `begins_with("${fieldName}", ?)`,
+      subParameters: [term],
+    };
+  }
+
+  private operation__filterContains({ fieldName, term }: { fieldName: string; term: string }): IQueryConditions {
+    return {
+      subStatement: `contains("${fieldName}", ?)`,
+      subParameters: [term],
+    };
+  }
+
+  private operation__filterNotContains({ fieldName, term }: { fieldName: string; term: string }): IQueryConditions {
+    return {
+      subStatement: `NOT (contains("${fieldName}", ?))`,
+      subParameters: [term],
+    };
+  }
+
+  private operation__filterIn({ fieldName, attrValues }: { fieldName: string; attrValues: any[] }): IQueryConditions {
+    const variable01 = attrValues.map(() => "?").join(",");
+    return {
+      subStatement: `${fieldName} IN [${variable01}]`,
+      subParameters: attrValues,
+    };
+  }
+
+  private operation__filterNotIn({
+    fieldName,
+    attrValues,
+  }: {
+    fieldName: string;
+    attrValues: any[];
+  }): IQueryConditions {
+    const variable01 = attrValues.map(() => "?").join(",");
+    return {
+      subStatement: `NOT (${fieldName} IN [${variable01}])`,
+      subParameters: attrValues,
+    };
   }
 
   private operation__filterElemMatch({
@@ -75,17 +152,13 @@ export class DynamoFilterQueryOperation {
   }: {
     fieldName: string;
     attrValues: { $in: any[] };
-  }): string[] {
-    const result: string[] = [];
+  }): IQueryConditions[] {
+    const result: IQueryConditions[] = [];
     attrValues.$in.forEach((term) => {
       const query01 = this.operation__filterContains({ term, fieldName });
       result.push(query01);
     });
     return result;
-  }
-
-  private operation__filterIn({ fieldName, attrValues }: { fieldName: string; attrValues: any[] }) {
-    return `${fieldName} IN [${attrValues.join(",")}]`;
   }
 
   private operation__filterNestedMatchObject({
@@ -99,9 +172,9 @@ export class DynamoFilterQueryOperation {
       { amount: {$in: [99, 69, 69]} }
     */
     attrValues: Record<string, Record<string, any> | string | number | string[] | number[]>;
-  }): string {
+  }): IQueryConditions[] {
     const parentHashKey = fieldName;
-    const xFilterExpressionList: string[] = [];
+    const queryList: IQueryConditions[] = [];
 
     Object.entries(attrValues).forEach(([subFieldName, queryval]) => {
       //
@@ -125,60 +198,74 @@ export class DynamoFilterQueryOperation {
         }
         const conditionExpr = QUERY_CONDITION_MAP_NESTED[conditionKey];
         //
-        const attrValueHashKey = conditionValue;
-        //
         if (conditionExpr) {
-          // resultQuery.xExpressionAttributeValues[attrValueHashKey] = conditionValue;
-          xFilterExpressionList.push([`${parentHashKey}.${childKeyHash}`, conditionExpr, attrValueHashKey].join(" "));
-          //
+          const queryCondition01 = this.operation__helperFilterBasic({
+            fieldName: `${parentHashKey}.${childKeyHash}`,
+            conditionExpr: conditionExpr,
+            val: conditionValue,
+          });
+
+          queryList.push(queryCondition01);
         } else if (conditionKey === "$between") {
           QueryValidatorCheck.between(conditionValue);
 
-          const [fromVal, toVal] = conditionValue;
+          const [from, to] = conditionValue;
 
-          xFilterExpressionList.push([`${parentHashKey}.${childKeyHash}`, "BETWEEN", fromVal, "AND", toVal].join(" "));
-          //
+          const queryCondition01 = this.operation__filterBetween({
+            fieldName: `${parentHashKey}.${childKeyHash}`,
+            from,
+            to,
+          });
+
+          queryList.push(queryCondition01);
         } else if (conditionKey === "$beginsWith") {
-          //
-          xFilterExpressionList.push(`begins_with (${parentHashKey}.${childKeyHash}, ${attrValueHashKey})`);
-          //
+          const queryCondition01 = this.operation__filterBeginsWith({
+            fieldName: `${parentHashKey}.${childKeyHash}`,
+            term: conditionValue,
+          });
+
+          queryList.push(queryCondition01);
         } else if (conditionKey === "$contains") {
-          //
-          xFilterExpressionList.push(`contains (${parentHashKey}.${childKeyHash}, ${attrValueHashKey})`);
-          //
+          const query01 = this.operation__filterContains({
+            fieldName: `${parentHashKey}.${childKeyHash}`,
+            term: conditionValue,
+          });
+
+          queryList.push(query01);
         } else if (conditionKey === "$exists") {
           QueryValidatorCheck.exists(conditionValue);
+
           if (String(conditionValue) === "true") {
-            xFilterExpressionList.push(`attribute_exists (${parentHashKey}.${childKeyHash})`);
+            const query01 = this.operation__filterFieldExist({
+              fieldName: `${parentHashKey}.${childKeyHash}`,
+            });
+
+            queryList.push(query01);
           } else {
-            xFilterExpressionList.push(`attribute_not_exists (${parentHashKey}.${childKeyHash})`);
+            const query01 = this.operation__filterFieldNotExist({
+              fieldName: `${parentHashKey}.${childKeyHash}`,
+            });
+            queryList.push(query01);
           }
         } else if (conditionKey === "$in" || conditionKey === "$nin") {
           if (conditionKey === "$nin") {
             QueryValidatorCheck.notIn(conditionValue);
-          } else {
+
+            const query01 = this.operation__filterNotIn({
+              attrValues: conditionValue,
+              fieldName: `${parentHashKey}.${childKeyHash}`,
+            });
+
+            queryList.push(query01);
+          } else if (conditionKey === "$in") {
             QueryValidatorCheck.in_query(conditionValue);
-          }
 
-          const attrValues: string[] = [...conditionValue];
-          const filterExpress: string[] = [];
+            const query01 = this.operation__filterIn({
+              attrValues: conditionValue,
+              fieldName: `${parentHashKey}.${childKeyHash}`,
+            });
 
-          attrValues.forEach((item) => {
-            filterExpress.push(`${parentHashKey}.${childKeyHash} = ${item}`);
-          });
-
-          const filterExpression01 = filterExpress
-            .map((f, _, arr) => {
-              if (arr.length > 1) return `(${f})`;
-              return f;
-            })
-            .join(" OR ")
-            .trim();
-
-          if (conditionKey === "$nin") {
-            xFilterExpressionList.push(`NOT (${filterExpression01})`);
-          } else {
-            xFilterExpressionList.push(filterExpression01);
+            queryList.push(query01);
           }
         } else {
           throw MocodyErrorUtilsService.mocody_helper_createFriendlyError(
@@ -188,71 +275,7 @@ export class DynamoFilterQueryOperation {
       });
     });
 
-    const xFilterExpression = xFilterExpressionList
-      .map((f, _, arr) => {
-        if (arr.length > 1) return `(${f})`;
-        return f;
-      })
-      .join(" AND ");
-
-    return xFilterExpression;
-  }
-
-  private operation__filterContains({ fieldName, term }: { fieldName: string; term: any }) {
-    return `contains ("${fieldName}", ${term})`;
-  }
-
-  private operation__filterNot({ fieldName, selectorValues }: { fieldName: string; selectorValues: any }): string[] {
-    //
-    const selector: Record<keyof IMocodyKeyConditionParams, any> = { ...selectorValues };
-
-    const mConditions: string[] = [];
-
-    Object.entries(selector).forEach(([conditionKey, conditionValue]) => {
-      if (hasQueryConditionValue(conditionKey)) {
-        const _conditionKey01 = conditionKey as keyof IMocodyKeyConditionParams;
-
-        if (_conditionKey01 === "$beginsWith") {
-          QueryValidatorCheck.beginWith(conditionValue);
-
-          const _queryConditions = this.operation__filterBeginsWith({
-            fieldName: fieldName,
-            term: conditionValue,
-          });
-          mConditions.push(_queryConditions);
-        } else if (_conditionKey01 === "$between") {
-          QueryValidatorCheck.between(conditionValue);
-          const [from, to] = conditionValue;
-          const _queryConditions = this.operation__filterBetween({
-            fieldName: fieldName,
-            from,
-            to,
-          });
-          mConditions.push(_queryConditions);
-        } else {
-          const conditionExpr = QUERY_CONDITION_MAP_FULL[conditionKey];
-          if (conditionExpr) {
-            const _queryConditions = this.operation__helperFilterBasic({
-              fieldName: fieldName,
-              val: conditionValue,
-              conditionExpr: conditionExpr,
-            });
-            mConditions.push(_queryConditions);
-          } else {
-            QueryValidatorCheck.throwQueryNotFound(conditionKey);
-          }
-        }
-      }
-    });
-    return mConditions;
-  }
-
-  private operation__filterBetween({ fieldName, from, to }: { fieldName: string; from: any; to: any }) {
-    return `${fieldName} BETWEEN ${from} AND ${to}`;
-  }
-
-  private operation__filterBeginsWith({ fieldName, term }: { fieldName: string; term: any }) {
-    return `begins_with ("${fieldName}", ${term})`;
+    return queryList;
   }
 
   private operation__translateAdvancedQueryOperation({
@@ -262,9 +285,8 @@ export class DynamoFilterQueryOperation {
     fieldName: string;
     queryObject: Record<string, any>;
   }) {
-    const queryConditions: string[] = [];
-    const notConditions: string[] = [];
-    const orConditions: string[] = [];
+    const queryConditions: IQueryConditions[] = [];
+    const orConditions: IQueryConditions[] = [];
     //
     Object.entries(queryObject).forEach(([condKey, conditionValue]) => {
       const conditionKey = condKey as keyof IMocodyQueryConditionParams;
@@ -272,12 +294,12 @@ export class DynamoFilterQueryOperation {
         if (conditionKey === "$between") {
           QueryValidatorCheck.between(conditionValue);
           const [from, to] = conditionValue;
-          const _queryConditions = this.operation__filterBetween({
-            fieldName: fieldName,
+          const queryCondition01 = this.operation__filterBetween({
+            fieldName,
             from,
             to,
           });
-          queryConditions.push(_queryConditions);
+          queryConditions.push(queryCondition01);
         } else if (conditionKey === "$beginsWith") {
           QueryValidatorCheck.beginWith(conditionValue);
           const _queryConditions = this.operation__filterBeginsWith({
@@ -287,35 +309,30 @@ export class DynamoFilterQueryOperation {
           queryConditions.push(_queryConditions);
         } else if (conditionKey === "$contains") {
           QueryValidatorCheck.contains(conditionValue);
-          const _queryConditions = this.operation__filterContains({
+          const query01 = this.operation__filterContains({
             fieldName: fieldName,
             term: conditionValue,
           });
-          queryConditions.push(_queryConditions);
+          queryConditions.push(query01);
         } else if (conditionKey === "$in") {
           QueryValidatorCheck.in_query(conditionValue);
-          const _queryConditions = this.operation__filterIn({
+          const query01 = this.operation__filterIn({
             fieldName: fieldName,
             attrValues: conditionValue,
           });
-          queryConditions.push(_queryConditions);
+          queryConditions.push(query01);
         } else if (conditionKey === "$nin") {
           QueryValidatorCheck.notIn(conditionValue);
 
-          const queryConditions01 = this.operation__filterIn({
+          const queryConditions01 = this.operation__filterNotIn({
             fieldName: fieldName,
             attrValues: conditionValue,
           });
 
-          // queryConditions01.xFilterExpression = queryConditions01.xFilterExpression.trim().startsWith("(")
-          //   ? `NOT ${queryConditions01.xFilterExpression}`
-          //   : `NOT (${queryConditions01.xFilterExpression})`;
-
-          const queryNotConditions = `NOT (${queryConditions01})`;
-
-          queryConditions.push(queryNotConditions);
+          queryConditions.push(queryConditions01);
         } else if (conditionKey === "$elemMatch") {
           QueryValidatorCheck.elemMatch(conditionValue);
+
           const elemMatchConditions = this.operation__filterElemMatch({
             fieldName: fieldName,
             attrValues: conditionValue,
@@ -326,86 +343,79 @@ export class DynamoFilterQueryOperation {
             });
           }
         } else if (conditionKey === "$nestedMatch") {
+          //
           QueryValidatorCheck.nestedMatch(conditionValue);
+
           const nestedMatchConditions = this.operation__filterNestedMatchObject({
             fieldName: fieldName,
             attrValues: conditionValue,
           });
-          if (nestedMatchConditions) {
-            queryConditions.push(nestedMatchConditions);
-          }
-        } else if (conditionKey === "$not") {
-          QueryValidatorCheck.not_query(conditionValue);
-          const _queryConditions = this.operation__filterNot({
-            fieldName: fieldName,
-            selectorValues: conditionValue,
-          });
-          if (_queryConditions?.length) {
-            _queryConditions.forEach((cond) => {
-              notConditions.push(cond);
-            });
+          if (nestedMatchConditions?.length) {
+            queryConditions.push(...nestedMatchConditions);
           }
         } else if (conditionKey === "$notContains") {
           QueryValidatorCheck.notContains(conditionValue);
-          const queryCondition01 = this.operation__filterContains({
+
+          const query01 = this.operation__filterNotContains({
             fieldName: fieldName,
             term: conditionValue,
           });
-          const queryNotConditions = `NOT (${queryCondition01})`;
-          queryConditions.push(queryNotConditions);
+          queryConditions.push(query01);
         } else if (conditionKey === "$exists") {
           QueryValidatorCheck.exists(conditionValue);
+
           if (String(conditionValue) === "true") {
-            const _queryConditions = this.operation__filterFieldExist({
+            const quer01 = this.operation__filterFieldExist({
               fieldName: fieldName,
             });
-            queryConditions.push(_queryConditions);
+            queryConditions.push(quer01);
           } else if (String(conditionValue) === "false") {
-            const _queryConditions = this.operation__filterFieldNotExist({
+            const quer01 = this.operation__filterFieldNotExist({
               fieldName: fieldName,
             });
-            queryConditions.push(_queryConditions);
+            queryConditions.push(quer01);
           }
         } else {
           const conditionExpr = QUERY_CONDITION_MAP_FULL[conditionKey];
+
           if (hasQueryConditionValue(conditionKey) && conditionExpr) {
-            const queryCondition01 = this.operation__helperFilterBasic({
+            const quer01 = this.operation__helperFilterBasic({
               fieldName: fieldName,
               val: conditionValue,
               conditionExpr: conditionExpr,
             });
-            queryConditions.push(queryCondition01);
+            queryConditions.push(quer01);
           } else {
             QueryValidatorCheck.throwQueryNotFound(conditionKey);
           }
         }
       }
     });
-    LoggingService.logAsString({ queryConditions, notConditions, orConditions });
-    return { queryConditions, notConditions, orConditions };
+
+    LoggingService.logAsString({
+      queryConditions,
+      orConditions,
+    });
+
+    return {
+      queryConditions,
+      orConditions,
+    };
   }
 
   private operation_translateBasicQueryOperation({ fieldName, queryObject }: { fieldName: string; queryObject: any }) {
-    const _queryConditions = this.operation__helperFilterBasic({
+    const query01 = this.operation__helperFilterBasic({
       fieldName: fieldName,
       val: queryObject,
       conditionExpr: "=",
     });
-    return _queryConditions;
+    return query01;
   }
 
-  processQueryFilter({
-    queryDefs,
-    projectionFields,
-  }: {
-    queryDefs: IMocodyQueryDefinition<any>["query"];
-    projectionFields: any[] | undefined | null;
-  }) {
-    const AND_queryConditions: string[] = [];
-    const OR_queryConditions: string[] = [];
-    const NOT_queryConditions: string[] = [];
-    const NOT_inside_OR_queryConditions: string[] = [];
-    const OR_queryConditions_multiFields: string[][] = [];
+  processQueryFilter({ queryDefs }: { queryDefs: IMocodyQueryDefinition<any>["query"] }) {
+    const AND_queryConditions: IQueryConditions[] = [];
+    const OR_queryConditions: IQueryConditions[] = [];
+    const OR_queryConditions_multiFields: IQueryConditions[][] = [];
 
     Object.entries(queryDefs).forEach(([conditionKey, conditionValue]) => {
       if (conditionKey === "$or") {
@@ -414,13 +424,14 @@ export class DynamoFilterQueryOperation {
         const orArray = conditionValue as { [k: string]: any }[];
 
         orArray.forEach((orQuery) => {
-          const OR_queryMultiConditionsPrivate: string[] = [];
+          const OR_queryMultiConditionsPrivate: IQueryConditions[] = [];
 
           Object.entries(orQuery).forEach(([fieldName, orQueryObjectOrValue], _, arr) => {
             if (orQueryObjectOrValue !== undefined) {
               if (orQueryObjectOrValue && typeof orQueryObjectOrValue === "object") {
                 //
                 const hasMultiField = Object.keys(orQueryObjectOrValue).length > 1;
+                console.log({ hasMultiField, orQueryObjectOrValue });
 
                 const orQueryCond01 = this.operation__translateAdvancedQueryOperation({
                   fieldName,
@@ -432,16 +443,15 @@ export class DynamoFilterQueryOperation {
                     OR_queryMultiConditionsPrivate.push(...orQueryCond01.queryConditions);
                   } else {
                     OR_queryConditions.push(...orQueryCond01.queryConditions);
-                    NOT_inside_OR_queryConditions.push(...orQueryCond01.notConditions);
                   }
                 }
               } else {
-                const orQueryCondition01 = this.operation_translateBasicQueryOperation({
+                const query01 = this.operation_translateBasicQueryOperation({
                   fieldName,
                   queryObject: orQueryObjectOrValue,
                 });
 
-                OR_queryConditions.push(orQueryCondition01);
+                OR_queryConditions.push(query01);
               }
             }
           });
@@ -464,7 +474,6 @@ export class DynamoFilterQueryOperation {
                   queryObject: andQueryObjectOrValue,
                 });
                 AND_queryConditions.push(...andQueryCond01.queryConditions);
-                NOT_queryConditions.push(...andQueryCond01.notConditions);
                 OR_queryConditions.push(...andQueryCond01.orConditions);
               } else {
                 const andQueryCondition01 = this.operation_translateBasicQueryOperation({
@@ -485,7 +494,6 @@ export class DynamoFilterQueryOperation {
                 queryObject: conditionValue,
               });
               AND_queryConditions.push(...queryCond01.queryConditions);
-              NOT_queryConditions.push(...queryCond01.notConditions);
               OR_queryConditions.push(...queryCond01.orConditions);
             } else {
               const queryCondition01 = this.operation_translateBasicQueryOperation({
@@ -499,53 +507,78 @@ export class DynamoFilterQueryOperation {
       }
     });
 
-    /*
-    const AND_queryConditions: string[] = [];
-    const OR_queryConditions: string[] = [];
-    const NOT_queryConditions: string[] = [];
-    const NOT_inside_OR_queryConditions: string[] = [];
-    const OR_queryConditions_multiFields: string[][] = [];
-    */
-
     const out01 = {
       AND_queryConditions,
       OR_queryConditions,
-      NOT_queryConditions,
-      NOT_inside_OR_queryConditions,
       OR_queryConditions_multiFields,
     };
 
-    LoggingService.log({
-      AND_queryConditions,
-      OR_queryConditions,
-      NOT_queryConditions,
-      NOT_inside_OR_queryConditions,
-      OR_queryConditions_multiFields,
+    LoggingService.logAsString({ out01 });
+
+    const subStatement: string[] = [];
+    const subParameter: any[] = [];
+
+    AND_queryConditions.forEach((f, i) => {
+      if (i !== 0) {
+        subStatement.push(" AND ");
+      }
+      subStatement.push(f.subStatement);
+      subParameter.push(...f.subParameters);
     });
 
-    // const AND_FilterExpressionArray: string[] = [];
-    // const OR_FilterExpressionArray: string[] = [];
-    // const OR_FilterExpressionMultiFieldsArray: string[][] = [];
-    // const NOT_FilterExpressionArray: string[] = [];
-    // const NOT_inside_OR_FilterExpressionArray: string[] = [];
+    OR_queryConditions.forEach((f, i) => {
+      if (i !== 0) {
+        subStatement.push(" OR ");
+      }
+      subStatement.push(f.subStatement);
+      subParameter.push(...f.subParameters);
+    });
 
-    return out01;
+    console.log({ OR_queryConditions_multiFields });
+
+    if (OR_queryConditions_multiFields?.length) {
+      subStatement.push("(");
+
+      OR_queryConditions_multiFields.forEach((qItem, i) => {
+        if (i !== 0) {
+          subStatement.push(" OR ");
+        }
+
+        qItem.forEach((f, i) => {
+          if (i !== 0) {
+            subStatement.push(" AND ");
+          }
+          subStatement.push(f.subStatement);
+          subParameter.push(...f.subParameters);
+        });
+      });
+
+      subStatement.push(")");
+    }
+
+    return {
+      subStatement: subStatement.join(" "),
+      subParameter,
+    };
   }
 }
 
-// const result01 = new DynamoFilterQueryOperation().operation__filterNestedMatchObject({
-//   fieldName: "user",
-//   attrValues: {
-//     amount: { $nin: [8999, 7466, 354] },
-//     name: { $eq: "chris" },
-//   },
-// });
+const multiVal1 = "term1";
+const multiVal2 = "term2";
 
 const query = {
   targetId: `caa603bf4b9dcffb715afaf312b480c8`,
-  amount: {
-    $gte: 0,
-  },
+  amount: { $gte: 0 },
+  $or: [
+    {
+      firstName: { $beginsWith: multiVal1, $exists: true },
+      lastName: { $beginsWith: multiVal2, $exists: true },
+    },
+    {
+      firstName: { $beginsWith: multiVal2 },
+      lastName: { $beginsWith: multiVal1 },
+    },
+  ],
   source: {
     $nestedMatch: {
       name: "INVENTORY_OUPUT",
@@ -554,9 +587,8 @@ const query = {
   },
 };
 
-const otherFilter = new DynamoFilterQueryOperation().processQueryFilter({
+const otherFilter = new DynamoFilterQueryPartiQlOperation().processQueryFilter({
   queryDefs: query,
-  projectionFields: null,
 });
 
 console.log({ otherFilter });

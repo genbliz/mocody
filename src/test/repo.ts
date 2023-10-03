@@ -2,7 +2,7 @@ import { UtilService } from "../helpers/util-service";
 import type { IMocodyQueryDefinition } from "../type";
 import { BaseRepository } from "./base-repo-mongo";
 import Joi from "joi";
-import faker from "@faker-js/faker";
+import { faker } from "@faker-js/faker";
 
 export interface IPayment {
   amount: number;

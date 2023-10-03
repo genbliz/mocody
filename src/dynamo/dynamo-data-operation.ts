@@ -31,6 +31,8 @@ import { DynamoFilterQueryOperation } from "./dynamo-filter-query-operation";
 import { DynamoQueryScanProcessor } from "./dynamo-query-scan-processor";
 import lodash from "lodash";
 import { getDynamoRandomKeyOrHash } from "./dynamo-helper";
+import { DynamoQueryPartiqlProcessor } from "./dynamo-query-partiql-processor";
+import { DynamoFilterQueryPartiQlOperation } from "./dynamo-filter-query-partiql-operation";
 
 interface IOptions<T> {
   schemaDef: Joi.SchemaMap;
@@ -63,7 +65,10 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
   private readonly _mocody_featureEntityValue: string;
   private readonly _mocody_secondaryIndexOptions: IMocodyIndexDefinition<T>[];
   private readonly _mocody_queryFilter: DynamoFilterQueryOperation;
+  private readonly _mocody_queryPartiQlFilter: DynamoFilterQueryPartiQlOperation;
+  //
   private readonly _mocody_queryScanProcessor: DynamoQueryScanProcessor;
+  private readonly _mocody_queryPartiQlProcessor: DynamoQueryPartiqlProcessor;
   private readonly _mocody_errorHelper: MocodyErrorUtils;
   private readonly _mocody_entityFieldsKeySet: Set<keyof T>;
   //
@@ -87,6 +92,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     this._mocody_strictRequiredFields = strictRequiredFields as string[];
     this._mocody_queryFilter = new DynamoFilterQueryOperation();
     this._mocody_queryScanProcessor = new DynamoQueryScanProcessor();
+    this._mocody_queryPartiQlProcessor = new DynamoQueryPartiqlProcessor();
     this._mocody_errorHelper = new MocodyErrorUtils();
     this._mocody_featureEntity_Key_Value = { featureEntity: featureEntityValue };
     this._mocody_entityFieldsKeySet = new Set();
@@ -978,6 +984,155 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       canPaginate,
       tableFullName,
       featureEntityValue,
+      main_partitionAndSortKey,
+      index_partitionAndSortKey,
+      evaluationLimit: evaluationLimit01,
+      nextPageHash: nextPageHash01,
+      resultLimit: resultLimit01,
+    });
+    return result;
+  }
+
+  //@ts-ignore
+  private async _mocody_getManyBySecondaryIndexPartiQlPaginateBase<
+    TQuery,
+    TData,
+    TSortKeyField extends string | number,
+  >({
+    paramOption,
+    canPaginate,
+    enableRelationFetch,
+  }: {
+    paramOption: IMocodyQueryIndexOptions<TQuery, TSortKeyField>;
+    canPaginate: boolean;
+    enableRelationFetch: boolean;
+  }): Promise<IMocodyPagingResult<TData[]>> {
+    const {
+      //
+      tableFullName,
+      secondaryIndexOptions,
+      partitionKeyFieldName,
+      sortKeyFieldName,
+      featureEntityValue,
+    } = this._mocody_getLocalVariables();
+
+    if (!secondaryIndexOptions?.length) {
+      throw this._mocody_createGenericError("Invalid secondary index definitions");
+    }
+
+    const paramOption01 = { ...paramOption };
+
+    if (!paramOption01?.indexName) {
+      throw this._mocody_createGenericError("Invalid index name input");
+    }
+
+    const secondaryIndex = secondaryIndexOptions.find((item) => {
+      return item.indexName === paramOption01.indexName;
+    });
+
+    if (!secondaryIndex) {
+      throw this._mocody_createGenericError(
+        `Secondary index '${paramOption01.indexName}' not named/defined in secondaryIndexOptions`,
+      );
+    }
+
+    let projectionFields: (keyof TQuery)[] | undefined | null;
+
+    const fields01 = this._mocody_getProjectionFields({
+      fields: paramOption01.fields,
+      excludeFields: paramOption01.excludeFields,
+    });
+
+    if (canPaginate && fields01?.length) {
+      const fieldSet01 = new Set(fields01);
+      fieldSet01.add(partitionKeyFieldName as any);
+      projectionFields = Array.from(fieldSet01);
+    } else {
+      projectionFields = fields01;
+    }
+
+    let evaluationLimit01: number | undefined;
+    let resultLimit01: number | undefined;
+
+    if (paramOption01.limit && UtilService.isNumericInteger(paramOption01.limit)) {
+      resultLimit01 = Number(paramOption01.limit);
+    }
+
+    if (paramOption01?.pagingParams?.evaluationLimit) {
+      evaluationLimit01 = paramOption01?.pagingParams?.evaluationLimit;
+    } else if (!paramOption01.query && resultLimit01) {
+      evaluationLimit01 = resultLimit01;
+    }
+
+    const index_PartitionKeyFieldName = secondaryIndex.partitionKeyFieldName as string;
+    const index_SortKeyFieldName = secondaryIndex.sortKeyFieldName as string;
+
+    const main_partitionAndSortKey: [string, string] = [partitionKeyFieldName, sortKeyFieldName];
+    const index_partitionAndSortKey: [string, string] = [index_PartitionKeyFieldName, index_SortKeyFieldName];
+
+    const partitionSortKeyQuery = paramOption01.sortKeyQuery
+      ? {
+          ...{ [index_SortKeyFieldName]: paramOption01.sortKeyQuery },
+          ...{ [index_PartitionKeyFieldName]: paramOption01.partitionKeyValue },
+        }
+      : { [index_PartitionKeyFieldName]: paramOption01.partitionKeyValue };
+
+    if (!enableRelationFetch) {
+      /** This block avoids query data leak */
+      const localVariables = this._mocody_getLocalVariables();
+
+      const hasFeatureEntity = [
+        //
+        index_PartitionKeyFieldName,
+        index_SortKeyFieldName,
+      ].includes(localVariables.sortKeyFieldName);
+
+      if (!hasFeatureEntity) {
+        paramOption01.query = (paramOption01.query || {}) as any;
+
+        paramOption01.query = {
+          ...paramOption01.query,
+          ...this._mocody_featureEntity_Key_Value,
+        } as any;
+      } else if (index_PartitionKeyFieldName !== localVariables.sortKeyFieldName) {
+        if (localVariables.sortKeyFieldName === index_SortKeyFieldName) {
+          partitionSortKeyQuery[index_SortKeyFieldName] = { $eq: localVariables.featureEntityValue } as any;
+        }
+      }
+    }
+
+    const subStatement: string[] = [];
+
+    const mainFilter = this._mocody_queryPartiQlFilter.processQueryFilter({
+      queryDefs: partitionSortKeyQuery,
+    });
+
+    if (paramOption01.query) {
+      const otherFilter = this._mocody_queryPartiQlFilter.processQueryFilter({
+        queryDefs: paramOption01.query,
+      });
+    }
+
+    const orderDesc = paramOption01?.sort === "desc";
+
+    let nextPageHash01 = paramOption01?.pagingParams?.nextPageHash;
+
+    if (nextPageHash01 === "undefined") {
+      nextPageHash01 = undefined;
+    }
+
+    if (nextPageHash01 === "null") {
+      nextPageHash01 = undefined;
+    }
+
+    const result = await this._mocody_queryPartiQlProcessor.mocody__helperDynamoQueryProcessor<TData>({
+      dynamoDb: () => this._mocody_dynamoInit(),
+      params: { Statement: "" },
+      orderDesc,
+      canPaginate,
+      tableFullName,
+      featureEntityValue,
+      projectionFields: projectionFields as string[],
       main_partitionAndSortKey,
       index_partitionAndSortKey,
       evaluationLimit: evaluationLimit01,
