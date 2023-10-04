@@ -178,8 +178,8 @@ export class DynamoFilterQueryOperation {
       filterExpress.push(`${attrKeyHash01} = ${keyAttr}`);
     });
 
-    const _filterExpression = filterExpress.join(" OR ").trim();
-    const _filterExpressionValue = filterExpress.length > 1 ? `(${_filterExpression})` : _filterExpression;
+    const filterExpression01 = filterExpress.join(" OR ").trim();
+    const filterExpressionValue01 = filterExpress.length > 1 ? `(${filterExpression01})` : filterExpression01;
 
     const result: IQueryConditions = {
       xExpressionAttributeValues: {
@@ -188,7 +188,7 @@ export class DynamoFilterQueryOperation {
       xExpressionAttributeNames: {
         ...expressAttrName,
       },
-      xFilterExpression: _filterExpressionValue,
+      xFilterExpression: filterExpressionValue01,
     };
     return result;
   }
@@ -222,6 +222,7 @@ export class DynamoFilterQueryOperation {
   }): IQueryConditions {
     const parentHashKey = getDynamoRandomKeyOrHash("#");
     const xFilterExpressionList: string[] = [];
+    // const queryConditionsList: IQueryConditions[] = [];
 
     const resultQuery: IQueryConditions = {
       xExpressionAttributeValues: {},
@@ -237,6 +238,8 @@ export class DynamoFilterQueryOperation {
       const childKeyHash = getDynamoRandomKeyOrHash("#");
 
       resultQuery.xExpressionAttributeNames[childKeyHash] = subFieldName;
+
+      const fieldNamePath = `${parentHashKey}.${childKeyHash}`;
 
       if (queryval && typeof queryval === "object") {
         queryValue001 = { ...queryval };
@@ -259,7 +262,7 @@ export class DynamoFilterQueryOperation {
         //
         if (conditionExpr) {
           resultQuery.xExpressionAttributeValues[attrValueHashKey] = conditionValue;
-          xFilterExpressionList.push([`${parentHashKey}.${childKeyHash}`, conditionExpr, attrValueHashKey].join(" "));
+          xFilterExpressionList.push([fieldNamePath, conditionExpr, attrValueHashKey].join(" "));
           //
         } else if (conditionKey === "$between") {
           QueryValidatorCheck.between(conditionValue);
@@ -270,24 +273,24 @@ export class DynamoFilterQueryOperation {
 
           resultQuery.xExpressionAttributeValues[fromKey] = fromVal;
           resultQuery.xExpressionAttributeValues[toKey] = toVal;
-          xFilterExpressionList.push([`${parentHashKey}.${childKeyHash}`, "between", fromKey, "and", toKey].join(" "));
+          xFilterExpressionList.push([fieldNamePath, "between", fromKey, "and", toKey].join(" "));
           //
         } else if (conditionKey === "$beginsWith") {
           //
           resultQuery.xExpressionAttributeValues[attrValueHashKey] = conditionValue;
-          xFilterExpressionList.push(`begins_with (${parentHashKey}.${childKeyHash}, ${attrValueHashKey})`);
+          xFilterExpressionList.push(`begins_with (${fieldNamePath}, ${attrValueHashKey})`);
           //
         } else if (conditionKey === "$contains") {
           //
           resultQuery.xExpressionAttributeValues[attrValueHashKey] = conditionValue;
-          xFilterExpressionList.push(`contains (${parentHashKey}.${childKeyHash}, ${attrValueHashKey})`);
+          xFilterExpressionList.push(`contains (${fieldNamePath}, ${attrValueHashKey})`);
           //
         } else if (conditionKey === "$exists") {
           QueryValidatorCheck.exists(conditionValue);
           if (String(conditionValue) === "true") {
-            xFilterExpressionList.push(`attribute_exists (${parentHashKey}.${childKeyHash})`);
+            xFilterExpressionList.push(`attribute_exists (${fieldNamePath})`);
           } else {
-            xFilterExpressionList.push(`attribute_not_exists (${parentHashKey}.${childKeyHash})`);
+            xFilterExpressionList.push(`attribute_not_exists (${fieldNamePath})`);
           }
         } else if (conditionKey === "$in") {
           QueryValidatorCheck.in_query(conditionValue);
@@ -298,7 +301,7 @@ export class DynamoFilterQueryOperation {
           attrValues.forEach((item) => {
             const keyAttr = getDynamoRandomKeyOrHash(":");
             resultQuery.xExpressionAttributeValues[keyAttr] = item;
-            filterExpress.push(`${parentHashKey}.${childKeyHash} = ${keyAttr}`);
+            filterExpress.push(`${fieldNamePath} = ${keyAttr}`);
           });
 
           const filterExpression01 = filterExpress
@@ -319,7 +322,7 @@ export class DynamoFilterQueryOperation {
           attrValues.forEach((item) => {
             const keyAttr = getDynamoRandomKeyOrHash(":");
             resultQuery.xExpressionAttributeValues[keyAttr] = item;
-            filterExpress.push(`${parentHashKey}.${childKeyHash} = ${keyAttr}`);
+            filterExpress.push(`${fieldNamePath} = ${keyAttr}`);
           });
 
           const filterExpression01 = filterExpress
