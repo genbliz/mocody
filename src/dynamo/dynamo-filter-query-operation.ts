@@ -62,7 +62,7 @@ export class DynamoFilterQueryOperation {
       xExpressionAttributeNames: {
         [attrKeyHash]: fieldName,
       },
-      xFilterExpression: `attribute_exists (${attrKeyHash})`,
+      xFilterExpression: `attribute_exists(${attrKeyHash})`,
     } as IQueryConditions;
     return result;
   }
@@ -73,8 +73,70 @@ export class DynamoFilterQueryOperation {
       xExpressionAttributeNames: {
         [attrKeyHash]: fieldName,
       },
-      xFilterExpression: `attribute_not_exists (${attrKeyHash})`,
+      xFilterExpression: `attribute_not_exists(${attrKeyHash})`,
     } as IQueryConditions;
+    return result;
+  }
+
+  private operation__filterContains({ fieldName, term }: { fieldName: string; term: any }): IQueryConditions {
+    const attrKeyHash = getDynamoRandomKeyOrHash("#");
+    const valueHash = getDynamoRandomKeyOrHash(":");
+    const result: IQueryConditions = {
+      xExpressionAttributeValues: {
+        [valueHash]: term,
+      },
+      xExpressionAttributeNames: {
+        [attrKeyHash]: fieldName,
+      },
+      xFilterExpression: `contains (${attrKeyHash}, ${valueHash})`,
+    };
+    return result;
+  }
+
+  private operation__filterNotContains({ fieldName, term }: { fieldName: string; term: any }): IQueryConditions {
+    const attrKeyHash = getDynamoRandomKeyOrHash("#");
+    const valueHash = getDynamoRandomKeyOrHash(":");
+    const result: IQueryConditions = {
+      xExpressionAttributeValues: {
+        [valueHash]: term,
+      },
+      xExpressionAttributeNames: {
+        [attrKeyHash]: fieldName,
+      },
+      xFilterExpression: `NOT (contains (${attrKeyHash}, ${valueHash}))`,
+    };
+    return result;
+  }
+
+  private operation__filterBetween({ fieldName, from, to }: { fieldName: string; from: any; to: any }): IQueryConditions {
+    const attrKeyHash01 = getDynamoRandomKeyOrHash("#");
+    const fromValueHash = getDynamoRandomKeyOrHash(":");
+    const toValueHash = getDynamoRandomKeyOrHash(":");
+    const result: IQueryConditions = {
+      xExpressionAttributeValues: {
+        [fromValueHash]: from,
+        [toValueHash]: to,
+      },
+      xExpressionAttributeNames: {
+        [attrKeyHash01]: fieldName,
+      },
+      xFilterExpression: [attrKeyHash01, "between", fromValueHash, "and", toValueHash].join(" "),
+    };
+    return result;
+  }
+
+  private operation__filterBeginsWith({ fieldName, term }: { fieldName: string; term: any }): IQueryConditions {
+    const attrKeyHash01 = getDynamoRandomKeyOrHash("#");
+    const valueHash01 = getDynamoRandomKeyOrHash(":");
+    const result: IQueryConditions = {
+      xExpressionAttributeValues: {
+        [valueHash01]: term,
+      },
+      xExpressionAttributeNames: {
+        [attrKeyHash01]: fieldName,
+      },
+      xFilterExpression: `begins_with(${attrKeyHash01}, ${valueHash01})`,
+    };
     return result;
   }
 
@@ -98,60 +160,6 @@ export class DynamoFilterQueryOperation {
       },
       xFilterExpression: [attrKeyHash, conditionExpr, keyAttr].join(" "),
     };
-    return result;
-  }
-
-  //@ts-ignore
-  private operation__filterIn__001({
-    fieldName,
-    attrValues,
-  }: {
-    fieldName: string;
-    attrValues: (string | number)[];
-  }): IQueryConditions {
-    const expressAttrVal: { [key: string]: { S: string } | { N: number } } = {};
-    const expressAttrName: { [key: string]: string } = {};
-    const valuesVariable: string[] = [];
-
-    const attrKeyVariale = getDynamoRandomKeyOrHash("#");
-    expressAttrName[attrKeyVariale] = fieldName;
-
-    attrValues.forEach((item, i) => {
-      const keyAttr = getDynamoRandomKeyOrHash(":");
-      if (typeof item === "number") {
-        expressAttrVal[keyAttr] = { N: item };
-      } else {
-        expressAttrVal[keyAttr] = { S: item };
-      }
-      valuesVariable.push(keyAttr);
-    });
-
-    const filterExpressionValue01 = `(${attrKeyVariale} IN (${valuesVariable.join(", ")}))`;
-
-    const result: IQueryConditions = {
-      xExpressionAttributeValues: {
-        ...expressAttrVal,
-      },
-      xExpressionAttributeNames: {
-        ...expressAttrName,
-      },
-      xFilterExpression: filterExpressionValue01,
-    };
-    return result;
-  }
-
-  private operation__filterElemMatch({
-    fieldName,
-    attrValues,
-  }: {
-    fieldName: string;
-    attrValues: { $in: any[] };
-  }): IQueryConditions[] {
-    const result: IQueryConditions[] = [];
-    attrValues.$in.forEach((term) => {
-      const query01 = this.operation__filterContains({ term, fieldName });
-      result.push(query01);
-    });
     return result;
   }
 
@@ -181,6 +189,21 @@ export class DynamoFilterQueryOperation {
       },
       xFilterExpression: _filterExpressionValue,
     };
+    return result;
+  }
+
+  private operation__filterElemMatch({
+    fieldName,
+    attrValues,
+  }: {
+    fieldName: string;
+    attrValues: { $in: any[] };
+  }): IQueryConditions[] {
+    const result: IQueryConditions[] = [];
+    attrValues.$in.forEach((term) => {
+      const query01 = this.operation__filterContains({ term, fieldName });
+      result.push(query01);
+    });
     return result;
   }
 
@@ -313,68 +336,6 @@ export class DynamoFilterQueryOperation {
 
     LoggingService.logAsString({ queryNested: resultQuery });
     return resultQuery;
-  }
-
-  private operation__filterContains({ fieldName, term }: { fieldName: string; term: any }): IQueryConditions {
-    const attrKeyHash = getDynamoRandomKeyOrHash("#");
-    const valueHash = getDynamoRandomKeyOrHash(":");
-    const result: IQueryConditions = {
-      xExpressionAttributeValues: {
-        [valueHash]: term,
-      },
-      xExpressionAttributeNames: {
-        [attrKeyHash]: fieldName,
-      },
-      xFilterExpression: `contains (${attrKeyHash}, ${valueHash})`,
-    };
-    return result;
-  }
-
-  private operation__filterNotContains({ fieldName, term }: { fieldName: string; term: any }): IQueryConditions {
-    const attrKeyHash = getDynamoRandomKeyOrHash("#");
-    const valueHash = getDynamoRandomKeyOrHash(":");
-    const result: IQueryConditions = {
-      xExpressionAttributeValues: {
-        [valueHash]: term,
-      },
-      xExpressionAttributeNames: {
-        [attrKeyHash]: fieldName,
-      },
-      xFilterExpression: `NOT (contains (${attrKeyHash}, ${valueHash}))`,
-    };
-    return result;
-  }
-
-  private operation__filterBetween({ fieldName, from, to }: { fieldName: string; from: any; to: any }): IQueryConditions {
-    const attrKeyHash01 = getDynamoRandomKeyOrHash("#");
-    const fromValueHash = getDynamoRandomKeyOrHash(":");
-    const toValueHash = getDynamoRandomKeyOrHash(":");
-    const result: IQueryConditions = {
-      xExpressionAttributeValues: {
-        [fromValueHash]: from,
-        [toValueHash]: to,
-      },
-      xExpressionAttributeNames: {
-        [attrKeyHash01]: fieldName,
-      },
-      xFilterExpression: [attrKeyHash01, "between", fromValueHash, "and", toValueHash].join(" "),
-    };
-    return result;
-  }
-
-  private operation__filterBeginsWith({ fieldName, term }: { fieldName: string; term: any }): IQueryConditions {
-    const attrKeyHash01 = getDynamoRandomKeyOrHash("#");
-    const valueHash01 = getDynamoRandomKeyOrHash(":");
-    const result: IQueryConditions = {
-      xExpressionAttributeValues: {
-        [valueHash01]: term,
-      },
-      xExpressionAttributeNames: {
-        [attrKeyHash01]: fieldName,
-      },
-      xFilterExpression: `begins_with (${attrKeyHash01}, ${valueHash01})`,
-    };
-    return result;
   }
 
   private operation__translateAdvancedQueryOperation({
