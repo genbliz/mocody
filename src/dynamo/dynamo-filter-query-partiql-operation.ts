@@ -152,26 +152,26 @@ export class DynamoFilterQueryPartiQlOperation {
     attrValues,
   }: {
     fieldName: string;
-    /*
+    /**
       ---- Samples ----
       { amount: {$gte: 99} }
       { amount: {$in: [99, 69, 69]} }
     */
     attrValues: Record<string, Record<string, any> | string | number | string[] | number[]>;
   }): IQueryConditions[] {
-    const parentHashKey = fieldName;
     const queryList: IQueryConditions[] = [];
 
     Object.entries(attrValues).forEach(([subFieldName, queryval]) => {
       //
       let queryValue001: Record<string, any>;
-      const childKeyHash = subFieldName;
 
       if (queryval && typeof queryval === "object") {
         queryValue001 = { ...queryval };
       } else {
         queryValue001 = { $eq: queryval };
       }
+
+      const fieldNamePath = `${fieldName}.${subFieldName}`;
 
       Object.entries(queryValue001).forEach(([condKey, conditionValue]) => {
         //
@@ -186,7 +186,7 @@ export class DynamoFilterQueryPartiQlOperation {
         //
         if (conditionExpr) {
           const query01 = this.operation__helperFilterBasic({
-            fieldName: `${parentHashKey}.${childKeyHash}`,
+            fieldName: fieldNamePath,
             conditionExpr: conditionExpr,
             val: conditionValue,
           });
@@ -198,7 +198,7 @@ export class DynamoFilterQueryPartiQlOperation {
           const [from, to] = conditionValue;
 
           const query01 = this.operation__filterBetween({
-            fieldName: `${parentHashKey}.${childKeyHash}`,
+            fieldName: fieldNamePath,
             from,
             to,
           });
@@ -206,14 +206,14 @@ export class DynamoFilterQueryPartiQlOperation {
           queryList.push(query01);
         } else if (conditionKey === "$beginsWith") {
           const queryCondition01 = this.operation__filterBeginsWith({
-            fieldName: `${parentHashKey}.${childKeyHash}`,
+            fieldName: fieldNamePath,
             term: conditionValue,
           });
 
           queryList.push(queryCondition01);
         } else if (conditionKey === "$contains") {
           const query01 = this.operation__filterContains({
-            fieldName: `${parentHashKey}.${childKeyHash}`,
+            fieldName: fieldNamePath,
             term: conditionValue,
           });
 
@@ -223,13 +223,13 @@ export class DynamoFilterQueryPartiQlOperation {
 
           if (String(conditionValue) === "true") {
             const query01 = this.operation__filterFieldExist({
-              fieldName: `${parentHashKey}.${childKeyHash}`,
+              fieldName: fieldNamePath,
             });
 
             queryList.push(query01);
           } else {
             const query01 = this.operation__filterFieldNotExist({
-              fieldName: `${parentHashKey}.${childKeyHash}`,
+              fieldName: fieldNamePath,
             });
             queryList.push(query01);
           }
@@ -239,16 +239,16 @@ export class DynamoFilterQueryPartiQlOperation {
 
             const query01 = this.operation__filterNotIn({
               attrValues: conditionValue,
-              fieldName: `${parentHashKey}.${childKeyHash}`,
+              fieldName: fieldNamePath,
             });
 
             queryList.push(query01);
-          } else if (conditionKey === "$in") {
+          } else {
             QueryValidatorCheck.in_query(conditionValue);
 
             const query01 = this.operation__filterIn({
               attrValues: conditionValue,
-              fieldName: `${parentHashKey}.${childKeyHash}`,
+              fieldName: fieldNamePath,
             });
 
             queryList.push(query01);
