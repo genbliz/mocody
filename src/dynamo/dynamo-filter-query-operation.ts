@@ -222,7 +222,6 @@ export class DynamoFilterQueryOperation {
   }): IQueryConditions {
     const parentHashKey = getDynamoRandomKeyOrHash("#");
     const xFilterExpressionList: string[] = [];
-    const queryConditionsList: IQueryConditions[] = [];
 
     const resultQuery: IQueryConditions = {
       xExpressionAttributeValues: {},
