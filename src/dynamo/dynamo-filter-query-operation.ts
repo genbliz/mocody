@@ -208,6 +208,15 @@ export class DynamoFilterQueryOperation {
     return result;
   }
 
+  private operation_translateBasicQueryOperation({ fieldName, queryObject }: { fieldName: string; queryObject: any }) {
+    const _queryConditions = this.operation__helperFilterBasic({
+      fieldName: fieldName,
+      val: queryObject,
+      conditionExpr: "=",
+    });
+    return _queryConditions;
+  }
+
   private operation__filterNestedMatchObject({
     fieldName,
     attrValues,
@@ -471,15 +480,6 @@ export class DynamoFilterQueryOperation {
     });
     LoggingService.logAsString({ queryConditions, orConditions });
     return { queryConditions, orConditions };
-  }
-
-  private operation_translateBasicQueryOperation({ fieldName, queryObject }: { fieldName: string; queryObject: any }) {
-    const _queryConditions = this.operation__helperFilterBasic({
-      fieldName: fieldName,
-      val: queryObject,
-      conditionExpr: "=",
-    });
-    return _queryConditions;
   }
 
   processQueryFilter({
