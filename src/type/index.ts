@@ -36,6 +36,7 @@ export type IMocodyQueryConditionParams<T = any> = IMocodyKeyConditionParams<T> 
   $contains?: TypeFallBackStringOnly<T>;
   $notContains?: TypeFallBackStringOnly<T>;
   $nestedMatch?: IQueryNested<RequireAtLeastOne<T>>;
+  $nestedArrayMatch?: IQueryNestedArray<RequireAtLeastOne<T>>;
 };
 
 export type IMocodyQueryNestedParams<T = any> = IMocodyKeyConditionParams<T> & {
@@ -52,6 +53,12 @@ type IQueryAll<T> = {
 
 type IQueryNested<T> = {
   [P in keyof T]: T[P] | IMocodyQueryNestedParams<T[P]>;
+};
+
+type IQueryNestedArray<T> = {
+  query: IMocodyQueryNestedParams<any>;
+  index: number;
+  path: string[];
 };
 
 export interface IMocodyPagingResult<T> {

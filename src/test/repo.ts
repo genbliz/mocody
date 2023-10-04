@@ -88,6 +88,11 @@ class MyRepositoryBase extends BaseRepository<IPayment> {
             amount: { $between: [25000, 40000] },
             // remark: { $beginsWith: "Data" },
           },
+          $nestedArrayMatch: {
+            index: 1,
+            query: { $contains: "Data" },
+            path: ["remark"],
+          },
         },
       },
     });
