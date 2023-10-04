@@ -1,4 +1,4 @@
-import { UtilService } from "../helpers/util-service";
+// import { UtilService } from "../helpers/util-service";
 import { GetItemCommandInput } from "@aws-sdk/client-dynamodb";
 import type { IMocodyPagingResult } from "../type";
 import { LoggingService } from "../helpers/logging-service";
@@ -16,7 +16,7 @@ interface IDynamoQueryPartiqlProcessorParams {
   params: IParamInput;
   resultLimit?: number | undefined | null;
   nextPageHash?: string | undefined | null;
-  orderDesc?: boolean | undefined | null;
+  sortOrder?: "asc" | "desc" | undefined | null;
   canPaginate: boolean;
   featureEntityValue: string;
   indexName: string;
@@ -34,7 +34,7 @@ export class DynamoQueryPartiqlProcessor {
     params,
     resultLimit,
     nextPageHash,
-    orderDesc,
+    sortOrder,
     dynamoDb,
     canPaginate,
     projectionFields,
@@ -51,7 +51,7 @@ export class DynamoQueryPartiqlProcessor {
 
     const processorParamsInit = {
       resultLimit,
-      orderDesc,
+      sortOrder,
       canPaginate,
       nextPageHash,
       evaluationLimit,
@@ -120,7 +120,7 @@ export class DynamoQueryPartiqlProcessor {
     const parameters: any[] = [current_partitionValue];
     parameters.push(...params.subParameter);
 
-    if (orderDesc) {
+    if (sortOrder === "desc") {
       statementText.push(`ORDER BY ${current_SortKeyFieldName} DESC`);
     } else {
       statementText.push(`ORDER BY ${current_SortKeyFieldName} ASC`);
@@ -139,10 +139,11 @@ export class DynamoQueryPartiqlProcessor {
     }
 
     if (nextPageHash) {
-      const nextToken01 = this.__decodeLastKey(nextPageHash);
-      if (nextToken01) {
-        params01.NextToken = nextToken01;
-      }
+      // const nextToken01 = this.__decodeLastKey(nextPageHash);
+      // if (nextToken01) {
+      //   params01.NextToken = nextToken01;
+      // }
+      params01.NextToken = nextPageHash;
     }
 
     LoggingService.logAsString({ query_start_params: params01 });
@@ -191,24 +192,25 @@ export class DynamoQueryPartiqlProcessor {
 
           if (canPaginate) {
             if (hasMoreResults) {
-              const [lastKeyRawObject] = actualResult01.slice(-1);
-              LoggingService.log({ lastKeyRawObject });
-              if (lastKeyRawObject) {
-                const customLastEvaluationKey = await this.__createCustomLastEvaluationKey({
-                  lastKeyRawObject,
-                  featureEntityValue,
-                  current_partitionAndSortKey,
-                  default_partitionAndSortKey,
-                  dynamo,
-                  tableFullName,
-                });
-                LoggingService.logAsString({ customLastEvaluationKey });
-                if (customLastEvaluationKey) {
-                  outResult.nextPageHash = this.__encodeLastKey(customLastEvaluationKey);
-                }
-              }
+              // const [lastKeyRawObject] = actualResult01.slice(-1);
+              // LoggingService.log({ lastKeyRawObject });
+              // if (lastKeyRawObject) {
+              //   const customLastEvaluationKey = await this.__createCustomLastEvaluationKey({
+              //     lastKeyRawObject,
+              //     featureEntityValue,
+              //     current_partitionAndSortKey,
+              //     default_partitionAndSortKey,
+              //     dynamo,
+              //     tableFullName,
+              //   });
+              //   LoggingService.logAsString({ customLastEvaluationKey });
+              //   if (customLastEvaluationKey) {
+              //     outResult.nextPageHash = customLastEvaluationKey;
+              //   }
+              // }
+              outResult.nextPageHash = NextToken;
             } else if (LastEvaluatedKey && Object.keys(LastEvaluatedKey).length) {
-              outResult.nextPageHash = this.__encodeLastKey(LastEvaluatedKey);
+              outResult.nextPageHash = NextToken;
             }
           }
           hasNext = false;
@@ -250,6 +252,7 @@ export class DynamoQueryPartiqlProcessor {
     return { ...outResult };
   }
 
+  //@ts-ignore
   private async __createCustomLastEvaluationKey({
     lastKeyRawObject,
     current_partitionAndSortKey,
@@ -320,37 +323,37 @@ export class DynamoQueryPartiqlProcessor {
     return Object.keys(obj01).length === fields.length ? obj01 : null;
   }
 
-  private __encodeLastKey(lastEvaluatedKey: Record<string, any>) {
-    return UtilService.encodeBase64(JSON.stringify(lastEvaluatedKey));
-  }
+  // private __encodeLastKey(lastEvaluatedKey: Record<string, any>) {
+  //   return UtilService.encodeBase64(JSON.stringify(lastEvaluatedKey));
+  // }
 
-  private __decodeLastKey(lastKeyHash: string | undefined): any {
-    try {
-      if (!lastKeyHash) {
-        return undefined;
-      }
-      let lastKeyHash01: any = JSON.parse(UtilService.decodeBase64(lastKeyHash));
+  // private __decodeLastKey(lastKeyHash: string | undefined): any {
+  //   try {
+  //     if (!lastKeyHash) {
+  //       return undefined;
+  //     }
+  //     let lastKeyHash01: any = JSON.parse(UtilService.decodeBase64(lastKeyHash));
 
-      if (typeof lastKeyHash01 === "string") {
-        lastKeyHash01 = JSON.parse(lastKeyHash01);
-      }
+  //     if (typeof lastKeyHash01 === "string") {
+  //       lastKeyHash01 = JSON.parse(lastKeyHash01);
+  //     }
 
-      if (typeof lastKeyHash01 === "string") {
-        lastKeyHash01 = JSON.parse(lastKeyHash01);
-      }
+  //     if (typeof lastKeyHash01 === "string") {
+  //       lastKeyHash01 = JSON.parse(lastKeyHash01);
+  //     }
 
-      if (typeof lastKeyHash01 === "string") {
-        lastKeyHash01 = JSON.parse(lastKeyHash01);
-      }
+  //     if (typeof lastKeyHash01 === "string") {
+  //       lastKeyHash01 = JSON.parse(lastKeyHash01);
+  //     }
 
-      LoggingService.log({
-        lastKeyHash,
-        slastKeyHash_decoded: lastKeyHash01,
-      });
-      return lastKeyHash01;
-    } catch (error) {
-      LoggingService.error(error);
-      return undefined;
-    }
-  }
+  //     LoggingService.log({
+  //       lastKeyHash,
+  //       slastKeyHash_decoded: lastKeyHash01,
+  //     });
+  //     return lastKeyHash01;
+  //   } catch (error) {
+  //     LoggingService.error(error);
+  //     return undefined;
+  //   }
+  // }
 }

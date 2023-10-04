@@ -1124,13 +1124,11 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       LoggingService.logAsString({ otherFilter });
 
       if (otherFilter.subStatement) {
-        subStatement.push(" AND ");
+        subStatement.push("AND");
         subStatement.push(otherFilter.subStatement);
         subParameter.push(...otherFilter.subParameter);
       }
     }
-
-    const orderDesc = paramOption01?.sort === "desc";
 
     let nextPageHash01 = paramOption01?.pagingParams?.nextPageHash;
 
@@ -1146,14 +1144,14 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
 
     const result = await this._mocody_queryPartiQlProcessor.mocody__helperDynamoQueryProcessor<TData>({
       dynamoDb: () => this._mocody_dynamoInit(),
+      sortOrder: paramOption01?.sort,
+      indexName: paramOption01.indexName,
+      current_partitionValue: paramOption01.partitionKeyValue,
       params: { subStatement, subParameter },
-      orderDesc,
       canPaginate,
       tableFullName,
-      indexName: paramOption01.indexName,
       featureEntityValue,
       projectionFields: projectionFields as string[],
-      current_partitionValue: paramOption01.partitionKeyValue,
       default_partitionAndSortKey,
       current_partitionAndSortKey,
       evaluationLimit: evaluationLimit01,
