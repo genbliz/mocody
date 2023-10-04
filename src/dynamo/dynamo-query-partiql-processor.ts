@@ -108,7 +108,7 @@ export class DynamoQueryPartiqlProcessor {
     const statementText: string[] = [`SELECT ${projectionField01} FROM ${tableName} WHERE ${current_PartitionKeyFieldName}=?`];
 
     if (params.subStatement?.length) {
-      if (!params.subStatement[0].startsWith("AND")) {
+      if (!params.subStatement[0].trim().startsWith("AND")) {
         statementText.push("AND");
       }
       statementText.push(...params.subStatement);

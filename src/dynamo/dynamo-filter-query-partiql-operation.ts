@@ -233,26 +233,24 @@ export class DynamoFilterQueryPartiQlOperation {
             });
             queryList.push(query01);
           }
-        } else if (conditionKey === "$in" || conditionKey === "$nin") {
-          if (conditionKey === "$nin") {
-            QueryValidatorCheck.notIn(conditionValue);
+        } else if (conditionKey === "$in") {
+          QueryValidatorCheck.in_query(conditionValue);
 
-            const query01 = this.operation__filterNotIn({
-              attrValues: conditionValue,
-              fieldName: fieldNamePath,
-            });
+          const query01 = this.operation__filterIn({
+            attrValues: conditionValue,
+            fieldName: fieldNamePath,
+          });
 
-            queryList.push(query01);
-          } else {
-            QueryValidatorCheck.in_query(conditionValue);
+          queryList.push(query01);
+        } else if (conditionKey === "$nin") {
+          QueryValidatorCheck.notIn(conditionValue);
 
-            const query01 = this.operation__filterIn({
-              attrValues: conditionValue,
-              fieldName: fieldNamePath,
-            });
+          const query01 = this.operation__filterNotIn({
+            attrValues: conditionValue,
+            fieldName: fieldNamePath,
+          });
 
-            queryList.push(query01);
-          }
+          queryList.push(query01);
         } else {
           throw MocodyErrorUtilsService.mocody_helper_createFriendlyError(
             `Nested Query key: ${conditionKey}, not currently supported`,
@@ -509,23 +507,39 @@ export class DynamoFilterQueryPartiQlOperation {
     const subStatement: string[] = [];
     const subParameter: any[] = [];
 
-    AND_queryConditions.forEach((f, i) => {
-      if (i !== 0) {
+    if (AND_queryConditions?.length) {
+      AND_queryConditions.forEach((f, i) => {
+        if (i !== 0) {
+          subStatement.push(" AND ");
+        }
+        subStatement.push(f.subStatement);
+        subParameter.push(...f.subParameters);
+      });
+    }
+
+    if (OR_queryConditions?.length) {
+      if (subStatement.length) {
         subStatement.push(" AND ");
       }
-      subStatement.push(f.subStatement);
-      subParameter.push(...f.subParameters);
-    });
 
-    OR_queryConditions.forEach((f, i) => {
-      if (i !== 0) {
-        subStatement.push(" OR ");
+      const isMulti = OR_queryConditions.length > 1;
+
+      if (isMulti) {
+        subStatement.push("(");
       }
-      subStatement.push(f.subStatement);
-      subParameter.push(...f.subParameters);
-    });
 
-    console.log({ OR_queryConditions_multiFields });
+      OR_queryConditions.forEach((f, i) => {
+        if (i !== 0) {
+          subStatement.push(" OR ");
+        }
+        subStatement.push(f.subStatement);
+        subParameter.push(...f.subParameters);
+      });
+
+      if (isMulti) {
+        subStatement.push(")");
+      }
+    }
 
     if (OR_queryConditions_multiFields?.length) {
       subStatement.push("(");

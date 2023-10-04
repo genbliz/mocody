@@ -1120,9 +1120,14 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       const otherFilter = this._mocody_queryPartiQlFilter.processQueryFilter({
         queryDefs: paramOption01.query,
       });
+
       LoggingService.logAsString({ otherFilter });
-      subStatement.push(otherFilter.subStatement);
-      subParameter.push(...otherFilter.subParameter);
+
+      if (otherFilter.subStatement) {
+        subStatement.push(" AND ");
+        subStatement.push(otherFilter.subStatement);
+        subParameter.push(...otherFilter.subParameter);
+      }
     }
 
     const orderDesc = paramOption01?.sort === "desc";
