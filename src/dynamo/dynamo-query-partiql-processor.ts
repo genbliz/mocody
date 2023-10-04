@@ -98,7 +98,7 @@ export class DynamoQueryPartiqlProcessor {
       return "*";
     })();
 
-    const tableName = `${tableFullName}.${indexName}`;
+    const tableName = `"${tableFullName}"."${indexName}"`;
 
     const [current_PartitionKeyFieldName, current_SortKeyFieldName] = current_partitionAndSortKey;
     if (current_PartitionKeyFieldName) {
