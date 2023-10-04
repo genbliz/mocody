@@ -93,7 +93,10 @@ export class DynamoQueryPartiqlProcessor {
 
     const projectionField01 = (() => {
       if (projectionFields?.length) {
-        return projectionFields.join(",").trim();
+        return projectionFields
+          .map((f) => JSON.stringify(f))
+          .join(",")
+          .trim();
       }
       return "*";
     })();
