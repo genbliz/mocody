@@ -95,18 +95,9 @@ export class DynamoFilterQueryOperation {
   }
 
   private operation__filterNotContains({ fieldName, term }: { fieldName: string; term: any }): IQueryConditions {
-    const attrKeyHash = getDynamoRandomKeyOrHash("#");
-    const valueHash = getDynamoRandomKeyOrHash(":");
-    const result: IQueryConditions = {
-      xExpressionAttributeValues: {
-        [valueHash]: term,
-      },
-      xExpressionAttributeNames: {
-        [attrKeyHash]: fieldName,
-      },
-      xFilterExpression: `NOT (contains (${attrKeyHash}, ${valueHash}))`,
-    };
-    return result;
+    const result01 = this.operation__filterContains({ fieldName, term });
+    result01.xFilterExpression = `NOT (${result01.xFilterExpression})`;
+    return result01;
   }
 
   private operation__filterBetween({ fieldName, from, to }: { fieldName: string; from: any; to: any }): IQueryConditions {
@@ -231,7 +222,7 @@ export class DynamoFilterQueryOperation {
   }): IQueryConditions {
     const parentHashKey = getDynamoRandomKeyOrHash("#");
     const xFilterExpressionList: string[] = [];
-    // const queryConditionsList: IQueryConditions[] = [];
+    const queryConditionsList: IQueryConditions[] = [];
 
     const resultQuery: IQueryConditions = {
       xExpressionAttributeValues: {},
