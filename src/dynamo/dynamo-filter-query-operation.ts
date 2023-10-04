@@ -164,6 +164,15 @@ export class DynamoFilterQueryOperation {
     return result;
   }
 
+  private operation__filterNotIn({ fieldName, attrValues }: { fieldName: string; attrValues: any[] }): IQueryConditions {
+    const inResult = this.operation__filterIn({ fieldName, attrValues });
+
+    inResult.xFilterExpression = inResult.xFilterExpression.trim().startsWith("(")
+      ? `NOT ${inResult.xFilterExpression}`
+      : `NOT (${inResult.xFilterExpression})`;
+    return inResult;
+  }
+
   private operation__filterIn({ fieldName, attrValues }: { fieldName: string; attrValues: any[] }): IQueryConditions {
     const expressAttrVal: { [key: string]: string } = {};
     const expressAttrName: { [key: string]: string } = {};
@@ -405,14 +414,10 @@ export class DynamoFilterQueryOperation {
         } else if (conditionKey === "$nin") {
           QueryValidatorCheck.notIn(conditionValue);
 
-          const queryConditions01 = this.operation__filterIn({
+          const queryConditions01 = this.operation__filterNotIn({
             fieldName: fieldName,
             attrValues: conditionValue,
           });
-
-          queryConditions01.xFilterExpression = queryConditions01.xFilterExpression.trim().startsWith("(")
-            ? `NOT ${queryConditions01.xFilterExpression}`
-            : `NOT (${queryConditions01.xFilterExpression})`;
 
           queryConditions.push(queryConditions01);
         } else if (conditionKey === "$elemMatch") {
