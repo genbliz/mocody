@@ -39,6 +39,7 @@ const QUERY_CONDITION_MAP_PART: FieldPartial<Omit<IMocodyQueryConditionParams, k
   $notContains: "",
   $elemMatch: "",
   $nestedMatch: "",
+  $nestedArrayMatch: "",
 };
 
 const QUERY_CONDITION_MAP_FULL = { ...KEY_CONDITION_MAP, ...QUERY_CONDITION_MAP_PART };

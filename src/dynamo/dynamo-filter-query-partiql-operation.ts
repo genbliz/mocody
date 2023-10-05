@@ -263,6 +263,120 @@ export class DynamoFilterQueryPartiQlOperation {
     return queryList;
   }
 
+  private operation__filterNestedMatchArray({
+    fieldName,
+    attrParams,
+  }: {
+    fieldName: string;
+    attrParams: {
+      query: Record<string, any>;
+      index: number;
+      path: string[];
+    };
+  }): IQueryConditions[] {
+    if (
+      !(
+        typeof attrParams?.query === "object" &&
+        typeof attrParams?.index === "number" &&
+        attrParams?.index >= 0 &&
+        attrParams?.path?.length &&
+        Array.isArray(attrParams.path)
+      )
+    ) {
+      throw MocodyErrorUtilsService.mocody_helper_createFriendlyError(`Invalid attrParams @ filterNestedMatch`);
+    }
+
+    const queryList: IQueryConditions[] = [];
+
+    const namedPath = attrParams.path.join(".");
+    const fieldNamePath = `${fieldName}[${attrParams.index}].${namedPath}`;
+
+    Object.entries(attrParams.query).forEach(([condKey, conditionValue]) => {
+      //
+      const conditionKey = condKey as keyof typeof QUERY_CONDITION_MAP_NESTED;
+      //
+      if (!Object.keys(QUERY_CONDITION_MAP_NESTED).includes(conditionKey)) {
+        throw MocodyErrorUtilsService.mocody_helper_createFriendlyError(`Invalid query key: ${conditionKey} @ NestedMatchObject`);
+      }
+      const conditionExpr = QUERY_CONDITION_MAP_NESTED[conditionKey];
+      //
+      if (conditionExpr) {
+        const query01 = this.operation__helperFilterBasic({
+          fieldName: fieldNamePath,
+          conditionExpr: conditionExpr,
+          val: conditionValue,
+        });
+
+        queryList.push(query01);
+      } else if (conditionKey === "$between") {
+        QueryValidatorCheck.between(conditionValue);
+
+        const [from, to] = conditionValue;
+
+        const query01 = this.operation__filterBetween({
+          fieldName: fieldNamePath,
+          from,
+          to,
+        });
+
+        queryList.push(query01);
+      } else if (conditionKey === "$beginsWith") {
+        const queryCondition01 = this.operation__filterBeginsWith({
+          fieldName: fieldNamePath,
+          term: conditionValue,
+        });
+
+        queryList.push(queryCondition01);
+      } else if (conditionKey === "$contains") {
+        const query01 = this.operation__filterContains({
+          fieldName: fieldNamePath,
+          term: conditionValue,
+        });
+
+        queryList.push(query01);
+      } else if (conditionKey === "$exists") {
+        QueryValidatorCheck.exists(conditionValue);
+
+        if (String(conditionValue) === "true") {
+          const query01 = this.operation__filterFieldExist({
+            fieldName: fieldNamePath,
+          });
+
+          queryList.push(query01);
+        } else {
+          const query01 = this.operation__filterFieldNotExist({
+            fieldName: fieldNamePath,
+          });
+          queryList.push(query01);
+        }
+      } else if (conditionKey === "$in") {
+        QueryValidatorCheck.in_query(conditionValue);
+
+        const query01 = this.operation__filterIn({
+          attrValues: conditionValue,
+          fieldName: fieldNamePath,
+        });
+
+        queryList.push(query01);
+      } else if (conditionKey === "$nin") {
+        QueryValidatorCheck.notIn(conditionValue);
+
+        const query01 = this.operation__filterNotIn({
+          attrValues: conditionValue,
+          fieldName: fieldNamePath,
+        });
+
+        queryList.push(query01);
+      } else {
+        throw MocodyErrorUtilsService.mocody_helper_createFriendlyError(
+          `Nested Query key: ${conditionKey}, not currently supported`,
+        );
+      }
+    });
+
+    return queryList;
+  }
+
   private operation__translateAdvancedQueryOperation({
     fieldName,
     queryObject,
@@ -339,6 +453,17 @@ export class DynamoFilterQueryPartiQlOperation {
           const nestedMatchConditions = this.operation__filterNestedMatchObject({
             fieldName: fieldName,
             attrValues: conditionValue,
+          });
+          if (nestedMatchConditions?.length) {
+            queryConditions.push(...nestedMatchConditions);
+          }
+        } else if (conditionKey === "$nestedArrayMatch") {
+          //
+          QueryValidatorCheck.nestedMatchArray(conditionValue);
+
+          const nestedMatchConditions = this.operation__filterNestedMatchArray({
+            fieldName: fieldName,
+            attrParams: conditionValue,
           });
           if (nestedMatchConditions?.length) {
             queryConditions.push(...nestedMatchConditions);

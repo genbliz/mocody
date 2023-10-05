@@ -38,6 +38,7 @@ const QUERY_CONDITION_MAP_PART: FieldPartial<Omit<IMocodyQueryConditionParams, k
   $notContains: "",
   $elemMatch: "",
   $nestedMatch: "",
+  $nestedArrayMatch: "",
 };
 
 const QUERY_CONDITION_MAP_FULL = { ...KEY_CONDITION_MAP, ...QUERY_CONDITION_MAP_PART };
@@ -107,13 +108,7 @@ export class CouchFilterQueryOperation {
     return result;
   }
 
-  private operation__filterNotIn({
-    fieldName,
-    attrValues,
-  }: {
-    fieldName: string;
-    attrValues: any[];
-  }): IQueryConditions {
+  private operation__filterNotIn({ fieldName, attrValues }: { fieldName: string; attrValues: any[] }): IQueryConditions {
     const result = {
       [fieldName]: { $nin: attrValues },
     } as IQueryConditions;
@@ -149,15 +144,7 @@ export class CouchFilterQueryOperation {
     return result;
   }
 
-  private operation__filterBetween({
-    fieldName,
-    from,
-    to,
-  }: {
-    fieldName: string;
-    from: any;
-    to: any;
-  }): IQueryConditions {
+  private operation__filterBetween({ fieldName, from, to }: { fieldName: string; from: any; to: any }): IQueryConditions {
     const result = {
       [fieldName]: { $gte: from, $lte: to },
     } as IQueryConditions;
@@ -208,9 +195,7 @@ export class CouchFilterQueryOperation {
         } else {
           if (conditionKey === "$between") {
             if (!(Array.isArray(val) && val.length === 2)) {
-              throw MocodyErrorUtilsService.mocody_helper_createFriendlyError(
-                "$between query must be an array of length 2",
-              );
+              throw MocodyErrorUtilsService.mocody_helper_createFriendlyError("$between query must be an array of length 2");
             }
             const [fromVal, toVal] = val;
             const result = {
@@ -224,9 +209,7 @@ export class CouchFilterQueryOperation {
             } as IQueryConditions;
             results.push(result);
           } else {
-            throw MocodyErrorUtilsService.mocody_helper_createFriendlyError(
-              `Query key: ${conditionKey} not currently supported`,
-            );
+            throw MocodyErrorUtilsService.mocody_helper_createFriendlyError(`Query key: ${conditionKey} not currently supported`);
           }
         }
       });
