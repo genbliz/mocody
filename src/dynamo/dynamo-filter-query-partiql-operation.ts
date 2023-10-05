@@ -1,6 +1,6 @@
 import { QueryValidatorCheck } from "../helpers/query-validator";
 import { LoggingService } from "../helpers/logging-service";
-import type { IMocodyKeyConditionParams, IMocodyQueryConditionParams, IMocodyQueryDefinition } from "../type";
+import type { IMocodyKeyConditionParams, IMocodyQueryConditionParams, IMocodyQueryDefinition, IQueryNestedArray } from "../type";
 import { MocodyErrorUtilsService } from "../helpers/errors";
 
 // https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.OperatorsAndFunctions.html
@@ -268,11 +268,7 @@ export class DynamoFilterQueryPartiQlOperation {
     attrParams,
   }: {
     fieldName: string;
-    attrParams: {
-      query: Record<string, any>;
-      index: number;
-      path: string[];
-    };
+    attrParams: IQueryNestedArray;
   }): IQueryConditions[] {
     if (
       !(

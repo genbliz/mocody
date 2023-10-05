@@ -55,7 +55,7 @@ type IQueryNested<T> = {
   [P in keyof T]: T[P] | IMocodyQueryNestedParams<T[P]>;
 };
 
-type IQueryNestedArray<T> = {
+export type IQueryNestedArray<T = any> = {
   query: IMocodyQueryNestedParams<any>;
   index: number;
   path: string[];

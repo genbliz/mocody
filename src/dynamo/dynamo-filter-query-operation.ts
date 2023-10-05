@@ -1,7 +1,7 @@
 import { QueryValidatorCheck } from "./../helpers/query-validator";
 import { LoggingService } from "../helpers/logging-service";
 import { UtilService } from "../helpers/util-service";
-import type { IMocodyKeyConditionParams, IMocodyQueryConditionParams, IMocodyQueryDefinition } from "../type";
+import type { IMocodyKeyConditionParams, IMocodyQueryConditionParams, IMocodyQueryDefinition, IQueryNestedArray } from "../type";
 import { MocodyErrorUtilsService } from "../helpers/errors";
 import { QueryConditionBuilder, getDynamoRandomKeyOrHash } from "./dynamo-helper";
 
@@ -332,11 +332,7 @@ export class DynamoFilterQueryOperation {
     attrParams,
   }: {
     fieldName: string;
-    attrParams: {
-      query: Record<string, any>;
-      index: number;
-      path: string[];
-    };
+    attrParams: IQueryNestedArray;
   }): IQueryConditions {
     const parentHashKey = getDynamoRandomKeyOrHash("#");
     const xFilterExpressionList: string[] = [];
