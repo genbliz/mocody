@@ -1,6 +1,7 @@
 import { UtilService } from "./../helpers/util-service";
 
 type IDictionaryAttr = { [key: string]: any };
+
 type IQueryConditions = {
   xExpressionAttributeValues: IDictionaryAttr;
   xExpressionAttributeNames: IDictionaryAttr;
@@ -35,18 +36,19 @@ export class QueryConditionBuilder {
       throw new Error("Invalid field name::: Must be a string");
     }
     if (this.expressAttrNameInverse[fieldName]) {
-      return this.expressAttrNameInverse[fieldName];
+      // return this.expressAttrNameInverse[fieldName];
     }
-    const attrKeyHash = getDynamoRandomKeyOrHash("#");
-    this.expressAttrName[attrKeyHash] = fieldName;
-    this.expressAttrNameInverse[fieldName] = attrKeyHash;
-    return attrKeyHash;
+    const hashedName = getDynamoRandomKeyOrHash("#");
+    this.expressAttrName[hashedName] = fieldName;
+    this.expressAttrNameInverse[fieldName] = hashedName;
+    return hashedName;
   }
 
   addFilter(filter: string) {
-    if (filter && typeof filter === "string") {
-      this.filterExpressionValue01.push(filter);
+    if (!(filter && typeof filter === "string")) {
+      throw new Error("Invalid filter::: Must be a string");
     }
+    this.filterExpressionValue01.push(filter);
   }
 
   getRawFilterExpression() {
