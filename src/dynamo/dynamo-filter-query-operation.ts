@@ -363,6 +363,136 @@ export class DynamoFilterQueryOperation {
     return resultQuery;
   }
 
+  private operation__filterNestedMatchArray({
+    fieldName,
+    attrParams,
+  }: {
+    fieldName: string;
+    attrParams: {
+      query: Record<string, any>;
+      index: number;
+      path: string[];
+    };
+  }): IQueryConditions {
+    const parentHashKey = getDynamoRandomKeyOrHash("#");
+    const xFilterExpressionList: string[] = [];
+
+    const resultQuery: IQueryConditions = {
+      xExpressionAttributeValues: {},
+      xExpressionAttributeNames: {
+        [parentHashKey]: fieldName,
+      },
+      xFilterExpression: "",
+    };
+
+    const namedPath = attrParams.path.join(".");
+    const fieldNamePath = `${parentHashKey}[${attrParams.index}].${namedPath}`;
+
+    Object.entries(attrParams.query).forEach(([condKey, conditionValue]) => {
+      //
+      const conditionKey = condKey as keyof typeof QUERY_CONDITION_MAP_NESTED;
+      //
+      if (!Object.keys(QUERY_CONDITION_MAP_NESTED).includes(conditionKey)) {
+        throw MocodyErrorUtilsService.mocody_helper_createFriendlyError(`Invalid query key: ${conditionKey} @ NestedMatchArray`);
+      }
+      const conditionExpr = QUERY_CONDITION_MAP_NESTED[conditionKey];
+      //
+      const attrValueHashKey = getDynamoRandomKeyOrHash(":");
+      //
+      if (conditionExpr) {
+        resultQuery.xExpressionAttributeValues[attrValueHashKey] = conditionValue;
+        xFilterExpressionList.push([fieldNamePath, conditionExpr, attrValueHashKey].join(" "));
+        //
+      } else if (conditionKey === "$between") {
+        QueryValidatorCheck.between(conditionValue);
+        const fromKey = getDynamoRandomKeyOrHash(":");
+        const toKey = getDynamoRandomKeyOrHash(":");
+
+        const [fromVal, toVal] = conditionValue;
+
+        resultQuery.xExpressionAttributeValues[fromKey] = fromVal;
+        resultQuery.xExpressionAttributeValues[toKey] = toVal;
+        xFilterExpressionList.push([fieldNamePath, "between", fromKey, "and", toKey].join(" "));
+        //
+      } else if (conditionKey === "$beginsWith") {
+        //
+        resultQuery.xExpressionAttributeValues[attrValueHashKey] = conditionValue;
+        xFilterExpressionList.push(`begins_with (${fieldNamePath}, ${attrValueHashKey})`);
+        //
+      } else if (conditionKey === "$contains") {
+        //
+        resultQuery.xExpressionAttributeValues[attrValueHashKey] = conditionValue;
+        xFilterExpressionList.push(`contains (${fieldNamePath}, ${attrValueHashKey})`);
+        //
+      } else if (conditionKey === "$exists") {
+        QueryValidatorCheck.exists(conditionValue);
+        if (String(conditionValue) === "true") {
+          xFilterExpressionList.push(`attribute_exists (${fieldNamePath})`);
+        } else {
+          xFilterExpressionList.push(`attribute_not_exists (${fieldNamePath})`);
+        }
+      } else if (conditionKey === "$in") {
+        QueryValidatorCheck.in_query(conditionValue);
+
+        const attrValues: string[] = [...conditionValue];
+        const filterExpress: string[] = [];
+
+        attrValues.forEach((item) => {
+          const keyAttr = getDynamoRandomKeyOrHash(":");
+          resultQuery.xExpressionAttributeValues[keyAttr] = item;
+          filterExpress.push(`${fieldNamePath} = ${keyAttr}`);
+        });
+
+        const filterExpression01 = filterExpress
+          .map((f, _, arr) => {
+            if (arr.length > 1) return `(${f})`;
+            return f;
+          })
+          .join(" OR ")
+          .trim();
+
+        xFilterExpressionList.push(filterExpression01);
+      } else if (conditionKey === "$nin") {
+        QueryValidatorCheck.notIn(conditionValue);
+
+        const attrValues: string[] = [...conditionValue];
+        const filterExpress: string[] = [];
+
+        attrValues.forEach((item) => {
+          const keyAttr = getDynamoRandomKeyOrHash(":");
+          resultQuery.xExpressionAttributeValues[keyAttr] = item;
+          filterExpress.push(`${fieldNamePath} = ${keyAttr}`);
+        });
+
+        const filterExpression01 = filterExpress
+          .map((f, _, arr) => {
+            if (arr.length > 1) return `(${f})`;
+            return f;
+          })
+          .join(" OR ")
+          .trim();
+
+        xFilterExpressionList.push(`NOT (${filterExpression01})`);
+      } else {
+        throw MocodyErrorUtilsService.mocody_helper_createFriendlyError(
+          `Nested Query key: ${conditionKey}, not currently supported`,
+        );
+      }
+    });
+
+    const xFilterExpression = xFilterExpressionList
+      .map((f, _, arr) => {
+        if (arr.length > 1) return `(${f})`;
+        return f;
+      })
+      .join(" AND ");
+
+    resultQuery.xFilterExpression = xFilterExpression;
+
+    LoggingService.logAsString({ queryNested: resultQuery });
+    return resultQuery;
+  }
+
   private operation__translateAdvancedQueryOperation({
     fieldName,
     queryObject,
@@ -438,6 +568,15 @@ export class DynamoFilterQueryOperation {
           const query01 = this.operation__filterNestedMatchObject({
             fieldName: fieldName,
             attrValues: conditionValue,
+          });
+
+          queryConditions.push(query01);
+        } else if (conditionKey === "$nestedArrayMatch") {
+          QueryValidatorCheck.nestedMatchArray(conditionValue);
+
+          const query01 = this.operation__filterNestedMatchArray({
+            fieldName: fieldName,
+            attrParams: conditionValue,
           });
 
           queryConditions.push(query01);
