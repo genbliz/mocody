@@ -3,7 +3,7 @@ import { LoggingService } from "../helpers/logging-service";
 import { UtilService } from "../helpers/util-service";
 import type { IMocodyKeyConditionParams, IMocodyQueryConditionParams, IMocodyQueryDefinition } from "../type";
 import { MocodyErrorUtilsService } from "../helpers/errors";
-import { getDynamoRandomKeyOrHash } from "./dynamo-helper";
+import { QueryConditionBuilder, getDynamoRandomKeyOrHash } from "./dynamo-helper";
 
 // https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.OperatorsAndFunctions.html
 
@@ -57,79 +57,55 @@ function hasQueryConditionValue(key: string) {
 }
 
 export class DynamoFilterQueryOperation {
-  private operation__filterFieldExist({ fieldName }: { fieldName: string }): IQueryConditions {
-    const attrKeyHash = getDynamoRandomKeyOrHash("#");
-    const result = {
-      xExpressionAttributeNames: {
-        [attrKeyHash]: fieldName,
-      },
-      xFilterExpression: `attribute_exists(${attrKeyHash})`,
-    } as IQueryConditions;
-    return result;
+  private operation__filterFieldExist({ fieldName }: { fieldName: string }) {
+    const builder = new QueryConditionBuilder();
+    const hashedFieldName = builder.addName(fieldName);
+    builder.addFilter(`attribute_exists(${hashedFieldName})`);
+    return builder.getResult();
   }
 
-  private operation__filterFieldNotExist({ fieldName }: { fieldName: string }): IQueryConditions {
-    const attrKeyHash = getDynamoRandomKeyOrHash("#");
-    const result = {
-      xExpressionAttributeNames: {
-        [attrKeyHash]: fieldName,
-      },
-      xFilterExpression: `attribute_not_exists(${attrKeyHash})`,
-    } as IQueryConditions;
-    return result;
+  private operation__filterFieldNotExist({ fieldName }: { fieldName: string }) {
+    const builder = new QueryConditionBuilder();
+    const hashedFieldName = builder.addName(fieldName);
+    builder.addFilter(`attribute_not_exists(${hashedFieldName})`);
+    return builder.getResult();
   }
 
-  private operation__filterContains({ fieldName, term }: { fieldName: string; term: any }): IQueryConditions {
-    const attrKeyHash = getDynamoRandomKeyOrHash("#");
-    const valueHash = getDynamoRandomKeyOrHash(":");
-    const result: IQueryConditions = {
-      xExpressionAttributeValues: {
-        [valueHash]: term,
-      },
-      xExpressionAttributeNames: {
-        [attrKeyHash]: fieldName,
-      },
-      xFilterExpression: `contains (${attrKeyHash}, ${valueHash})`,
-    };
-    return result;
+  private operation__filterContains({ fieldName, term }: { fieldName: string; term: any }) {
+    const builder = new QueryConditionBuilder();
+    const hashedFieldName = builder.addName(fieldName);
+    const hashedValue = builder.addValue(term);
+
+    builder.addFilter(`contains (${hashedFieldName}, ${hashedValue})`);
+    return builder.getResult();
   }
 
-  private operation__filterNotContains({ fieldName, term }: { fieldName: string; term: any }): IQueryConditions {
+  private operation__filterNotContains({ fieldName, term }: { fieldName: string; term: any }) {
     const result01 = this.operation__filterContains({ fieldName, term });
     result01.xFilterExpression = `NOT (${result01.xFilterExpression})`;
     return result01;
   }
 
-  private operation__filterBetween({ fieldName, from, to }: { fieldName: string; from: any; to: any }): IQueryConditions {
-    const attrKeyHash01 = getDynamoRandomKeyOrHash("#");
-    const fromValueHash = getDynamoRandomKeyOrHash(":");
-    const toValueHash = getDynamoRandomKeyOrHash(":");
-    const result: IQueryConditions = {
-      xExpressionAttributeValues: {
-        [fromValueHash]: from,
-        [toValueHash]: to,
-      },
-      xExpressionAttributeNames: {
-        [attrKeyHash01]: fieldName,
-      },
-      xFilterExpression: [attrKeyHash01, "between", fromValueHash, "and", toValueHash].join(" "),
-    };
-    return result;
+  private operation__filterBetween({ fieldName, from, to }: { fieldName: string; from: any; to: any }) {
+    const builder = new QueryConditionBuilder();
+    const hashedFieldName = builder.addName(fieldName);
+
+    const hashedValue_from = builder.addValue(from);
+    const hashedValue_to = builder.addValue(to);
+
+    const filterExp = [hashedFieldName, "BETWEEN", hashedValue_from, "AND", hashedValue_to].join(" ");
+
+    builder.addFilter(filterExp);
+    return builder.getResult();
   }
 
   private operation__filterBeginsWith({ fieldName, term }: { fieldName: string; term: any }): IQueryConditions {
-    const attrKeyHash01 = getDynamoRandomKeyOrHash("#");
-    const valueHash01 = getDynamoRandomKeyOrHash(":");
-    const result: IQueryConditions = {
-      xExpressionAttributeValues: {
-        [valueHash01]: term,
-      },
-      xExpressionAttributeNames: {
-        [attrKeyHash01]: fieldName,
-      },
-      xFilterExpression: `begins_with(${attrKeyHash01}, ${valueHash01})`,
-    };
-    return result;
+    const builder = new QueryConditionBuilder();
+    const hashedFieldName = builder.addName(fieldName);
+    const hashedValue = builder.addValue(term);
+
+    builder.addFilter(`begins_with(${hashedFieldName}, ${hashedValue})`);
+    return builder.getResult();
   }
 
   private operation__helperFilterBasic({
@@ -140,22 +116,18 @@ export class DynamoFilterQueryOperation {
     fieldName: string;
     conditionExpr: string;
     val: string | number;
-  }): IQueryConditions {
-    const keyAttr = getDynamoRandomKeyOrHash(":");
-    const attrKeyHash = getDynamoRandomKeyOrHash("#");
-    const result: IQueryConditions = {
-      xExpressionAttributeValues: {
-        [keyAttr]: val,
-      },
-      xExpressionAttributeNames: {
-        [attrKeyHash]: fieldName,
-      },
-      xFilterExpression: [attrKeyHash, conditionExpr, keyAttr].join(" "),
-    };
-    return result;
+  }) {
+    const builder = new QueryConditionBuilder();
+    const hashedFieldName = builder.addName(fieldName);
+    const hashedValue = builder.addValue(val);
+
+    const filterExp = [hashedFieldName, conditionExpr, hashedValue].join(" ");
+
+    builder.addFilter(filterExp);
+    return builder.getResult();
   }
 
-  private operation__filterNotIn({ fieldName, attrValues }: { fieldName: string; attrValues: any[] }): IQueryConditions {
+  private operation__filterNotIn({ fieldName, attrValues }: { fieldName: string; attrValues: any[] }) {
     const inResult = this.operation__filterIn({ fieldName, attrValues });
 
     inResult.xFilterExpression = inResult.xFilterExpression.trim().startsWith("(")
@@ -164,32 +136,24 @@ export class DynamoFilterQueryOperation {
     return inResult;
   }
 
-  private operation__filterIn({ fieldName, attrValues }: { fieldName: string; attrValues: any[] }): IQueryConditions {
-    const expressAttrVal: { [key: string]: string } = {};
-    const expressAttrName: { [key: string]: string } = {};
-    const filterExpress: string[] = [];
-
-    const attrKeyHash01 = getDynamoRandomKeyOrHash("#");
-    expressAttrName[attrKeyHash01] = fieldName;
+  private operation__filterIn({ fieldName, attrValues }: { fieldName: string; attrValues: any[] }) {
+    const builder = new QueryConditionBuilder();
+    const hashedFieldName = builder.addName(fieldName);
 
     attrValues.forEach((item) => {
-      const keyAttr = getDynamoRandomKeyOrHash(":");
-      expressAttrVal[keyAttr] = item;
-      filterExpress.push(`${attrKeyHash01} = ${keyAttr}`);
+      const hashedValue = builder.addValue(item);
+      const filterExp = `${hashedFieldName} = ${hashedValue}`;
+      builder.addFilter(filterExp);
     });
 
-    const filterExpression01 = filterExpress.join(" OR ").trim();
-    const filterExpressionValue01 = filterExpress.length > 1 ? `(${filterExpression01})` : filterExpression01;
+    const result = builder.getResult();
+    const rawFilterExpression = builder.getRawFilterExpression();
+    result.xFilterExpression = rawFilterExpression.join(" OR ").trim();
 
-    const result: IQueryConditions = {
-      xExpressionAttributeValues: {
-        ...expressAttrVal,
-      },
-      xExpressionAttributeNames: {
-        ...expressAttrName,
-      },
-      xFilterExpression: filterExpressionValue01,
-    };
+    if (rawFilterExpression.length > 1) {
+      result.xFilterExpression = `(${result.xFilterExpression})`;
+    }
+
     return result;
   }
 

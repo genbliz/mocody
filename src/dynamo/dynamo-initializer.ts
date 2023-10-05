@@ -33,12 +33,12 @@ export class MocodyInitializerDynamo {
     return await concurrency(() => this.getInstanceBase());
   }
 
-  async executeStatement(param: ExecuteStatementCommandInput){
+  async executeStatement(param: ExecuteStatementCommandInput) {
     const client = await this.getInstance();
     const docClient = DynamoDBDocumentClient.from(client);
     const command = new ExecuteStatementCommand(param);
     const response = await docClient.send(command);
-    return response
+    return response;
   }
 
   async putItem(params: PutItemCommandInput) {
