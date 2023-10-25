@@ -604,10 +604,12 @@ export class DynamoFilterQueryOperation {
           Object.entries(orQuery).forEach(([fieldName, orQueryObjectOrValue], _, arr) => {
             LoggingService.logAsString({ orQuery, fieldName, arr, orQueryObjectOrValue });
 
+            const hasMultiField01 = Object.keys(orQuery).length > 1;
+
             if (orQueryObjectOrValue !== undefined) {
               if (orQueryObjectOrValue && typeof orQueryObjectOrValue === "object") {
                 //
-                const hasMultiField = Object.keys(orQuery).length > 1 || Object.keys(orQueryObjectOrValue).length > 1;
+                const hasMultiField = hasMultiField01 || Object.keys(orQueryObjectOrValue).length > 1;
 
                 const orQueryCond01 = this.operation__translateAdvancedQueryOperation({
                   fieldName,
@@ -629,7 +631,11 @@ export class DynamoFilterQueryOperation {
                   queryObject: orQueryObjectOrValue,
                 });
 
-                OR_queryConditions.push(orQueryCondition01);
+                if (hasMultiField01) {
+                  OR_queryMultiConditionsPrivate.push(orQueryCondition01);
+                } else {
+                  OR_queryConditions.push(orQueryCondition01);
+                }
               }
             }
           });
@@ -797,12 +803,24 @@ export class DynamoFilterQueryOperation {
   }
 }
 
-// const result01 = new DynamoFilterQueryOperation().operation__filterNestedMatchObject({
-//   fieldName: "user",
-//   attrValues: {
-//     amount: { $nin: [8999, 7466, 354] },
-//     name: { $eq: "chris" },
+// const result01 = new DynamoFilterQueryOperation().processQueryFilter({
+//   projectionFields: [],
+//   queryDefs: {
+//     $or: [
+//       {
+//         category: "syrup",
+//         strength: "500mg",
+//         name: "paracetamol",
+//       },
+//       {
+//         category: "syrup".toLowerCase().trim(),
+//         strength: "500mg".toLowerCase().trim(),
+//         name: "paracetamol".toLowerCase().trim(),
+//       },
+//     ],
 //   },
 // });
 
-// console.logAsString((result01));
+// console.log({ result01 });
+
+// npx ts-node src\dynamo\dynamo-filter-query-operation.ts
