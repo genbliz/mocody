@@ -317,7 +317,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     withCondition,
   }: {
     dataId: string;
-    withCondition?: IMocodyFieldCondition<T>;
+    withCondition?: IMocodyFieldCondition<T> | undefined | null;
   }): Promise<T | null> {
     const {
       //
@@ -608,23 +608,42 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     excludeFields?: (keyof T)[] | undefined | null;
     withCondition?: IMocodyFieldCondition<T> | undefined | null;
   }) {
+    const dataList: T[] = [];
+
+    if (!dataIds?.length) {
+      return dataList;
+    }
+
     dataIds.forEach((dataId) => {
-      this._mocody_errorHelper.mocody_helper_validateRequiredString({
-        BatchGetDataId: dataId,
-      });
+      this._mocody_errorHelper.mocody_helper_validateRequiredString({ BatchGetDataId: dataId });
     });
 
     const originalIds = this._mocody_removeDuplicateString(dataIds);
-    const BATCH_SIZE = 80;
 
+    if (originalIds?.length === 1) {
+      const result = await this.mocody_getOneById({
+        dataId: originalIds[0],
+        withCondition,
+      });
+
+      if (result) {
+        if (fields?.length) {
+          const result01 = UtilService.pickFromObject({ dataObject: result, pickKeys: fields });
+          dataList.push(result01);
+        } else {
+          dataList.push(result);
+        }
+      }
+      return dataList;
+    }
+
+    const BATCH_SIZE = 80;
     const batchIds = lodash.chunk(originalIds, BATCH_SIZE);
 
     LoggingService.log({
       batchIds,
       "@mocody_getManyByIds batchIds": batchIds.length,
     });
-
-    let resultAll: T[] = [];
 
     const fieldKeys = this._mocody_getProjectionFields({ fields, excludeFields });
 
@@ -634,10 +653,10 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
         fields: fieldKeys,
         withCondition,
       });
-      resultAll = [...resultAll, ...callByIds];
+      dataList.push(...callByIds);
     }
-    LoggingService.log("@mocody_getManyByIds batchIds result Out: ", resultAll.length);
-    return resultAll;
+    LoggingService.log("@mocody_getManyByIds batchIds result Out: ", dataList.length);
+    return dataList;
   }
 
   private async mocody_batchGetManyByIdsBasePrivate({

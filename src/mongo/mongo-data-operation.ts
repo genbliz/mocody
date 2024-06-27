@@ -263,7 +263,35 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     excludeFields?: (keyof T)[] | undefined | null;
     withCondition?: IMocodyFieldCondition<T> | undefined | null;
   }): Promise<T[]> {
+    const dataList: T[] = [];
+
+    if (!dataIds?.length) {
+      return dataList;
+    }
+
+    dataIds.forEach((dataId) => {
+      this._mocody_errorHelper.mocody_helper_validateRequiredString({ BatchGetDataId: dataId });
+    });
+
     const uniqueIds = this._mocody_removeDuplicateString(dataIds);
+
+    if (uniqueIds?.length === 1) {
+      const result = await this.mocody_getOneById({
+        dataId: uniqueIds[0],
+        withCondition,
+      });
+
+      if (result) {
+        if (fields?.length) {
+          const result01 = UtilService.pickFromObject({ dataObject: result, pickKeys: fields });
+          dataList.push(result01);
+        } else {
+          dataList.push(result);
+        }
+      }
+      return dataList;
+    }
+
     const fullUniqueIds = uniqueIds.map((id) => this._mocody_getNativeMongoId(id));
 
     const mongo = await this._mocody_getDbInstance();

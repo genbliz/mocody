@@ -288,13 +288,7 @@ export class PouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     return { validatedData };
   }
 
-  async mocody_getAll({
-    size,
-    skip,
-  }: {
-    size?: number | undefined | null;
-    skip?: number | undefined | null;
-  }): Promise<T[]> {
+  async mocody_getAll({ size, skip }: { size?: number | undefined | null; skip?: number | undefined | null }): Promise<T[]> {
     const data = await this._mocody_pouchDbInstance().getList({
       featureEntity: this._mocody_featureEntityValue,
       size,
@@ -322,9 +316,7 @@ export class PouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
 
     const nativeId = this._mocody_getNativePouchId(dataId);
 
-    const dataInDb = await this._mocody_pouchDbInstance().getById({
-      nativeId,
-    });
+    const dataInDb = await this._mocody_pouchDbInstance().getById({ nativeId });
 
     if (!(dataInDb?.id === dataId && dataInDb.featureEntity === this._mocody_featureEntityValue)) {
       return null;
@@ -417,14 +409,40 @@ export class PouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     excludeFields?: (keyof T)[] | undefined | null;
     withCondition?: IMocodyFieldCondition<T> | undefined | null;
   }): Promise<T[]> {
+    const dataList: T[] = [];
+
+    if (!dataIds?.length) {
+      return dataList;
+    }
+
+    dataIds.forEach((dataId) => {
+      this._mocody_errorHelper.mocody_helper_validateRequiredString({ BatchGetDataId: dataId });
+    });
+
     const uniqueIds = this._mocody_removeDuplicateString(dataIds);
+
+    if (uniqueIds?.length === 1) {
+      const result = await this.mocody_getOneById({
+        dataId: uniqueIds[0],
+        withCondition,
+      });
+
+      if (result) {
+        if (fields?.length) {
+          const result01 = UtilService.pickFromObject({ dataObject: result, pickKeys: fields });
+          dataList.push(result01);
+        } else {
+          dataList.push(result);
+        }
+      }
+      return dataList;
+    }
+
     const nativeIds = uniqueIds.map((id) => this._mocody_getNativePouchId(id));
 
     const data = await this._mocody_pouchDbInstance().getManyByIds({
       nativeIds,
     });
-
-    const dataList: T[] = [];
 
     const fieldKeys = this._mocody_getProjectionFields({ fields, excludeFields });
 

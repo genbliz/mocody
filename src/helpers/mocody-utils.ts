@@ -1,5 +1,6 @@
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
 import { MocodyErrorUtilsService } from "./errors";
+import { UtilService } from "./util-service";
 
 class MocodyUtilBase {
   marshallFromJson(jsonData: Record<string, any>) {
@@ -72,8 +73,11 @@ class MocodyUtilBase {
   }) {
     if (fieldAliases?.length && typeof data === "object" && featureEntity) {
       fieldAliases.forEach(([field01, field02]) => {
-        if (data[field01] !== data[field02]) {
-          throw MocodyErrorUtilsService.mocody_helper_createFriendlyError(`Aliases mismatched for '${featureEntity}'`);
+        const data01 = UtilService.convertObjectPlainObject(data);
+        if (data01[field01] !== data01[field02]) {
+          throw MocodyErrorUtilsService.mocody_helper_createFriendlyError(
+            `Aliases mismatched for: '${featureEntity}'; fields: ${String(field01)}, ${String(field02)}`,
+          );
         }
       });
     }
