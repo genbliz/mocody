@@ -1,6 +1,7 @@
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
 import { MocodyErrorUtilsService } from "./errors";
 import { UtilService } from "./util-service";
+import { IFieldAliases } from "../type";
 
 class MocodyUtilBase {
   marshallFromJson(jsonData: Record<string, any>) {
@@ -62,21 +63,42 @@ class MocodyUtilBase {
     return undefined;
   }
 
+  alignFormatFieldAlias<T>({
+    data,
+    fieldAliases,
+    featureEntity,
+  }: {
+    data: Partial<T>;
+    fieldAliases: IFieldAliases<T> | undefined | null;
+    featureEntity: string;
+  }) {
+    if (fieldAliases?.length && typeof data === "object" && Object.keys(data).length && featureEntity) {
+      const data01 = UtilService.convertObjectPlainObject(data);
+      fieldAliases.forEach(({ source, dest }) => {
+        if (data01[source] !== data01[dest]) {
+          data01[dest] = data01[source];
+        }
+      });
+      return data01 as any;
+    }
+    return data as any;
+  }
+
   validateFieldAlias<T>({
     data,
     fieldAliases,
     featureEntity,
   }: {
     data: Partial<T>;
-    fieldAliases: [keyof T, keyof T][] | undefined | null;
+    fieldAliases: IFieldAliases<T> | undefined | null;
     featureEntity: string;
   }) {
-    if (fieldAliases?.length && typeof data === "object" && featureEntity) {
-      fieldAliases.forEach(([field01, field02]) => {
-        const data01 = UtilService.convertObjectPlainObject(data);
-        if (data01[field01] !== data01[field02]) {
+    if (fieldAliases?.length && typeof data === "object" && Object.keys(data).length && featureEntity) {
+      const data01 = UtilService.convertObjectPlainObject(data);
+      fieldAliases.forEach(({ source, dest }) => {
+        if (data01[source] !== data01[dest]) {
           throw MocodyErrorUtilsService.mocody_helper_createFriendlyError(
-            `Aliases mismatched for: '${featureEntity}'; fields: ${String(field01)}, ${String(field02)}`,
+            `Aliases mismatched for: '${featureEntity}'; fields: ${String(source)}, ${String(dest)}`,
           );
         }
       });

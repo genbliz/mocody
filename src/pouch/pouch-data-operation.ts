@@ -3,6 +3,7 @@ import { SettingDefaults } from "../helpers/constants";
 import { UtilService } from "../helpers/util-service";
 import { LoggingService } from "../helpers/logging-service";
 import {
+  IFieldAliases,
   IMocodyFieldCondition,
   IMocodyIndexDefinition,
   IMocodyPagingResult,
@@ -28,6 +29,7 @@ interface IOptions<T> {
   secondaryIndexOptions: IMocodyIndexDefinition<T>[];
   baseTableName: string;
   strictRequiredFields: (keyof T)[] | string[];
+  fieldAliases?: IFieldAliases<T> | undefined | null;
 }
 
 type IModelBase = IMocodyCoreEntityModel;
@@ -50,6 +52,8 @@ export class PouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   private readonly _mocody_errorHelper: MocodyErrorUtils;
   private readonly _mocody_filterQueryOperation = new PouchFilterQueryOperation();
   //
+  private readonly _mocody_fieldAliases: IFieldAliases<T> | undefined | null;
+  //
   private _mocody_tableManager!: PouchManageTable<T>;
 
   constructor({
@@ -60,6 +64,7 @@ export class PouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     baseTableName,
     strictRequiredFields,
     dataKeyGenerator,
+    fieldAliases,
   }: IOptions<T>) {
     super();
     this._mocody_pouchDb = pouchDbInitializer;
@@ -70,6 +75,7 @@ export class PouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     this._mocody_strictRequiredFields = strictRequiredFields as string[];
     this._mocody_errorHelper = new MocodyErrorUtils();
     this._mocody_entityFieldsKeySet = new Set();
+    this._mocody_fieldAliases = fieldAliases;
 
     const fullSchemaMapDef = {
       ...schemaDef,
@@ -222,7 +228,19 @@ export class PouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
       throw this._mocody_errorHelper.mocody_helper_createFriendlyError(msg);
     }
 
-    return await Promise.resolve({ validatedData: value });
+    const validatedData = MocodyUtil.alignFormatFieldAlias({
+      data: value,
+      fieldAliases: this._mocody_fieldAliases,
+      featureEntity: this._mocody_featureEntityValue,
+    });
+
+    MocodyUtil.validateFieldAlias({
+      data: validatedData,
+      fieldAliases: this._mocody_fieldAliases,
+      featureEntity: this._mocody_featureEntityValue,
+    });
+
+    return await Promise.resolve({ validatedData });
   }
 
   private _mocody_createGenericError(error: string) {
@@ -232,15 +250,12 @@ export class PouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   async mocody_createOne({ data }: { data: T }): Promise<T> {
     const { validatedData } = await this._mocody_validateReady({ data });
 
-    const result = await this._mocody_pouchDbInstance().createDoc({
-      validatedData,
-    });
+    const result = await this._mocody_pouchDbInstance().createDoc({ validatedData });
+
     if (!result.ok) {
       throw this._mocody_createGenericError(this._mocody_operationNotSuccessful);
     }
-    return this._mocody_stripNonRequiredOutputData({
-      dataObj: validatedData,
-    });
+    return this._mocody_stripNonRequiredOutputData({ dataObj: validatedData });
   }
 
   async mocody_formatForDump({ dataList }: { dataList: T[] }): Promise<string[]> {
@@ -377,9 +392,7 @@ export class PouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     if (!result.ok) {
       throw this._mocody_createGenericError(this._mocody_operationNotSuccessful);
     }
-    return this._mocody_stripNonRequiredOutputData({
-      dataObj: validatedData,
-    });
+    return this._mocody_stripNonRequiredOutputData({ dataObj: validatedData });
   }
 
   /** Not implemented */

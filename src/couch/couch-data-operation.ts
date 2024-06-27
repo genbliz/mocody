@@ -3,6 +3,7 @@ import { SettingDefaults } from "./../helpers/constants";
 import { UtilService } from "./../helpers/util-service";
 import { LoggingService } from "./../helpers/logging-service";
 import {
+  IFieldAliases,
   IMocodyFieldCondition,
   IMocodyIndexDefinition,
   IMocodyPagingResult,
@@ -28,6 +29,7 @@ interface IOptions<T> {
   secondaryIndexOptions: IMocodyIndexDefinition<T>[];
   baseTableName: string;
   strictRequiredFields: (keyof T)[] | string[];
+  fieldAliases?: IFieldAliases<T> | undefined | null;
 }
 
 type IModelBase = IMocodyCoreEntityModel;
@@ -50,6 +52,8 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   private readonly _mocody_errorHelper: MocodyErrorUtils;
   private readonly _mocody_filterQueryOperation = new CouchFilterQueryOperation();
   //
+  private readonly _mocody_fieldAliases: IFieldAliases<T> | undefined | null;
+  //
   private _mocody_tableManager!: CouchManageTable<T>;
 
   constructor({
@@ -60,6 +64,7 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     baseTableName,
     strictRequiredFields,
     dataKeyGenerator,
+    fieldAliases,
   }: IOptions<T>) {
     super();
     this._mocody_couchDb = couchDbInitializer;
@@ -70,6 +75,7 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     this._mocody_strictRequiredFields = strictRequiredFields as string[];
     this._mocody_errorHelper = new MocodyErrorUtils();
     this._mocody_entityFieldsKeySet = new Set();
+    this._mocody_fieldAliases = fieldAliases;
 
     const fullSchemaMapDef = {
       ...schemaDef,
@@ -212,7 +218,7 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     return Array.from(new Set(list));
   }
 
-  private async _mocody_allHelpValidateGetValue(data: any) {
+  private async _mocody_allHelpValidateGetValue({ data }: { data: any }) {
     const { error, value } = this._mocody_schema.validate(data, {
       stripUnknown: true,
     });
@@ -222,27 +228,27 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
       throw this._mocody_errorHelper.mocody_helper_createFriendlyError(msg);
     }
 
-    return await Promise.resolve({ validatedData: value });
+    const validatedData = MocodyUtil.alignFormatFieldAlias({
+      data: value,
+      fieldAliases: this._mocody_fieldAliases,
+      featureEntity: this._mocody_featureEntityValue,
+    });
+
+    MocodyUtil.validateFieldAlias({
+      data: validatedData,
+      fieldAliases: this._mocody_fieldAliases,
+      featureEntity: this._mocody_featureEntityValue,
+    });
+
+    return await Promise.resolve({ validatedData });
   }
 
   private _mocody_createGenericError(error: string) {
     return new MocodyGenericError(error);
   }
 
-  async mocody_createOne({
-    data,
-    fieldAliases,
-  }: {
-    data: T;
-    fieldAliases?: [keyof T, keyof T][] | undefined | null;
-  }): Promise<T> {
+  async mocody_createOne({ data }: { data: T }): Promise<T> {
     const { validatedData } = await this._mocody_validateReady({ data });
-
-    MocodyUtil.validateFieldAlias({
-      fieldAliases,
-      data: validatedData,
-      featureEntity: this._mocody_featureEntityValue,
-    });
 
     const result = await this._mocody_couchDbInstance().createDoc({ validatedData });
     if (!result.ok) {
@@ -292,7 +298,7 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
       throw this._mocody_createGenericError("FeatureEntity mismatched");
     }
 
-    const { validatedData } = await this._mocody_allHelpValidateGetValue(fullData);
+    const { validatedData } = await this._mocody_allHelpValidateGetValue({ data: fullData });
     this._mocody_checkValidateStrictRequiredFields(validatedData);
 
     return { validatedData };
@@ -341,12 +347,10 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     dataId,
     updateData,
     withCondition,
-    fieldAliases,
   }: {
     dataId: string;
     updateData: Partial<T>;
     withCondition?: IMocodyFieldCondition<T> | undefined | null;
-    fieldAliases?: [keyof T, keyof T][] | undefined | null;
   }): Promise<T> {
     this._mocody_errorHelper.mocody_helper_validateRequiredString({ dataId });
 
@@ -374,19 +378,13 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
       _id: dataInDb._id,
     };
 
-    const { validatedData } = await this._mocody_allHelpValidateGetValue(data);
-
-    MocodyUtil.validateFieldAlias({
-      fieldAliases,
-      data: validatedData,
-      featureEntity: this._mocody_featureEntityValue,
-    });
+    const { validatedData } = await this._mocody_allHelpValidateGetValue({ data });
 
     this._mocody_checkValidateStrictRequiredFields(validatedData);
 
-    const result = await this._mocody_couchDbInstance().createDoc({
-      ...validatedData,
-      _rev: dataInDb._rev,
+    const result = await this._mocody_couchDbInstance().updateDoc({
+      validatedData,
+      docRev: dataInDb._rev,
     });
 
     if (!result.ok) {

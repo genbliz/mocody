@@ -154,3 +154,5 @@ export type IMocodyPreparedTransaction =
   | IMocodyPreparedCreateTransaction
   | IMocodyPreparedUpdateTransaction
   | IMocodyPreparedDeleteTransaction;
+
+export type IFieldAliases<T> = { source: keyof T; dest: keyof T }[];

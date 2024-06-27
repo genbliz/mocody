@@ -10,6 +10,7 @@ import type {
   IMocodyPreparedTransaction,
   IMocodyTransactionPrepare,
   IMocodyQueryDefinition,
+  IFieldAliases,
 } from "../type";
 import { MocodyErrorUtils, MocodyGenericError } from "./../helpers/errors";
 import {
@@ -42,6 +43,7 @@ interface IOptions<T> {
   secondaryIndexOptions: IMocodyIndexDefinition<T>[];
   baseTableName: string;
   strictRequiredFields: (keyof T)[] | string[];
+  fieldAliases?: IFieldAliases<T> | undefined | null;
 }
 
 export interface IBulkDataDynamoDb {
@@ -72,6 +74,8 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
   private readonly _mocody_errorHelper: MocodyErrorUtils;
   private readonly _mocody_entityFieldsKeySet: Set<keyof T>;
   //
+  private readonly _mocody_fieldAliases: IFieldAliases<T> | undefined | null;
+  //
   private _mocody_tableManager!: DynamoManageTable<T>;
 
   constructor({
@@ -82,6 +86,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     baseTableName,
     strictRequiredFields,
     dataKeyGenerator,
+    fieldAliases,
   }: IOptions<T>) {
     super();
     this._mocody_dynamoDb = dynamoDbInitializer;
@@ -97,6 +102,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     this._mocody_errorHelper = new MocodyErrorUtils();
     this._mocody_featureEntity_Key_Value = { featureEntity: featureEntityValue };
     this._mocody_entityFieldsKeySet = new Set();
+    this._mocody_fieldAliases = fieldAliases;
 
     const fullSchemaMapDef = {
       ...schemaDef,
@@ -208,7 +214,19 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       throw this._mocody_errorHelper.mocody_helper_createFriendlyError(msg);
     }
 
-    return await Promise.resolve({ validatedData: value });
+    const validatedData = MocodyUtil.alignFormatFieldAlias({
+      data: value,
+      fieldAliases: this._mocody_fieldAliases,
+      featureEntity: this._mocody_featureEntityValue,
+    });
+
+    MocodyUtil.validateFieldAlias({
+      data: validatedData,
+      fieldAliases: this._mocody_fieldAliases,
+      featureEntity: this._mocody_featureEntityValue,
+    });
+
+    return await Promise.resolve({ validatedData });
   }
 
   private _mocody_formatTTL(fullData: IMocodyCoreEntityModel & T) {
@@ -220,8 +238,8 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     return fullData;
   }
 
-  async mocody_createOne({ data, fieldAliases }: { data: T; fieldAliases?: [keyof T, keyof T][] | undefined | null }) {
-    const { tableFullName, partitionKeyFieldName, featureEntityValue } = this._mocody_getLocalVariables();
+  async mocody_createOne({ data }: { data: T }) {
+    const { tableFullName, partitionKeyFieldName } = this._mocody_getLocalVariables();
 
     try {
       const { marshalled, validatedData } = await this._mocody_validateReady({ data });
@@ -229,12 +247,6 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       const query01: IMocodyQueryDefinition<IMocodyCoreEntityModel> = {
         [partitionKeyFieldName]: { $exists: false },
       };
-
-      MocodyUtil.validateFieldAlias({
-        fieldAliases,
-        data: validatedData,
-        featureEntity: featureEntityValue,
-      });
 
       const {
         //
@@ -356,12 +368,10 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     dataId,
     updateData,
     withCondition,
-    fieldAliases,
   }: {
     dataId: string;
     updateData: Partial<T>;
     withCondition?: IMocodyFieldCondition<T> | undefined | null;
-    fieldAliases?: [keyof T, keyof T][] | undefined | null;
   }) {
     const {
       //
@@ -400,12 +410,6 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     };
 
     const { validatedData } = await this._mocody_allHelpValidateGetValue(fullData);
-
-    MocodyUtil.validateFieldAlias({
-      data: validatedData,
-      fieldAliases,
-      featureEntity: featureEntityValue,
-    });
 
     this._mocody_checkValidateStrictRequiredFields(validatedData);
 
