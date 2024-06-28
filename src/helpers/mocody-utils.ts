@@ -72,7 +72,7 @@ class MocodyUtilBase {
     fieldAliases: IFieldAliases<T> | undefined | null;
     featureEntity: string;
   }) {
-    if (fieldAliases?.length && typeof data === "object" && Object.keys(data).length && featureEntity) {
+    if (fieldAliases?.length && data && typeof data === "object" && Object.keys(data).length && featureEntity) {
       const data01 = UtilService.convertObjectPlainObject(data);
       fieldAliases.forEach(({ source, dest }) => {
         if (data01[source] !== data01[dest]) {
