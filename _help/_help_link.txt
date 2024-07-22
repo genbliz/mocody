@@ -1,32 +1,20 @@
-
-
-
 https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/bp-adjacency-graphs.html
-
 
 https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/bp-modeling-nosql-B.html
 
-
 https://www.jeremydaly.com/how-to-switch-from-rdbms-to-dynamodb-in-20-easy-steps/
-
 
 https://serverlessfirst.com/dynamodb-modelling-single-vs-multi-table/
 
-
 https://www.trek10.com/blog/dynamodb-single-table-relational-modeling/
-
 
 https://acloud.guru/series/serverlessconf-nyc-2019/view/dynamodb-best-practices
 
-
 https://www.rwilinski.me/blog/dynamodb-single-table-design-lessons/
-
 
 https://medium.com/@nabtechblog/advanced-design-patterns-for-amazon-dynamodb-c31d65d2e3de
 
-
 https://medium.com/@nabtechblog/advanced-design-patterns-for-amazon-dynamodb-354f97c96c2
-
 
 https://www.bmc.com/blogs/dynamodb-advanced-queries
 
@@ -47,6 +35,28 @@ https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/getting-started
 https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ql-reference.select.html
 
 https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/Welcome.html
+
+https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ql-operators.html
+
+https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/example_dynamodb_ExecuteStatement_section.html
+
+https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/example_dynamodb_BatchExecuteStatement_section.html
+
+https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ql-reference.select.html
+
+https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/client/dynamodb/
+
+https://awscli.amazonaws.com/v2/documentation/api/latest/reference/dynamodb/execute-statement.html
+
+https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_ExecuteStatement.html
+
+https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.OperatorsAndFunctions.html
+
+https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.UpdateExpressions.html
+
+
+
+
 
 
 

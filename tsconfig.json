@@ -21,6 +21,6 @@
     "baseUrl": "./",
     "rootDir": "./src/"
   },
-  "include": ["src/**/*", "src/index.ts"],
+  "include": ["src/**/*", "src/index.ts", "src/dynamo/operation-data.ts"],
   "exclude": ["node_modules", "**/dumps/**", "src/test/**", "src/**/*.test.ts", "src/**/*.spec.ts"]
 }

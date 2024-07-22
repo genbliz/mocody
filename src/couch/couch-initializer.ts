@@ -236,7 +236,7 @@ export class MocodyInitializerCouch {
       method: "HEAD",
       content_type: "application/json",
     });
-    LoggingService.log(JSON.stringify({ checkDbExistResult }, null, 2));
+    LoggingService.logAsString({ checkDbExistResult });
     return checkDbExistResult;
   }
 

@@ -10,6 +10,7 @@ import type {
   IMocodyPreparedTransaction,
   IMocodyTransactionPrepare,
   IMocodyQueryDefinition,
+  IFieldAliases,
 } from "../type";
 import { MocodyErrorUtils, MocodyGenericError } from "./../helpers/errors";
 import {
@@ -31,6 +32,8 @@ import { DynamoFilterQueryOperation } from "./dynamo-filter-query-operation";
 import { DynamoQueryScanProcessor } from "./dynamo-query-scan-processor";
 import lodash from "lodash";
 import { getDynamoRandomKeyOrHash } from "./dynamo-helper";
+import { DynamoQueryPartiqlProcessor } from "./dynamo-query-partiql-processor";
+import { DynamoFilterQueryPartiQlOperation } from "./dynamo-filter-query-partiql-operation";
 
 interface IOptions<T> {
   schemaDef: Joi.SchemaMap;
@@ -40,6 +43,7 @@ interface IOptions<T> {
   secondaryIndexOptions: IMocodyIndexDefinition<T>[];
   baseTableName: string;
   strictRequiredFields: (keyof T)[] | string[];
+  fieldAliases?: IFieldAliases<T> | undefined | null;
 }
 
 export interface IBulkDataDynamoDb {
@@ -63,9 +67,14 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
   private readonly _mocody_featureEntityValue: string;
   private readonly _mocody_secondaryIndexOptions: IMocodyIndexDefinition<T>[];
   private readonly _mocody_queryFilter: DynamoFilterQueryOperation;
+  private readonly _mocody_queryPartiQlFilter: DynamoFilterQueryPartiQlOperation;
+  //
   private readonly _mocody_queryScanProcessor: DynamoQueryScanProcessor;
+  private readonly _mocody_queryPartiQlProcessor: DynamoQueryPartiqlProcessor;
   private readonly _mocody_errorHelper: MocodyErrorUtils;
   private readonly _mocody_entityFieldsKeySet: Set<keyof T>;
+  //
+  private readonly _mocody_fieldAliases: IFieldAliases<T> | undefined | null;
   //
   private _mocody_tableManager!: DynamoManageTable<T>;
 
@@ -77,6 +86,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     baseTableName,
     strictRequiredFields,
     dataKeyGenerator,
+    fieldAliases,
   }: IOptions<T>) {
     super();
     this._mocody_dynamoDb = dynamoDbInitializer;
@@ -86,10 +96,13 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     this._mocody_secondaryIndexOptions = secondaryIndexOptions;
     this._mocody_strictRequiredFields = strictRequiredFields as string[];
     this._mocody_queryFilter = new DynamoFilterQueryOperation();
+    this._mocody_queryPartiQlFilter = new DynamoFilterQueryPartiQlOperation();
     this._mocody_queryScanProcessor = new DynamoQueryScanProcessor();
+    this._mocody_queryPartiQlProcessor = new DynamoQueryPartiqlProcessor();
     this._mocody_errorHelper = new MocodyErrorUtils();
     this._mocody_featureEntity_Key_Value = { featureEntity: featureEntityValue };
     this._mocody_entityFieldsKeySet = new Set();
+    this._mocody_fieldAliases = fieldAliases;
 
     const fullSchemaMapDef = {
       ...schemaDef,
@@ -147,7 +160,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     return dataMust;
   }
 
-  private _mocody_checkValidateMustBeAnObjectDataType(data: any) {
+  private _mocody_checkValidateMustBeAnObjectDataType(data: unknown) {
     if (!data || typeof data !== "object") {
       throw this._mocody_createGenericError(`Data MUST be valid object`);
     }
@@ -201,7 +214,19 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       throw this._mocody_errorHelper.mocody_helper_createFriendlyError(msg);
     }
 
-    return await Promise.resolve({ validatedData: value });
+    const validatedData = MocodyUtil.alignFormatFieldAlias({
+      data: value,
+      fieldAliases: this._mocody_fieldAliases,
+      featureEntity: this._mocody_featureEntityValue,
+    });
+
+    MocodyUtil.validateFieldAlias({
+      data: validatedData,
+      fieldAliases: this._mocody_fieldAliases,
+      featureEntity: this._mocody_featureEntityValue,
+    });
+
+    return await Promise.resolve({ validatedData });
   }
 
   private _mocody_formatTTL(fullData: IMocodyCoreEntityModel & T) {
@@ -246,9 +271,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       return result;
     } catch (error: any) {
       if (error?.name === "ConditionalCheckFailedException") {
-        throw this._mocody_errorHelper.mocody_helper_createFriendlyError(
-          `Field, ${partitionKeyFieldName} already exists`,
-        );
+        throw this._mocody_errorHelper.mocody_helper_createFriendlyError(`Field, ${partitionKeyFieldName} already exists`);
       }
       throw error;
     }
@@ -306,7 +329,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     withCondition,
   }: {
     dataId: string;
-    withCondition?: IMocodyFieldCondition<T>;
+    withCondition?: IMocodyFieldCondition<T> | undefined | null;
   }): Promise<T | null> {
     const {
       //
@@ -350,7 +373,13 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     updateData: Partial<T>;
     withCondition?: IMocodyFieldCondition<T> | undefined | null;
   }) {
-    const { tableFullName, partitionKeyFieldName, sortKeyFieldName } = this._mocody_getLocalVariables();
+    const {
+      //
+      tableFullName,
+      partitionKeyFieldName,
+      sortKeyFieldName,
+      featureEntityValue,
+    } = this._mocody_getLocalVariables();
 
     this._mocody_errorHelper.mocody_helper_validateRequiredString({ Update1DataId: dataId });
 
@@ -359,7 +388,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     if (!dataInDb?.[partitionKeyFieldName]) {
       throw this._mocody_errorHelper.mocody_helper_createFriendlyError("Data does NOT exists");
     }
-    if (dataInDb?.[sortKeyFieldName] !== this._mocody_featureEntityValue) {
+    if (dataInDb?.[sortKeyFieldName] !== featureEntityValue) {
       throw this._mocody_createGenericError("Record does not exists");
     }
 
@@ -381,6 +410,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     };
 
     const { validatedData } = await this._mocody_allHelpValidateGetValue(fullData);
+
     this._mocody_checkValidateStrictRequiredFields(validatedData);
 
     const validatedData01 = this._mocody_formatTTL(validatedData);
@@ -582,23 +612,42 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     excludeFields?: (keyof T)[] | undefined | null;
     withCondition?: IMocodyFieldCondition<T> | undefined | null;
   }) {
+    const dataList: T[] = [];
+
+    if (!dataIds?.length) {
+      return dataList;
+    }
+
     dataIds.forEach((dataId) => {
-      this._mocody_errorHelper.mocody_helper_validateRequiredString({
-        BatchGetDataId: dataId,
-      });
+      this._mocody_errorHelper.mocody_helper_validateRequiredString({ BatchGetDataId: dataId });
     });
 
     const originalIds = this._mocody_removeDuplicateString(dataIds);
-    const BATCH_SIZE = 80;
 
+    if (originalIds?.length === 1) {
+      const result = await this.mocody_getOneById({
+        dataId: originalIds[0],
+        withCondition,
+      });
+
+      if (result) {
+        if (fields?.length) {
+          const result01 = UtilService.pickFromObject({ dataObject: result, pickKeys: fields });
+          dataList.push(result01);
+        } else {
+          dataList.push(result);
+        }
+      }
+      return dataList;
+    }
+
+    const BATCH_SIZE = 80;
     const batchIds = lodash.chunk(originalIds, BATCH_SIZE);
 
     LoggingService.log({
       batchIds,
       "@mocody_getManyByIds batchIds": batchIds.length,
     });
-
-    let resultAll: T[] = [];
 
     const fieldKeys = this._mocody_getProjectionFields({ fields, excludeFields });
 
@@ -608,10 +657,10 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
         fields: fieldKeys,
         withCondition,
       });
-      resultAll = [...resultAll, ...callByIds];
+      dataList.push(...callByIds);
     }
-    LoggingService.log("@mocody_getManyByIds batchIds result Out: ", resultAll.length);
-    return resultAll;
+    LoggingService.log("@mocody_getManyByIds batchIds result Out: ", dataList.length);
+    return dataList;
   }
 
   private async mocody_batchGetManyByIdsBasePrivate({
@@ -740,7 +789,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     return returnedItems;
   }
 
-  async mocody_getManyByIndex<TData = T, TSortKeyField = string>(
+  async mocody_getManyByIndex<TData = T, TSortKeyField extends string | number = string>(
     paramOption: IMocodyQueryIndexOptionsNoPaging<TData, TSortKeyField>,
   ): Promise<TData[]> {
     const result = await this._mocody_getManyBySecondaryIndexPaginateBase<TData, TData, TSortKeyField>({
@@ -754,7 +803,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     return [];
   }
 
-  async mocody_getManyByIndexPaginate<TData = T, TSortKeyField = string>(
+  async mocody_getManyByIndexPaginate<TData = T, TSortKeyField extends string | number = string>(
     paramOption: IMocodyQueryIndexOptions<TData, TSortKeyField>,
   ): Promise<IMocodyPagingResult<TData[]>> {
     return this._mocody_getManyBySecondaryIndexPaginateBase<TData, TData, TSortKeyField>({
@@ -764,7 +813,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     });
   }
 
-  async mocody_getManyWithRelation<TQuery = T, TData = T, TSortKeyField = string>(
+  async mocody_getManyWithRelation<TQuery = T, TData = T, TSortKeyField extends string | number = string>(
     paramOption: Omit<IMocodyQueryIndexOptions<TQuery, TSortKeyField>, "pagingParams">,
   ): Promise<TData[]> {
     const result = await this._mocody_getManyBySecondaryIndexPaginateBase<TQuery, TData, TSortKeyField>({
@@ -778,7 +827,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     return [];
   }
 
-  async mocody_getManyWithRelationPaginate<TQuery = T, TData = T, TSortKeyField = string>(
+  async mocody_getManyWithRelationPaginate<TQuery = T, TData = T, TSortKeyField extends string | number = string>(
     paramOption: IMocodyQueryIndexOptions<TQuery, TSortKeyField>,
   ): Promise<IMocodyPagingResult<TData[]>> {
     return this._mocody_getManyBySecondaryIndexPaginateBase<TQuery, TData, TSortKeyField>({
@@ -788,7 +837,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     });
   }
 
-  private async _mocody_getManyBySecondaryIndexPaginateBase<TQuery, TData, TSortKeyField>({
+  private async _mocody_getManyBySecondaryIndexPaginateBase<TQuery, TData, TSortKeyField extends string | number>({
     paramOption,
     canPaginate,
     enableRelationFetch,
@@ -797,8 +846,26 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     canPaginate: boolean;
     enableRelationFetch: boolean;
   }): Promise<IMocodyPagingResult<TData[]>> {
-    const { tableFullName, secondaryIndexOptions, partitionKeyFieldName, sortKeyFieldName, featureEntityValue } =
-      this._mocody_getLocalVariables();
+    LoggingService.log({
+      MOCODY_USE_PARTIQL_QUERY_FILTER: process.env.MOCODY_USE_PARTIQL_QUERY_FILTER,
+    });
+
+    if (process.env.MOCODY_USE_PARTIQL_QUERY_FILTER === "true") {
+      return this._mocody_getManyBySecondaryIndexPartiQlPaginateBase<TQuery, TData, TSortKeyField>({
+        paramOption,
+        canPaginate,
+        enableRelationFetch,
+      });
+    }
+
+    const {
+      //
+      tableFullName,
+      secondaryIndexOptions,
+      partitionKeyFieldName,
+      sortKeyFieldName,
+      featureEntityValue,
+    } = this._mocody_getLocalVariables();
 
     if (!secondaryIndexOptions?.length) {
       throw this._mocody_createGenericError("Invalid secondary index definitions");
@@ -848,18 +915,18 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       evaluationLimit01 = resultLimit01;
     }
 
-    const index_PartitionKeyFieldName = secondaryIndex.partitionKeyFieldName as string;
-    const index_SortKeyFieldName = secondaryIndex.sortKeyFieldName as string;
+    const current_PartitionKeyFieldName = secondaryIndex.partitionKeyFieldName as string;
+    const current_SortKeyFieldName = secondaryIndex.sortKeyFieldName as string;
 
-    const main_partitionAndSortKey: [string, string] = [partitionKeyFieldName, sortKeyFieldName];
-    const index_partitionAndSortKey: [string, string] = [index_PartitionKeyFieldName, index_SortKeyFieldName];
+    const default_partitionAndSortKey: [string, string] = [partitionKeyFieldName, sortKeyFieldName];
+    const current_partitionAndSortKey: [string, string] = [current_PartitionKeyFieldName, current_SortKeyFieldName];
 
     const partitionSortKeyQuery = paramOption01.sortKeyQuery
       ? {
-          ...{ [index_SortKeyFieldName]: paramOption01.sortKeyQuery },
-          ...{ [index_PartitionKeyFieldName]: paramOption01.partitionKeyValue },
+          ...{ [current_SortKeyFieldName]: paramOption01.sortKeyQuery },
+          ...{ [current_PartitionKeyFieldName]: paramOption01.partitionKeyValue },
         }
-      : { [index_PartitionKeyFieldName]: paramOption01.partitionKeyValue };
+      : { [current_PartitionKeyFieldName]: paramOption01.partitionKeyValue };
 
     if (!enableRelationFetch) {
       /** This block avoids query data leak */
@@ -867,8 +934,8 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
 
       const hasFeatureEntity = [
         //
-        index_PartitionKeyFieldName,
-        index_SortKeyFieldName,
+        current_PartitionKeyFieldName,
+        current_SortKeyFieldName,
       ].includes(localVariables.sortKeyFieldName);
 
       if (!hasFeatureEntity) {
@@ -878,9 +945,9 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
           ...paramOption01.query,
           ...this._mocody_featureEntity_Key_Value,
         } as any;
-      } else if (index_PartitionKeyFieldName !== localVariables.sortKeyFieldName) {
-        if (localVariables.sortKeyFieldName === index_SortKeyFieldName) {
-          partitionSortKeyQuery[index_SortKeyFieldName] = { $eq: localVariables.featureEntityValue as any };
+      } else if (current_PartitionKeyFieldName !== localVariables.sortKeyFieldName) {
+        if (localVariables.sortKeyFieldName === current_SortKeyFieldName) {
+          partitionSortKeyQuery[current_SortKeyFieldName] = { $eq: localVariables.featureEntityValue } as any;
         }
       }
     }
@@ -912,11 +979,11 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       TableName: tableFullName,
       IndexName: paramOption01.indexName,
       KeyConditionExpression: mainFilter.filterExpression,
+      FilterExpression: otherFilterExpression ?? undefined,
       ExpressionAttributeValues: {
         ...otherExpressionAttributeValues,
         ...mainFilter.expressionAttributeValues,
       },
-      FilterExpression: otherFilterExpression ?? undefined,
       ExpressionAttributeNames: {
         ...otherExpressionAttributeNames,
         ...mainFilter.expressionAttributeNames,
@@ -951,8 +1018,8 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       canPaginate,
       tableFullName,
       featureEntityValue,
-      main_partitionAndSortKey,
-      index_partitionAndSortKey,
+      default_partitionAndSortKey,
+      current_partitionAndSortKey,
       evaluationLimit: evaluationLimit01,
       nextPageHash: nextPageHash01,
       resultLimit: resultLimit01,
@@ -960,18 +1027,174 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     return result;
   }
 
-  async mocody_deleteById({
-    dataId,
-    withCondition,
+  private async _mocody_getManyBySecondaryIndexPartiQlPaginateBase<TQuery, TData, TSortKeyField extends string | number>({
+    paramOption,
+    canPaginate,
+    enableRelationFetch,
   }: {
-    dataId: string;
-    withCondition?: IMocodyFieldCondition<T>;
-  }): Promise<T> {
+    paramOption: IMocodyQueryIndexOptions<TQuery, TSortKeyField>;
+    canPaginate: boolean;
+    enableRelationFetch: boolean;
+  }): Promise<IMocodyPagingResult<TData[]>> {
+    const {
+      //
+      tableFullName,
+      secondaryIndexOptions,
+      partitionKeyFieldName,
+      sortKeyFieldName,
+      featureEntityValue,
+    } = this._mocody_getLocalVariables();
+
+    if (!secondaryIndexOptions?.length) {
+      throw this._mocody_createGenericError("Invalid secondary index definitions");
+    }
+
+    const paramOption01 = { ...paramOption };
+
+    if (!paramOption01?.indexName) {
+      throw this._mocody_createGenericError("Invalid index name input");
+    }
+
+    const secondaryIndex = secondaryIndexOptions.find((item) => {
+      return item.indexName === paramOption01.indexName;
+    });
+
+    if (!secondaryIndex) {
+      throw this._mocody_createGenericError(
+        `Secondary index '${paramOption01.indexName}' not named/defined in secondaryIndexOptions`,
+      );
+    }
+
+    let projectionFields: (keyof TQuery)[] | undefined | null;
+
+    const fields01 = this._mocody_getProjectionFields({
+      fields: paramOption01.fields,
+      excludeFields: paramOption01.excludeFields,
+    });
+
+    if (canPaginate && fields01?.length) {
+      const fieldSet01 = new Set(fields01);
+      fieldSet01.add(partitionKeyFieldName as any);
+      projectionFields = Array.from(fieldSet01);
+    } else {
+      projectionFields = fields01;
+    }
+
+    let evaluationLimit01: number | undefined;
+    let resultLimit01: number | undefined;
+
+    if (paramOption01.limit && UtilService.isNumericInteger(paramOption01.limit)) {
+      resultLimit01 = Number(paramOption01.limit);
+    }
+
+    if (paramOption01?.pagingParams?.evaluationLimit) {
+      evaluationLimit01 = paramOption01?.pagingParams?.evaluationLimit;
+    } else if (!paramOption01.query && resultLimit01) {
+      evaluationLimit01 = resultLimit01;
+    }
+
+    const current_PartitionKeyFieldName = secondaryIndex.partitionKeyFieldName as string;
+    const current_SortKeyFieldName = secondaryIndex.sortKeyFieldName as string;
+
+    const default_partitionAndSortKey: [string, string] = [partitionKeyFieldName, sortKeyFieldName];
+    const current_partitionAndSortKey: [string, string] = [current_PartitionKeyFieldName, current_SortKeyFieldName];
+
+    const partitionSortKeyQuery = paramOption01.sortKeyQuery || {};
+
+    if (!enableRelationFetch) {
+      /** This block avoids query data leak */
+      const localVariables = this._mocody_getLocalVariables();
+
+      const hasFeatureEntity = [
+        //
+        current_PartitionKeyFieldName,
+        current_SortKeyFieldName,
+      ].includes(localVariables.sortKeyFieldName);
+
+      if (!hasFeatureEntity) {
+        paramOption01.query = (paramOption01.query || {}) as any;
+
+        paramOption01.query = {
+          ...paramOption01.query,
+          ...this._mocody_featureEntity_Key_Value,
+        } as any;
+      } else if (current_PartitionKeyFieldName !== localVariables.sortKeyFieldName) {
+        if (localVariables.sortKeyFieldName === current_SortKeyFieldName) {
+          partitionSortKeyQuery[current_SortKeyFieldName] = { $eq: localVariables.featureEntityValue } as any;
+        }
+      }
+    }
+
+    const subStatement: string[] = [];
+    const subParameter: any[] = [];
+
+    const sortFilter = this._mocody_queryPartiQlFilter.processQueryFilter({
+      queryDefs: partitionSortKeyQuery,
+    });
+
+    LoggingService.logAsString({ sortFilter });
+
+    if (sortFilter?.subStatement) {
+      subStatement.push(sortFilter.subStatement);
+      subParameter.push(...sortFilter.subParameter);
+    }
+
+    if (paramOption01.query) {
+      const otherFilter = this._mocody_queryPartiQlFilter.processQueryFilter({
+        queryDefs: paramOption01.query,
+      });
+
+      LoggingService.logAsString({ otherFilter });
+
+      if (otherFilter.subStatement) {
+        subStatement.push("AND");
+        subStatement.push(otherFilter.subStatement);
+        subParameter.push(...otherFilter.subParameter);
+      }
+    }
+
+    let nextPageHash01 = paramOption01?.pagingParams?.nextPageHash;
+
+    if (nextPageHash01 === "undefined") {
+      nextPageHash01 = undefined;
+    }
+
+    if (nextPageHash01 === "null") {
+      nextPageHash01 = undefined;
+    }
+
+    LoggingService.logAsString({ subStatement, subParameter });
+
+    const result = await this._mocody_queryPartiQlProcessor.mocody__helperDynamoQueryProcessor<TData>({
+      dynamoDb: () => this._mocody_dynamoInit(),
+      sortOrder: paramOption01?.sort,
+      indexName: paramOption01.indexName,
+      current_partitionValue: paramOption01.partitionKeyValue,
+      params: { subStatement, subParameter },
+      canPaginate,
+      tableFullName,
+      featureEntityValue,
+      projectionFields: projectionFields as string[],
+      default_partitionAndSortKey,
+      current_partitionAndSortKey,
+      evaluationLimit: evaluationLimit01,
+      nextPageHash: nextPageHash01,
+      resultLimit: resultLimit01,
+    });
+    return result;
+  }
+
+  async mocody_deleteById({ dataId, withCondition }: { dataId: string; withCondition?: IMocodyFieldCondition<T> }): Promise<T> {
     //
     this._mocody_errorHelper.mocody_helper_validateRequiredString({ Del1SortKey: dataId });
 
-    const { tableFullName, partitionKeyFieldName, sortKeyFieldName, featureEntityValue } =
-      this._mocody_getLocalVariables();
+    const {
+      //
+      tableFullName,
+      partitionKeyFieldName,
+      sortKeyFieldName,
+      featureEntityValue,
+    } = this._mocody_getLocalVariables();
 
     const dataExist = await this.mocody_getOneById({ dataId, withCondition });
 

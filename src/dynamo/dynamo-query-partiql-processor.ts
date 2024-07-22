@@ -1,94 +1,57 @@
-import { UtilService } from "./../helpers/util-service";
-import { GetItemCommandInput, QueryCommand, QueryCommandInput } from "@aws-sdk/client-dynamodb";
-import { marshall } from "@aws-sdk/util-dynamodb";
+// import { UtilService } from "../helpers/util-service";
+import { GetItemCommandInput } from "@aws-sdk/client-dynamodb";
 import type { IMocodyPagingResult } from "../type";
 import { LoggingService } from "../helpers/logging-service";
-import { MocodyUtil } from "../helpers/mocody-utils";
 import { MocodyInitializerDynamo } from "./dynamo-initializer";
+import { ExecuteStatementCommandInput } from "@aws-sdk/lib-dynamodb";
 
-export class DynamoQueryScanProcessor {
+interface IParamInput {
+  subStatement: string[];
+  subParameter: any[];
+}
+
+interface IDynamoQueryPartiqlProcessorParams {
+  dynamoDb: () => MocodyInitializerDynamo;
+  evaluationLimit?: number;
+  params: IParamInput;
+  resultLimit?: number | undefined | null;
+  nextPageHash?: string | undefined | null;
+  sortOrder?: "asc" | "desc" | undefined | null;
+  canPaginate: boolean;
+  featureEntityValue: string;
+  indexName: string;
+  tableFullName: string;
+  projectionFields: string[] | undefined | null;
+  current_partitionValue: string | number;
+  current_partitionAndSortKey: [string, string];
+  default_partitionAndSortKey: [string, string];
+}
+
+export class DynamoQueryPartiqlProcessor {
   //
   async mocody__helperDynamoQueryProcessor<T>({
     evaluationLimit,
     params,
     resultLimit,
     nextPageHash,
-    orderDesc,
-    current_partitionAndSortKey,
-    default_partitionAndSortKey,
+    sortOrder,
     dynamoDb,
     canPaginate,
-    featureEntityValue,
-    tableFullName,
-  }: {
-    dynamoDb: () => MocodyInitializerDynamo;
-    evaluationLimit?: number;
-    params: QueryCommandInput;
-    resultLimit?: number | undefined | null;
-    nextPageHash?: string | undefined | null;
-    orderDesc?: boolean;
-    canPaginate: boolean;
-    featureEntityValue: string;
-    tableFullName: string;
-    current_partitionAndSortKey: [string, string];
-    default_partitionAndSortKey: [string, string];
-  }) {
-    if (params?.ExpressionAttributeValues) {
-      const marshalled = marshall(params.ExpressionAttributeValues, {
-        convertEmptyValues: false,
-        removeUndefinedValues: true,
-      });
-      params.ExpressionAttributeValues = marshalled;
-    }
-    const results = await this.__helperDynamoQueryScanProcessor<T>({
-      dynamoDb,
-      evaluationLimit,
-      params,
-      resultLimit,
-      nextPageHash,
-      orderDesc,
-      canPaginate,
-      current_partitionAndSortKey,
-      default_partitionAndSortKey,
-      featureEntityValue,
-      tableFullName,
-    });
-    results.paginationResults = this.__unmarshallToJson(results.paginationResults);
-    return results;
-  }
-
-  private async __helperDynamoQueryScanProcessor<T>({
-    evaluationLimit,
-    params,
-    resultLimit,
-    nextPageHash,
-    orderDesc,
+    projectionFields,
+    current_partitionValue,
     current_partitionAndSortKey,
     default_partitionAndSortKey,
-    dynamoDb,
-    canPaginate,
     featureEntityValue,
     tableFullName,
-  }: {
-    dynamoDb: () => MocodyInitializerDynamo;
-    evaluationLimit?: number;
-    params: QueryCommandInput;
-    resultLimit?: number | undefined | null;
-    nextPageHash?: string | undefined | null;
-    orderDesc?: boolean;
-    canPaginate: boolean;
-    featureEntityValue: string;
-    tableFullName: string;
-    current_partitionAndSortKey: [string, string];
-    default_partitionAndSortKey: [string, string];
-  }) {
+    indexName,
+  }: IDynamoQueryPartiqlProcessorParams) {
     const xDefaultEvaluationLimit = 20;
     const xMinEvaluationLimit = 5;
     const xMaxEvaluationLimit = 500;
 
     const processorParamsInit = {
       resultLimit,
-      orderDesc,
+      sortOrder,
       canPaginate,
       nextPageHash,
       evaluationLimit,
@@ -128,24 +91,62 @@ export class DynamoQueryScanProcessor {
       }
     }
 
-    const params01: QueryCommandInput = { ...params };
+    const projectionField01 = (() => {
+      if (projectionFields?.length) {
+        return projectionFields
+          .map((f) => JSON.stringify(f))
+          .join(",")
+          .trim();
+      }
+      return "*";
+    })();
 
-    if (orderDesc === true) {
-      params01.ScanIndexForward = false;
-    } else {
-      params01.ScanIndexForward = true;
+    const tableName = `"${tableFullName}"."${indexName}"`;
+
+    const [current_PartitionKeyFieldName, current_SortKeyFieldName] = current_partitionAndSortKey;
+    if (current_PartitionKeyFieldName) {
+      //
     }
+
+    const statementText: string[] = [`SELECT ${projectionField01} FROM ${tableName} WHERE ${current_PartitionKeyFieldName}=?`];
+
+    if (params.subStatement?.length) {
+      if (!params.subStatement[0].trim().startsWith("AND")) {
+        statementText.push("AND");
+      }
+      statementText.push(...params.subStatement);
+    }
+
+    const parameters: any[] = [current_partitionValue];
+    parameters.push(...params.subParameter);
+
+    if (sortOrder === "desc") {
+      statementText.push(`ORDER BY ${current_SortKeyFieldName} DESC`);
+    } else {
+      statementText.push(`ORDER BY ${current_SortKeyFieldName} ASC`);
+    }
+
+    LoggingService.logAsString({ statementText });
+
+    const params01: ExecuteStatementCommandInput = {
+      Statement: statementText.join(" "),
+      NextToken: undefined,
+      Parameters: parameters,
+    };
 
     if (evaluationLimit01) {
       params01.Limit = evaluationLimit01;
     }
 
     if (nextPageHash) {
-      const lastEvaluatedKey01 = this.__decodeLastKey(nextPageHash);
-      if (lastEvaluatedKey01) {
-        params01.ExclusiveStartKey = lastEvaluatedKey01;
-      }
+      // const nextToken01 = this.__decodeLastKey(nextPageHash);
+      // if (nextToken01) {
+      //   params01.NextToken = nextToken01;
+      // }
+      params01.NextToken = nextPageHash;
     }
+
+    LoggingService.logAsString({ query_start_params: params01 });
 
     const outResult: IMocodyPagingResult<T[]> = {
       paginationResults: [],
@@ -155,17 +156,13 @@ export class DynamoQueryScanProcessor {
     let hasNext = true;
 
     const dynamo = dynamoDb();
-    const dynamoClient = await dynamo.getInstance();
-
     const itemsLoopedOrderedLength: number[] = [];
-
-    LoggingService.logAsString({ query_start: params01 });
 
     while (hasNext) {
       try {
-        const { Items, LastEvaluatedKey } = await dynamoClient.send(new QueryCommand(params01));
+        const { Items, LastEvaluatedKey, NextToken } = await dynamo.executeStatement(params01);
 
-        params01.ExclusiveStartKey = undefined;
+        params01.NextToken = undefined;
 
         itemsLoopedOrderedLength.push(Items?.length || 0);
 
@@ -195,30 +192,31 @@ export class DynamoQueryScanProcessor {
 
           if (canPaginate) {
             if (hasMoreResults) {
-              const [lastKeyRawObject] = actualResult01.slice(-1);
-              LoggingService.log({ lastKeyRawObject });
-              if (lastKeyRawObject) {
-                const customLastEvaluationKey = await this.__createCustomLastEvaluationKey({
-                  lastKeyRawObject,
-                  featureEntityValue,
-                  default_partitionAndSortKey,
-                  current_partitionAndSortKey,
-                  dynamo,
-                  tableFullName,
-                });
-                LoggingService.logAsString({ customLastEvaluationKey });
-                if (customLastEvaluationKey) {
-                  outResult.nextPageHash = this.__encodeLastKey(customLastEvaluationKey);
-                }
-              }
+              // const [lastKeyRawObject] = actualResult01.slice(-1);
+              // LoggingService.log({ lastKeyRawObject });
+              // if (lastKeyRawObject) {
+              //   const customLastEvaluationKey = await this.__createCustomLastEvaluationKey({
+              //     lastKeyRawObject,
+              //     featureEntityValue,
+              //     current_partitionAndSortKey,
+              //     default_partitionAndSortKey,
+              //     dynamo,
+              //     tableFullName,
+              //   });
+              //   LoggingService.logAsString({ customLastEvaluationKey });
+              //   if (customLastEvaluationKey) {
+              //     outResult.nextPageHash = customLastEvaluationKey;
+              //   }
+              // }
+              outResult.nextPageHash = NextToken;
             } else if (LastEvaluatedKey && Object.keys(LastEvaluatedKey).length) {
-              outResult.nextPageHash = this.__encodeLastKey(LastEvaluatedKey);
+              outResult.nextPageHash = NextToken;
             }
           }
           hasNext = false;
           break;
-        } else if (LastEvaluatedKey && Object.keys(LastEvaluatedKey).length) {
-          params01.ExclusiveStartKey = LastEvaluatedKey;
+        } else if (LastEvaluatedKey && Object.keys(LastEvaluatedKey).length && NextToken) {
+          params01.NextToken = NextToken;
           LoggingService.logAsString({
             LastEvaluatedKey_RAW: LastEvaluatedKey,
             dynamoProcessorParams: params01,
@@ -254,17 +252,11 @@ export class DynamoQueryScanProcessor {
     return { ...outResult };
   }
 
-  private __unmarshallToJson(items: any[]) {
-    if (items?.length) {
-      return items.map((item) => MocodyUtil.unmarshallToJson(item));
-    }
-    return items;
-  }
-
+  //@ts-ignore
   private async __createCustomLastEvaluationKey({
     lastKeyRawObject,
-    default_partitionAndSortKey,
     current_partitionAndSortKey,
+    default_partitionAndSortKey,
     dynamo,
     tableFullName,
     featureEntityValue,
@@ -304,9 +296,7 @@ export class DynamoQueryScanProcessor {
       return obj;
     }
 
-    const itemJson = MocodyUtil.unmarshallToJson(lastKeyRawObject);
-
-    const dataId: string | undefined = itemJson?.[partitionKeyFieldName];
+    const dataId: string | undefined = lastKeyRawObject?.[partitionKeyFieldName];
 
     if (!dataId) {
       return null;
@@ -333,37 +323,37 @@ export class DynamoQueryScanProcessor {
     return Object.keys(obj01).length === fields.length ? obj01 : null;
   }
 
-  private __encodeLastKey(lastEvaluatedKey: Record<string, any>) {
-    return UtilService.encodeBase64(JSON.stringify(lastEvaluatedKey));
-  }
+  // private __encodeLastKey(lastEvaluatedKey: Record<string, any>) {
+  //   return UtilService.encodeBase64(JSON.stringify(lastEvaluatedKey));
+  // }
 
-  private __decodeLastKey(lastKeyHash: string | undefined): any {
-    try {
-      if (!lastKeyHash) {
-        return undefined;
-      }
-      let lastKeyHash01: any = JSON.parse(UtilService.decodeBase64(lastKeyHash));
+  // private __decodeLastKey(lastKeyHash: string | undefined): any {
+  //   try {
+  //     if (!lastKeyHash) {
+  //       return undefined;
+  //     }
+  //     let lastKeyHash01: any = JSON.parse(UtilService.decodeBase64(lastKeyHash));
 
-      if (typeof lastKeyHash01 === "string") {
-        lastKeyHash01 = JSON.parse(lastKeyHash01);
-      }
+  //     if (typeof lastKeyHash01 === "string") {
+  //       lastKeyHash01 = JSON.parse(lastKeyHash01);
+  //     }
 
-      if (typeof lastKeyHash01 === "string") {
-        lastKeyHash01 = JSON.parse(lastKeyHash01);
-      }
+  //     if (typeof lastKeyHash01 === "string") {
+  //       lastKeyHash01 = JSON.parse(lastKeyHash01);
+  //     }
 
-      if (typeof lastKeyHash01 === "string") {
-        lastKeyHash01 = JSON.parse(lastKeyHash01);
-      }
+  //     if (typeof lastKeyHash01 === "string") {
+  //       lastKeyHash01 = JSON.parse(lastKeyHash01);
+  //     }
 
-      LoggingService.log({
-        lastKeyHash,
-        slastKeyHash_decoded: lastKeyHash01,
-      });
-      return lastKeyHash01;
-    } catch (error) {
-      LoggingService.error(error);
-      return undefined;
-    }
-  }
+  //     LoggingService.log({
+  //       lastKeyHash,
+  //       slastKeyHash_decoded: lastKeyHash01,
+  //     });
+  //     return lastKeyHash01;
+  //   } catch (error) {
+  //     LoggingService.error(error);
+  //     return undefined;
+  //   }
+  // }
 }

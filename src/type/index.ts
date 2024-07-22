@@ -5,7 +5,7 @@ type RequireAtLeastOneBase<T, Keys extends keyof T = keyof T> = Pick<T, Exclude<
   }[Keys];
 type RequireAtLeastOne<T> = RequireAtLeastOneBase<T, keyof T>;
 
-type TypeFallBackStringOnly<T> = Extract<T, string>;
+type TypeFallBackStringOnly<T> = T extends string ? Extract<T, string> : never;
 type TypeFallBack<T> = undefined extends T ? Exclude<T, undefined> : T;
 type TypeFallBackArray<T> = number extends T ? number[] : string extends T ? string[] : T;
 type TypeFallBackArrayAdvanced<T> = number extends T
@@ -31,12 +31,12 @@ export type IMocodyQueryConditionParams<T = any> = IMocodyKeyConditionParams<T> 
   $in?: TypeFallBackArrayAdvanced<T>;
   $nin?: TypeFallBackArrayAdvanced<T>;
   $exists?: boolean;
-  $not?: IMocodyKeyConditionParams<T>;
   $elemMatch?: { $in: TypeFallBackArray<T> };
   //
   $contains?: TypeFallBackStringOnly<T>;
   $notContains?: TypeFallBackStringOnly<T>;
   $nestedMatch?: IQueryNested<RequireAtLeastOne<T>>;
+  $nestedArrayMatch?: IQueryNestedArray<RequireAtLeastOne<T>>;
 };
 
 export type IMocodyQueryNestedParams<T = any> = IMocodyKeyConditionParams<T> & {
@@ -53,6 +53,12 @@ type IQueryAll<T> = {
 
 type IQueryNested<T> = {
   [P in keyof T]: T[P] | IMocodyQueryNestedParams<T[P]>;
+};
+
+export type IQueryNestedArray<T = any> = {
+  query: IMocodyQueryNestedParams<any>;
+  index: number;
+  path: string[];
 };
 
 export interface IMocodyPagingResult<T> {
@@ -74,7 +80,7 @@ export type IMocodyQueryDefinition<T> = IQueryAll<RequireAtLeastOne<T & IQueryDe
 export interface IMocodyQueryIndexOptions<T, TSortKeyField = string> {
   indexName: string;
   partitionKeyValue: string | number;
-  sortKeyQuery?: IMocodyKeyConditionParams<TSortKeyField>;
+  sortKeyQuery?: IMocodyKeyConditionParams<TSortKeyField> | undefined | null;
   query?: IMocodyQueryDefinition<T> | undefined | null;
   fields?: (keyof T)[] | undefined | null;
   excludeFields?: (keyof T)[] | undefined | null;
@@ -148,3 +154,5 @@ export type IMocodyPreparedTransaction =
   | IMocodyPreparedCreateTransaction
   | IMocodyPreparedUpdateTransaction
   | IMocodyPreparedDeleteTransaction;
+
+export type IFieldAliases<T> = { source: keyof T; dest: keyof T }[];

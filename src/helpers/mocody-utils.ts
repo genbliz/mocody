@@ -1,4 +1,7 @@
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
+import { MocodyErrorUtilsService } from "./errors";
+import { UtilService } from "./util-service";
+import { IFieldAliases } from "../type";
 
 class MocodyUtilBase {
   marshallFromJson(jsonData: Record<string, any>) {
@@ -58,6 +61,48 @@ class MocodyUtilBase {
       return [...fieldSet01];
     }
     return undefined;
+  }
+
+  alignFormatFieldAlias<T>({
+    data,
+    fieldAliases,
+    featureEntity,
+  }: {
+    data: Partial<T>;
+    fieldAliases: IFieldAliases<T> | undefined | null;
+    featureEntity: string;
+  }) {
+    if (fieldAliases?.length && data && typeof data === "object" && Object.keys(data).length && featureEntity) {
+      const data01 = UtilService.convertObjectPlainObject(data);
+      fieldAliases.forEach(({ source, dest }) => {
+        if (data01[source] !== data01[dest]) {
+          data01[dest] = data01[source];
+        }
+      });
+      return data01 as any;
+    }
+    return data as any;
+  }
+
+  validateFieldAlias<T>({
+    data,
+    fieldAliases,
+    featureEntity,
+  }: {
+    data: Partial<T>;
+    fieldAliases: IFieldAliases<T> | undefined | null;
+    featureEntity: string;
+  }) {
+    if (fieldAliases?.length && typeof data === "object" && Object.keys(data).length && featureEntity) {
+      const data01 = UtilService.convertObjectPlainObject(data);
+      fieldAliases.forEach(({ source, dest }) => {
+        if (data01[source] !== data01[dest]) {
+          throw MocodyErrorUtilsService.mocody_helper_createFriendlyError(
+            `Aliases mismatched for: '${featureEntity}'; fields: ${String(source)}, ${String(dest)}`,
+          );
+        }
+      });
+    }
   }
 }
 

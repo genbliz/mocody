@@ -33,6 +33,16 @@ class LoggingServiceBase {
       //
     }
   }
+
+  logAsString(logData: unknown) {
+    try {
+      if (this.mode) {
+        console.log(typeof logData === "string" ? logData : JSON.stringify(logData, null, 2));
+      }
+    } catch (error) {
+      //
+    }
+  }
 }
 
 export const LoggingService = new LoggingServiceBase();

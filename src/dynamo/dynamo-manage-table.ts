@@ -358,7 +358,7 @@ export class DynamoManageTable<T> {
       }
 
       let projectionFields = (projectionFieldsInclude || []) as string[];
-      let projectionType = ProjectionType.ALL;
+      let projectionType: ProjectionType = ProjectionType.ALL;
 
       if (projectionFields?.length) {
         // remove frimary keys from include
