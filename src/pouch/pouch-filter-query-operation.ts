@@ -9,7 +9,6 @@ interface ISelectedQueryConditionsKeys {
   $gte?: any;
   $eq?: any;
   $ne?: any;
-  $not?: any;
   $exists?: boolean;
   $in?: any[];
   $nin?: any[];
@@ -34,11 +33,11 @@ const QUERY_CONDITION_MAP_PART: FieldPartial<Omit<IMocodyQueryConditionParams, k
   $exists: "",
   $in: "",
   $nin: "",
-  $not: "",
   $contains: "",
   $notContains: "",
   $elemMatch: "",
   $nestedMatch: "",
+  $nestedArrayMatch: "",
 };
 
 const QUERY_CONDITION_MAP_FULL = { ...KEY_CONDITION_MAP, ...QUERY_CONDITION_MAP_PART };
@@ -47,10 +46,6 @@ type FieldPartialQuery<T> = { [P in keyof T]-?: T[P] };
 type IQueryConditions = {
   [fieldName: string]: FieldPartialQuery<ISelectedQueryConditionsKeys>;
 };
-
-function hasQueryKeyCondition(key: string) {
-  return Object.keys(KEY_CONDITION_MAP).includes(key);
-}
 
 function getQueryConditionExpression(key: string): string | null {
   if (key && Object.keys(QUERY_CONDITION_MAP_FULL).includes(key)) {
@@ -112,76 +107,11 @@ export class PouchFilterQueryOperation {
     return result;
   }
 
-  private operation__filterNotIn({
-    fieldName,
-    attrValues,
-  }: {
-    fieldName: string;
-    attrValues: any[];
-  }): IQueryConditions {
+  private operation__filterNotIn({ fieldName, attrValues }: { fieldName: string; attrValues: any[] }): IQueryConditions {
     const result = {
       [fieldName]: { $nin: attrValues },
     } as IQueryConditions;
     return result;
-  }
-
-  private operation__filterNot({
-    fieldName,
-    selectorObjValues,
-  }: {
-    fieldName: string;
-    selectorObjValues: any;
-  }): IQueryConditions | null {
-    const selector: Record<keyof IMocodyKeyConditionParams, any> = { ...selectorObjValues };
-
-    const mConditions: IQueryConditions[] = [];
-
-    Object.entries(selector).forEach(([conditionKey, conditionValue]) => {
-      if (hasQueryKeyCondition(conditionKey)) {
-        const _conditionKey01 = conditionKey as keyof IMocodyKeyConditionParams;
-
-        if (_conditionKey01 === "$beginsWith") {
-          QueryValidatorCheck.beginWith(conditionValue);
-          const _queryConditions = this.operation__filterBeginsWith({
-            fieldName: fieldName,
-            term: conditionValue,
-          });
-          mConditions.push(_queryConditions);
-        } else if (_conditionKey01 === "$between") {
-          QueryValidatorCheck.between(conditionValue);
-          const _queryConditions = this.operation__filterBetween({
-            fieldName: fieldName,
-            from: conditionValue[0],
-            to: conditionValue[1],
-          });
-          mConditions.push(_queryConditions);
-        } else {
-          const conditionExpr: string = KEY_CONDITION_MAP[conditionKey];
-          if (conditionExpr) {
-            const _queryConditions = this.operation__helperFilterBasic({
-              fieldName: fieldName,
-              val: conditionValue,
-              conditionExpr: conditionExpr,
-            });
-            mConditions.push(_queryConditions);
-          } else {
-            QueryValidatorCheck.throwQueryNotFound(conditionKey);
-          }
-        }
-      }
-    });
-
-    if (mConditions.length) {
-      let selectorValuesAll: any = {};
-      mConditions.forEach((condition) => {
-        selectorValuesAll = { ...selectorValuesAll, ...condition[fieldName] };
-      });
-      const result = {
-        [fieldName]: { $not: selectorValuesAll },
-      } as IQueryConditions;
-      return result;
-    }
-    return null;
   }
 
   private operation__filterElementMatch({
@@ -208,20 +138,12 @@ export class PouchFilterQueryOperation {
 
   private operation__filterNotContains({ fieldName, term }: { fieldName: string; term: string }): IQueryConditions {
     const result = {
-      [fieldName]: { $not: { $regex: regex_pcre_contain(term) } },
+      [fieldName]: { $not: { $regex: regex_pcre_contain(term) } } as any,
     } as IQueryConditions;
     return result;
   }
 
-  private operation__filterBetween({
-    fieldName,
-    from,
-    to,
-  }: {
-    fieldName: string;
-    from: any;
-    to: any;
-  }): IQueryConditions {
+  private operation__filterBetween({ fieldName, from, to }: { fieldName: string; from: any; to: any }): IQueryConditions {
     const result = {
       [fieldName]: { $gte: from, $lte: to },
     } as IQueryConditions;
@@ -272,9 +194,7 @@ export class PouchFilterQueryOperation {
         } else {
           if (conditionKey === "$between") {
             if (!(Array.isArray(val) && val.length === 2)) {
-              throw MocodyErrorUtilsService.mocody_helper_createFriendlyError(
-                "$between query must be an array of length 2",
-              );
+              throw MocodyErrorUtilsService.mocody_helper_createFriendlyError("$between query must be an array of length 2");
             }
             const [fromVal, toVal] = val;
             const result = {
@@ -288,9 +208,7 @@ export class PouchFilterQueryOperation {
             } as IQueryConditions;
             results.push(result);
           } else {
-            throw MocodyErrorUtilsService.mocody_helper_createFriendlyError(
-              `Query key: ${conditionKey} not currently supported`,
-            );
+            throw MocodyErrorUtilsService.mocody_helper_createFriendlyError(`Query key: ${conditionKey} not currently supported`);
           }
         }
       });
@@ -369,17 +287,6 @@ export class PouchFilterQueryOperation {
             nestedMatchConditions.forEach((_queryCondition) => {
               queryConditions.push(_queryCondition);
             });
-          }
-        } else if (conditionKey === "$not") {
-          QueryValidatorCheck.not_query(conditionValue);
-          if (conditionValue && typeof conditionValue === "object") {
-            const _queryConditions = this.operation__filterNot({
-              fieldName: fieldName,
-              selectorObjValues: conditionValue,
-            });
-            if (_queryConditions) {
-              queryConditions.push(_queryConditions);
-            }
           }
         } else if (conditionKey === "$exists") {
           QueryValidatorCheck.exists(conditionValue);

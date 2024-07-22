@@ -13,7 +13,11 @@ import {
   BatchGetItemCommand,
   DeleteItemCommandInput,
   DeleteItemCommand,
+  ExecuteStatementCommandInput,
 } from "@aws-sdk/client-dynamodb";
+
+import { ExecuteStatementCommand, DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
+
 import throat from "throat";
 const concurrency = throat(1);
 
@@ -27,6 +31,14 @@ export class MocodyInitializerDynamo {
 
   async getInstance() {
     return await concurrency(() => this.getInstanceBase());
+  }
+
+  async executeStatement(param: ExecuteStatementCommandInput) {
+    const client = await this.getInstance();
+    const docClient = DynamoDBDocumentClient.from(client);
+    const command = new ExecuteStatementCommand(param);
+    const response = await docClient.send(command);
+    return response;
   }
 
   async putItem(params: PutItemCommandInput) {

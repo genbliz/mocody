@@ -65,9 +65,7 @@ class QueryValidatorCheckBase {
 
     for (const item of conditionValue.$in) {
       if (typeof item !== "number" && typeof item !== "string") {
-        throw MocodyErrorUtilsService.mocody_helper_createFriendlyError(
-          "$in in $elemMatch MUST have values of string or number",
-        );
+        throw MocodyErrorUtilsService.mocody_helper_createFriendlyError("$in in $elemMatch MUST have values of string or number");
       }
     }
   }
@@ -77,9 +75,16 @@ class QueryValidatorCheckBase {
       this.queryErrorThrowChecks({ conditionValue, queryType: "$nestedMatch" });
     }
     if (!Object.keys(conditionValue).length) {
-      throw MocodyErrorUtilsService.mocody_helper_createFriendlyError(
-        "$nestedMatch must have a valid query definitions",
-      );
+      throw MocodyErrorUtilsService.mocody_helper_createFriendlyError("$nestedMatch must have a valid query definitions");
+    }
+  }
+
+  nestedMatchArray(conditionValue: Record<string, any>) {
+    if (!(conditionValue && typeof conditionValue === "object")) {
+      this.queryErrorThrowChecks({ conditionValue, queryType: "$nestedArrayMatch" });
+    }
+    if (!Object.keys(conditionValue).length) {
+      throw MocodyErrorUtilsService.mocody_helper_createFriendlyError("$nestedArrayMatch must have a valid query definitions");
     }
   }
 
@@ -108,9 +113,7 @@ class QueryValidatorCheckBase {
   }
 
   throwQueryNotFound(queryType: any) {
-    throw MocodyErrorUtilsService.mocody_helper_createFriendlyError(
-      `Query type: ${JSON.stringify(queryType)}, not supported`,
-    );
+    throw MocodyErrorUtilsService.mocody_helper_createFriendlyError(`Query type: ${JSON.stringify(queryType)}, not supported`);
   }
 }
 

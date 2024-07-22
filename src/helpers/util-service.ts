@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { customAlphabet } from "nanoid";
+import lodash from "lodash";
 
 class UtilServiceBase {
   convertHexadecimalToNumber(hexString: string) {
@@ -84,17 +85,23 @@ class UtilServiceBase {
 
   waitUntilSeconds(seconds: number) {
     return new Promise<void>((resolve) => {
-      setTimeout(() => {
-        resolve();
-      }, Math.round(seconds * 1000));
+      setTimeout(
+        () => {
+          resolve();
+        },
+        Math.round(seconds * 1000),
+      );
     });
   }
 
   waitUntilMunites(munites: number) {
     return new Promise<void>((resolve) => {
-      setTimeout(() => {
-        resolve();
-      }, Math.round(munites * 60 * 1000));
+      setTimeout(
+        () => {
+          resolve();
+        },
+        Math.round(munites * 60 * 1000),
+      );
     });
   }
 
@@ -163,13 +170,57 @@ class UtilServiceBase {
     return Buffer.from(str, "base64").toString();
   }
 
-  deleteKeysFromObject<T = Record<string, any>>({
-    dataObject,
-    delKeys,
-  }: {
-    dataObject: T;
-    delKeys: (keyof T | string)[];
-  }): T {
+  groupOneBy<T>(dataList: T[], fn: (dt: T) => string | number) {
+    const aggr: Record<string, T> = {};
+    if (dataList?.length) {
+      dataList.forEach((data) => {
+        const groupId = fn(data);
+        if (aggr[groupId] === undefined) {
+          aggr[groupId] = data;
+        }
+      });
+    }
+    return aggr;
+  }
+
+  groupBy<T>(dataList: T[], fn: (dt: T) => string | number) {
+    const aggr: Record<string, T[]> = {};
+    if (dataList?.length) {
+      dataList.forEach((data) => {
+        const groupId = fn(data);
+        if (!aggr[groupId]) {
+          aggr[groupId] = [];
+        }
+        aggr[groupId]?.push(data);
+      });
+    }
+    return aggr;
+  }
+
+  orderBy<T>(dataList: T[], fn: (dt: T) => string | number, order?: "asc" | "desc") {
+    return lodash.orderBy(dataList, (f) => fn(f), order || "asc");
+  }
+
+  pickFromObject<T = Record<string, any>>({ dataObject, pickKeys }: { dataObject: T; pickKeys: (keyof T)[] }): T {
+    if (!(dataObject && typeof dataObject === "object")) {
+      return dataObject;
+    }
+    if (Array.isArray(dataObject)) {
+      return dataObject;
+    }
+    const chosenDataObject: any = {};
+    const allKeys = Object.keys(dataObject);
+    const allKeysGrouped = this.groupOneBy(allKeys, (f) => f);
+
+    pickKeys.forEach((key) => {
+      if (allKeysGrouped[key as string] !== undefined) {
+        chosenDataObject[key] = dataObject[key];
+      }
+    });
+    return chosenDataObject;
+  }
+
+  deleteKeysFromObject<T = Record<string, any>>({ dataObject, delKeys }: { dataObject: T; delKeys: (keyof T | string)[] }): T {
     if (!(dataObject && typeof dataObject === "object")) {
       return dataObject;
     }
