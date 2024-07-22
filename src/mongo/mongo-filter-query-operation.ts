@@ -284,9 +284,7 @@ export class MongoFilterQueryOperation {
             attrValues: conditionValue,
           });
           if (nestedMatchConditions?.length) {
-            nestedMatchConditions.forEach((cond) => {
-              queryConditionsAdvanced.push(cond);
-            });
+            queryConditionsAdvanced.push(...nestedMatchConditions);
           }
         } else if (conditionKey === "$exists") {
           QueryValidatorCheck.exists(conditionValue);
