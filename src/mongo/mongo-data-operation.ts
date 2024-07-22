@@ -20,7 +20,7 @@ import { getJoiValidationErrors } from "../helpers/base-joi-helper";
 import { MocodyInitializerMongo } from "./mongo-initializer";
 import { MongoFilterQueryOperation } from "./mongo-filter-query-operation";
 import { MongoManageTable } from "./mongo-table-manager";
-import { Document, ReadConcern, ReadPreference, SortDirection, TransactionOptions, WriteConcern } from "mongodb";
+import { Document, FindOptions, ReadConcern, ReadPreference, SortDirection, TransactionOptions, WriteConcern } from "mongodb";
 
 interface IOptions<T> {
   schemaDef: Joi.SchemaMap;
@@ -726,13 +726,19 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
 
     const mongo = await this._mocody_getDbInstance();
 
+    const queryOptions01: FindOptions<TData & Document> = {
+      projection: projection,
+      sort: sort01.length ? sort01 : undefined,
+      limit: moreFindOption.limit,
+      skip: moreFindOption.skip,
+    };
+
+    // LoggingService.log({ queryDefData, queryOptions01 });
+    // LoggingService.logAsString({ queryDefData, queryOptions01 });
+
     const results = await mongo
-      .find<TData & Document>(queryDefData, {
-        projection: projection,
-        sort: sort01.length ? sort01 : undefined,
-        limit: moreFindOption.limit,
-        skip: moreFindOption.skip,
-      })
+      .find<TData & Document>(queryDefData, queryOptions01)
+      /* */
       .hint(paramOption.indexName)
       .toArray();
 

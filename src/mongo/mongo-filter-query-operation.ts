@@ -330,6 +330,7 @@ export class MongoFilterQueryOperation {
   processQueryFilter({ queryDefs }: { queryDefs: IMocodyQueryDefinition<any>["query"] }) {
     const queryMainConditions: IQueryConditions[] = [];
     const queryAndConditions: IQueryConditions[] = [];
+    const queryAndCondition_Inside_Or: IQueryConditions[][] = [];
     const queryOrConditions: IQueryConditions[] = [];
 
     Object.entries(queryDefs).forEach(([conditionKey, conditionValue]) => {
@@ -346,7 +347,15 @@ export class MongoFilterQueryOperation {
                   fieldName,
                   queryObject: orQueryObjectOrValue,
                 });
-                queryOrConditions.push(...orQueryCond01);
+
+                if (orQueryCond01?.length) {
+                  if (orQueryCond01.length > 1) {
+                    // TODO
+                    queryAndCondition_Inside_Or.push(orQueryCond01);
+                  } else {
+                    queryOrConditions.push(...orQueryCond01);
+                  }
+                }
               } else {
                 const orQueryCondition02 = this.operation_translateBasicQueryOperation({
                   fieldName,
@@ -418,6 +427,16 @@ export class MongoFilterQueryOperation {
     if (queryOrConditions?.length) {
       queryAllConditions.$or = queryOrConditions;
     }
+
+    if (queryAndCondition_Inside_Or?.length) {
+      if (!queryAllConditions?.$or?.length) {
+        queryAllConditions.$or = [];
+      }
+      queryAndCondition_Inside_Or.forEach((query01) => {
+        queryAllConditions.$or.push({ $and: query01 } as any);
+      });
+    }
+
     LoggingService.logAsString({ queryAllConditions });
     return queryAllConditions;
   }
