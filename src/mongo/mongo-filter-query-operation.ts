@@ -116,13 +116,7 @@ export class MongoFilterQueryOperation {
     return result;
   }
 
-  private operation__filterNotIn({
-    fieldName,
-    attrValues,
-  }: {
-    fieldName: string;
-    attrValues: any[];
-  }): IQueryConditions {
+  private operation__filterNotIn({ fieldName, attrValues }: { fieldName: string; attrValues: any[] }): IQueryConditions {
     const result = {
       [fieldName]: { $nin: attrValues },
     } as IQueryConditions;
@@ -143,15 +137,7 @@ export class MongoFilterQueryOperation {
     return result;
   }
 
-  private operation__filterBetween({
-    fieldName,
-    from,
-    to,
-  }: {
-    fieldName: string;
-    from: any;
-    to: any;
-  }): IQueryConditions {
+  private operation__filterBetween({ fieldName, from, to }: { fieldName: string; from: any; to: any }): IQueryConditions {
     const result = {
       [fieldName]: { $gte: from, $lte: to },
     } as IQueryConditions;
@@ -175,15 +161,15 @@ export class MongoFilterQueryOperation {
     const results: IQueryConditions[] = [];
     Object.entries(attrValues).forEach(([subFieldName, queryval]) => {
       //
-      let _queryValue: Record<string, any>;
+      let queryValue01: Record<string, any>;
 
       if (queryval && typeof queryval === "object") {
-        _queryValue = { ...queryval };
+        queryValue01 = { ...queryval };
       } else {
-        _queryValue = { $eq: queryval };
+        queryValue01 = { $eq: queryval };
       }
 
-      Object.entries(_queryValue).forEach(([condKey, conditionValue]) => {
+      Object.entries(queryValue01).forEach(([condKey, conditionValue]) => {
         //
         const conditionKey = condKey as keyof IMocodyKeyConditionParams;
         //
@@ -214,12 +200,11 @@ export class MongoFilterQueryOperation {
 
             const result = {
               [`${fieldName}.${subFieldName}`]: { $regex: new RegExp(`^${conditionValue}`, "i") },
+              // [`${fieldName}.${subFieldName}`]: { $regex: `^${conditionValue}`, $options: "i" } as any,
             } as IQueryConditions;
             results.push(result);
           } else {
-            throw MocodyErrorUtilsService.mocody_helper_createFriendlyError(
-              `Query key: ${conditionKey} not currently supported`,
-            );
+            throw MocodyErrorUtilsService.mocody_helper_createFriendlyError(`Query key: ${conditionKey} not currently supported`);
           }
         }
       });
@@ -234,7 +219,7 @@ export class MongoFilterQueryOperation {
     fieldName: string;
     queryObject: Record<string, any>;
   }) {
-    const queryConditions: IQueryConditions[] = [];
+    const queryConditionsAdvanced: IQueryConditions[] = [];
     Object.entries(queryObject).forEach(([condKey, conditionValue]) => {
       const conditionKey = condKey as keyof IMocodyQueryConditionParams;
       if (conditionValue !== undefined) {
@@ -246,7 +231,7 @@ export class MongoFilterQueryOperation {
             from: conditionValue[0],
             to: conditionValue[1],
           });
-          queryConditions.push(_queryConditions);
+          queryConditionsAdvanced.push(_queryConditions);
         } else if (conditionKey === "$beginsWith") {
           QueryValidatorCheck.beginWith(conditionValue);
 
@@ -254,7 +239,7 @@ export class MongoFilterQueryOperation {
             fieldName: fieldName,
             term: conditionValue,
           });
-          queryConditions.push(_queryConditions);
+          queryConditionsAdvanced.push(_queryConditions);
         } else if (conditionKey === "$contains") {
           QueryValidatorCheck.contains(conditionValue);
 
@@ -262,7 +247,7 @@ export class MongoFilterQueryOperation {
             fieldName: fieldName,
             term: conditionValue,
           });
-          queryConditions.push(_queryConditions);
+          queryConditionsAdvanced.push(_queryConditions);
         } else if (conditionKey === "$notContains") {
           QueryValidatorCheck.notContains(conditionValue);
 
@@ -270,28 +255,28 @@ export class MongoFilterQueryOperation {
             fieldName: fieldName,
             term: conditionValue,
           });
-          queryConditions.push(_queryConditions);
+          queryConditionsAdvanced.push(_queryConditions);
         } else if (conditionKey === "$in") {
           QueryValidatorCheck.in_query(conditionValue);
           const _queryConditions = this.operation__filterIn({
             fieldName: fieldName,
             attrValues: conditionValue,
           });
-          queryConditions.push(_queryConditions);
+          queryConditionsAdvanced.push(_queryConditions);
         } else if (conditionKey === "$nin") {
           QueryValidatorCheck.notIn(conditionValue);
           const _queryConditions = this.operation__filterNotIn({
             fieldName: fieldName,
             attrValues: conditionValue,
           });
-          queryConditions.push(_queryConditions);
+          queryConditionsAdvanced.push(_queryConditions);
         } else if (conditionKey === "$elemMatch") {
           QueryValidatorCheck.elemMatch(conditionValue);
           const _queryConditions = this.operation__filterElementMatch({
             fieldName: fieldName,
             attrValues: conditionValue,
           });
-          queryConditions.push(_queryConditions);
+          queryConditionsAdvanced.push(_queryConditions);
         } else if (conditionKey === "$nestedMatch") {
           QueryValidatorCheck.nestedMatch(conditionValue);
           const nestedMatchConditions = this.operation__filterNestedMatchObject({
@@ -300,7 +285,7 @@ export class MongoFilterQueryOperation {
           });
           if (nestedMatchConditions?.length) {
             nestedMatchConditions.forEach((cond) => {
-              queryConditions.push(cond);
+              queryConditionsAdvanced.push(cond);
             });
           }
         } else if (conditionKey === "$exists") {
@@ -309,12 +294,12 @@ export class MongoFilterQueryOperation {
             const _queryConditions = this.operation__filterFieldExist({
               fieldName: fieldName,
             });
-            queryConditions.push(_queryConditions);
+            queryConditionsAdvanced.push(_queryConditions);
           } else if (String(conditionValue) === "false") {
             const _queryConditions = this.operation__filterFieldNotExist({
               fieldName: fieldName,
             });
-            queryConditions.push(_queryConditions);
+            queryConditionsAdvanced.push(_queryConditions);
           }
         } else {
           const conditionExpr = getQueryConditionExpression(conditionKey);
@@ -324,14 +309,15 @@ export class MongoFilterQueryOperation {
               val: conditionValue,
               conditionExpr: conditionExpr,
             });
-            queryConditions.push(_queryConditions);
+            queryConditionsAdvanced.push(_queryConditions);
           } else {
             QueryValidatorCheck.throwQueryNotFound(conditionKey);
           }
         }
       }
     });
-    return queryConditions;
+    LoggingService.logAsString({ queryConditionsAdvanced });
+    return queryConditionsAdvanced;
   }
 
   private operation_translateBasicQueryOperation({ fieldName, queryObject }: { fieldName: string; queryObject: any }) {
@@ -344,8 +330,8 @@ export class MongoFilterQueryOperation {
   }
 
   processQueryFilter({ queryDefs }: { queryDefs: IMocodyQueryDefinition<any>["query"] }) {
-    let queryMainConditions: IQueryConditions[] = [];
-    let queryAndConditions: IQueryConditions[] = [];
+    const queryMainConditions: IQueryConditions[] = [];
+    const queryAndConditions: IQueryConditions[] = [];
     const queryOrConditions: IQueryConditions[] = [];
 
     Object.entries(queryDefs).forEach(([conditionKey, conditionValue]) => {
@@ -355,8 +341,6 @@ export class MongoFilterQueryOperation {
         QueryValidatorCheck.or_query(orArray);
 
         orArray.forEach((orQuery) => {
-          const perQueryCondition02: IQueryConditions = {};
-
           Object.entries(orQuery).forEach(([fieldName, orQueryObjectOrValue]) => {
             if (orQueryObjectOrValue !== undefined) {
               if (orQueryObjectOrValue && typeof orQueryObjectOrValue === "object") {
@@ -364,29 +348,16 @@ export class MongoFilterQueryOperation {
                   fieldName,
                   queryObject: orQueryObjectOrValue,
                 });
-                let nquery: any = {};
-                for (const xcond of orQueryCond01) {
-                  Object.entries(xcond).forEach(([_, value]) => {
-                    nquery = { ...nquery, ...value };
-                  });
-                }
-                perQueryCondition02[fieldName] = nquery;
+                queryOrConditions.push(...orQueryCond01);
               } else {
                 const orQueryCondition02 = this.operation_translateBasicQueryOperation({
                   fieldName,
                   queryObject: orQueryObjectOrValue,
                 });
-                let nquery02: any = {};
-                Object.entries(orQueryCondition02).forEach(([_, value]) => {
-                  nquery02 = { ...nquery02, ...value };
-                });
-                perQueryCondition02[fieldName] = nquery02;
+                queryOrConditions.push(orQueryCondition02);
               }
             }
           });
-          if (Object.keys(perQueryCondition02).length) {
-            queryOrConditions.push(perQueryCondition02);
-          }
         });
       } else if (conditionKey === "$and") {
         const andArray = conditionValue as IQueryConditions[];
@@ -402,13 +373,13 @@ export class MongoFilterQueryOperation {
                   fieldName,
                   queryObject: andQueryObjectOrValue,
                 });
-                queryAndConditions = [...queryAndConditions, ..._andQueryCond];
+                queryAndConditions.push(..._andQueryCond);
               } else {
                 const _andQueryConditions = this.operation_translateBasicQueryOperation({
                   fieldName,
                   queryObject: andQueryObjectOrValue,
                 });
-                queryAndConditions = [...queryAndConditions, _andQueryConditions];
+                queryAndConditions.push(_andQueryConditions);
               }
             }
           });
@@ -420,13 +391,13 @@ export class MongoFilterQueryOperation {
               fieldName: conditionKey,
               queryObject: conditionValue,
             });
-            queryMainConditions = [...queryMainConditions, ..._queryCond];
+            queryMainConditions.push(..._queryCond);
           } else {
             const _queryConditions = this.operation_translateBasicQueryOperation({
               fieldName: conditionKey,
               queryObject: conditionValue,
             });
-            queryMainConditions = [...queryMainConditions, _queryConditions];
+            queryMainConditions.push(_queryConditions);
           }
         }
       }
