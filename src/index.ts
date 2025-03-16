@@ -23,6 +23,3 @@ export { CouchDataOperation } from "./couch/couch-data-operation";
 //
 export { MocodyInitializerMongo } from "./mongo/mongo-initializer";
 export { MongoDataOperation } from "./mongo/mongo-data-operation";
-//
-export { MocodyInitializerPouch } from "./pouch/pouch-initializer";
-export { PouchDataOperation } from "./pouch/pouch-data-operation";
