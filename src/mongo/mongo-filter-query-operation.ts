@@ -350,7 +350,6 @@ export class MongoFilterQueryOperation {
 
                 if (orQueryCond01?.length) {
                   if (orQueryCond01.length > 1) {
-                    // TODO
                     queryAndCondition_Inside_Or.push(orQueryCond01);
                   } else {
                     queryOrConditions.push(...orQueryCond01);
