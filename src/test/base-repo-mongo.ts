@@ -1,7 +1,7 @@
 import { UtilService } from "./../helpers/util-service";
 import { MongoDataOperation } from "./../mongo/mongo-data-operation";
 import type { IMocodyIndexDefinition } from "../type";
-import Joi from "joi";
+import type Joi from "joi";
 import { MongoConnection } from "./mongo-conn";
 
 interface IBaseRepoOptions<T> {

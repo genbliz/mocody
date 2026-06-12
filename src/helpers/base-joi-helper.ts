@@ -1,4 +1,4 @@
-import Joi from "joi";
+import type Joi from "joi";
 
 export function getJoiValidationErrors(err: Joi.ValidationError): string | null {
   if (err?.details?.length) {

@@ -1,6 +1,6 @@
 import { DynamoDataOperation } from "./../dynamo/dynamo-data-operation";
 import type { IMocodyIndexDefinition } from "../type";
-import Joi from "joi";
+import type Joi from "joi";
 import { MyDynamoConnection } from "./dynamo-conn";
 
 interface IBaseRepoOptions<T> {

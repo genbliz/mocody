@@ -1,4 +1,4 @@
-import { IMocodyCoreEntityModel } from "../core/base-schema";
+import type { IMocodyCoreEntityModel } from "../core/base-schema";
 import { LoggingService } from "./../helpers/logging-service";
 import type { IMocodyIndexDefinition } from "../type";
 import type { MocodyInitializerMongo } from "./mongo-initializer";

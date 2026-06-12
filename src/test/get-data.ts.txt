@@ -11,4 +11,4 @@ setTimeout(() => {
   runInserts();
 }, 10);
 
-// ts-node ./src/test/get-data.ts
+// npx tsx ./src/test/get-data.ts

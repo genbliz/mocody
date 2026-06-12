@@ -1,19 +1,20 @@
-import {
+import type {
   DynamoDBClientConfig,
-  DynamoDBClient,
   PutItemCommandInput,
-  PutItemCommand,
   GetItemCommandInput,
-  GetItemCommand,
   TransactWriteItemsCommandInput,
-  TransactWriteItemsCommand,
   BatchWriteItemCommandInput,
-  BatchWriteItemCommand,
   BatchGetItemCommandInput,
-  BatchGetItemCommand,
   DeleteItemCommandInput,
-  DeleteItemCommand,
-  ExecuteStatementCommandInput,
+  ExecuteStatementCommandInput} from "@aws-sdk/client-dynamodb";
+import {
+  DynamoDBClient,
+  PutItemCommand,
+  GetItemCommand,
+  TransactWriteItemsCommand,
+  BatchWriteItemCommand,
+  BatchGetItemCommand,
+  DeleteItemCommand
 } from "@aws-sdk/client-dynamodb";
 
 import { ExecuteStatementCommand, DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";

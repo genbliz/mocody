@@ -1,10 +1,11 @@
 import { UtilService } from "./../helpers/util-service";
-import { GetItemCommandInput, QueryCommand, QueryCommandInput } from "@aws-sdk/client-dynamodb";
+import type { GetItemCommandInput, QueryCommandInput } from "@aws-sdk/client-dynamodb";
+import { QueryCommand } from "@aws-sdk/client-dynamodb";
 import { marshall } from "@aws-sdk/util-dynamodb";
 import type { IMocodyPagingResult } from "../type";
 import { LoggingService } from "../helpers/logging-service";
 import { MocodyUtil } from "../helpers/mocody-utils";
-import { MocodyInitializerDynamo } from "./dynamo-initializer";
+import type { MocodyInitializerDynamo } from "./dynamo-initializer";
 
 export class DynamoQueryScanProcessor {
   //

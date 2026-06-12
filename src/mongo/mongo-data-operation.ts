@@ -2,7 +2,7 @@ import { MocodyUtil } from "./../helpers/mocody-utils";
 import { SettingDefaults } from "./../helpers/constants";
 import { UtilService } from "./../helpers/util-service";
 import { LoggingService } from "./../helpers/logging-service";
-import {
+import type {
   IFieldAliases,
   IMocodyFieldCondition,
   IMocodyIndexDefinition,
@@ -14,13 +14,15 @@ import {
 } from "../type";
 import { RepoModel } from "../model";
 import Joi from "joi";
-import { coreSchemaDefinition, IMocodyCoreEntityModel } from "../core/base-schema";
+import type { IMocodyCoreEntityModel } from "../core/base-schema";
+import { coreSchemaDefinition } from "../core/base-schema";
 import { MocodyErrorUtils, MocodyGenericError } from "../helpers/errors";
 import { getJoiValidationErrors } from "../helpers/base-joi-helper";
-import { MocodyInitializerMongo } from "./mongo-initializer";
+import type { MocodyInitializerMongo } from "./mongo-initializer";
 import { MongoFilterQueryOperation } from "./mongo-filter-query-operation";
 import { MongoManageTable } from "./mongo-table-manager";
-import { Document, FindOptions, ReadConcern, ReadPreference, SortDirection, TransactionOptions, WriteConcern } from "mongodb";
+import type { Document, FindOptions, SortDirection, TransactionOptions } from "mongodb";
+import { ReadConcern, ReadPreference, WriteConcern } from "mongodb";
 
 interface IOptions<T> {
   schemaDef: Joi.SchemaMap;
@@ -726,7 +728,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
 
     const mongo = await this._mocody_getDbInstance();
 
-    const queryOptions01: FindOptions<TData & Document> = {
+    const queryOptions01: FindOptions = {
       projection: projection,
       sort: sort01.length ? sort01 : undefined,
       limit: moreFindOption.limit,

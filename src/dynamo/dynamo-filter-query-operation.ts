@@ -823,4 +823,4 @@ export class DynamoFilterQueryOperation {
 
 // console.log({ result01 });
 
-// npx ts-node src\dynamo\dynamo-filter-query-operation.ts
+// npx tsx src\dynamo\dynamo-filter-query-operation.ts

@@ -13,7 +13,7 @@ import type {
   IFieldAliases,
 } from "../type";
 import { MocodyErrorUtils, MocodyGenericError } from "./../helpers/errors";
-import {
+import type {
   PutItemCommandInput,
   DeleteItemCommandInput,
   QueryCommandInput,
@@ -24,13 +24,13 @@ import {
 } from "@aws-sdk/client-dynamodb";
 import Joi from "joi";
 import { getJoiValidationErrors } from "../helpers/base-joi-helper";
-import { coreSchemaDefinition, IMocodyCoreEntityModel } from "../core/base-schema";
+import type { IMocodyCoreEntityModel } from "../core/base-schema";
+import { coreSchemaDefinition } from "../core/base-schema";
 import { DynamoManageTable } from "./dynamo-manage-table";
 import { LoggingService } from "../helpers/logging-service";
-import { MocodyInitializerDynamo } from "./dynamo-initializer";
+import type { MocodyInitializerDynamo } from "./dynamo-initializer";
 import { DynamoFilterQueryOperation } from "./dynamo-filter-query-operation";
 import { DynamoQueryScanProcessor } from "./dynamo-query-scan-processor";
-import lodash from "lodash";
 import { getDynamoRandomKeyOrHash } from "./dynamo-helper";
 import { DynamoQueryPartiqlProcessor } from "./dynamo-query-partiql-processor";
 import { DynamoFilterQueryPartiQlOperation } from "./dynamo-filter-query-partiql-operation";
@@ -642,7 +642,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     }
 
     const BATCH_SIZE = 80;
-    const batchIds = lodash.chunk(originalIds, BATCH_SIZE);
+    const batchIds = UtilService.chunk(originalIds, BATCH_SIZE);
 
     LoggingService.log({
       batchIds,

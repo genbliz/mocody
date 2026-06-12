@@ -1,7 +1,7 @@
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
 import { MocodyErrorUtilsService } from "./errors";
 import { UtilService } from "./util-service";
-import { IFieldAliases } from "../type";
+import type { IFieldAliases } from "../type";
 
 class MocodyUtilBase {
   marshallFromJson(jsonData: Record<string, any>) {

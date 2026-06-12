@@ -1,6 +1,5 @@
 import { randomUUID } from "node:crypto";
 import { customAlphabet } from "nanoid";
-import lodash from "lodash";
 
 class UtilServiceBase {
   convertHexadecimalToNumber(hexString: string) {
@@ -66,6 +65,10 @@ class UtilServiceBase {
       }
     });
     return Object.keys(unique);
+  }
+
+  chunk<T>(arr: T[], size: number) {
+    return Array.from({ length: Math.ceil(arr.length / size) }, (v, i) => arr.slice(i * size, i * size + size));
   }
 
   objectHasAnyProperty(obj: any): boolean {
@@ -197,8 +200,35 @@ class UtilServiceBase {
     return aggr;
   }
 
-  orderBy<T>(dataList: T[], fn: (dt: T) => string | number, order?: "asc" | "desc") {
-    return lodash.orderBy(dataList, (f) => fn(f), order || "asc");
+  orderBy<T>(dataList: T[], fn: (dt: T) => string | number, order: "asc" | "desc" = "asc"): T[] {
+    return [...dataList].sort((a, b) => {
+      const valA = fn(a);
+      const valB = fn(b);
+
+      if (valA < valB) {
+        return order === "asc" ? -1 : 1;
+      }
+      if (valA > valB) {
+        return order === "asc" ? 1 : -1;
+      }
+
+      return 0;
+    });
+  }
+
+  orderBy2<T>(dataList: T[], fn: (dt: T) => string | number, order: "asc" | "desc" = "asc"): T[] {
+    const multiplier = order === "asc" ? 1 : -1;
+
+    return dataList
+      .map((item) => ({
+        item,
+        key: fn(item),
+      }))
+      .sort((a, b) => {
+        if (a.key === b.key) return 0;
+        return a.key < b.key ? -multiplier : multiplier;
+      })
+      .map((x) => x.item);
   }
 
   pickFromObject<T = Record<string, any>>({ dataObject, pickKeys }: { dataObject: T; pickKeys: (keyof T)[] }): T {

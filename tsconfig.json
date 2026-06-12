@@ -1,11 +1,11 @@
 {
   "compilerOptions": {
-    "target": "es2021",
-    "module": "CommonJS",
+    "target": "es2024",
+    "module": "es2022",
     "declaration": true,
     "noImplicitAny": false,
     "removeComments": true,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "sourceMap": true,
     "importHelpers": true,
     "alwaysStrict": true,
@@ -15,10 +15,11 @@
     "noUnusedLocals": true,
     "resolveJsonModule": true,
     "useDefineForClassFields": true,
+    "erasableSyntaxOnly": true,
+    "verbatimModuleSyntax": true,
     "skipLibCheck": true,
     "strict": true,
     "outDir": "./dist",
-    "baseUrl": "./",
     "rootDir": "./src/"
   },
   "include": ["src/**/*", "src/index.ts", "src/dynamo/operation-data.ts"],

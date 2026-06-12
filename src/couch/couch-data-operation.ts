@@ -2,7 +2,7 @@ import { MocodyUtil } from "./../helpers/mocody-utils";
 import { SettingDefaults } from "./../helpers/constants";
 import { UtilService } from "./../helpers/util-service";
 import { LoggingService } from "./../helpers/logging-service";
-import {
+import type {
   IFieldAliases,
   IMocodyFieldCondition,
   IMocodyIndexDefinition,
@@ -15,7 +15,8 @@ import {
 import { RepoModel } from "../model";
 import Joi from "joi";
 import type { MocodyInitializerCouch } from "./couch-initializer";
-import { coreSchemaDefinition, IMocodyCoreEntityModel } from "../core/base-schema";
+import type { IMocodyCoreEntityModel } from "../core/base-schema";
+import { coreSchemaDefinition } from "../core/base-schema";
 import { MocodyErrorUtils, MocodyGenericError } from "../helpers/errors";
 import { getJoiValidationErrors } from "../helpers/base-joi-helper";
 import { CouchFilterQueryOperation } from "./couch-filter-query-operation";

@@ -1,22 +1,23 @@
-import { IMocodyCoreEntityModel } from "../core/base-schema";
-import { IMocodyIndexDefinition } from "../type";
+import type { IMocodyCoreEntityModel } from "../core/base-schema";
+import type { IMocodyIndexDefinition } from "../type";
 import { UtilService } from "../helpers/util-service";
 import { LoggingService } from "../helpers/logging-service";
-import {
+import type {
   TableDescription,
-  ProjectionType,
   DescribeTableCommandInput,
   UpdateTableCommandInput,
   UpdateTimeToLiveCommandInput,
   CreateTableCommandInput,
-  ListTablesCommandInput,
+  ListTablesCommandInput} from "@aws-sdk/client-dynamodb";
+import {
+  ProjectionType,
   UpdateTableCommand,
   CreateTableCommand,
   DescribeTableCommand,
   UpdateTimeToLiveCommand,
   ListTablesCommand,
 } from "@aws-sdk/client-dynamodb";
-import { MocodyInitializerDynamo } from "./dynamo-initializer";
+import type { MocodyInitializerDynamo } from "./dynamo-initializer";
 
 interface ITableOptions<T> {
   dynamoDb: () => MocodyInitializerDynamo;

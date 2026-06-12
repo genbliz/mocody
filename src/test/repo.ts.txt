@@ -2,7 +2,6 @@ import { UtilService } from "../helpers/util-service";
 import type { IMocodyQueryDefinition } from "../type";
 import { BaseRepository } from "./base-repo-mongo";
 import Joi from "joi";
-import { faker } from "@faker-js/faker";
 
 export interface IPayment {
   amount: number;
@@ -103,23 +102,23 @@ class MyRepositoryBase extends BaseRepository<IPayment> {
       tenantId,
       amount: getRandomNumber(),
       category: getRandom(),
-      skills: Array.from(
-        new Set([
-          //
-          faker.helpers.arrayElement(definedSkills),
-          faker.helpers.arrayElement(definedSkills),
-          faker.helpers.arrayElement(definedSkills),
-          faker.helpers.arrayElement(definedSkills),
-        ]),
-      ),
+      // skills: Array.from(
+      //   new Set([
+      //     //
+      //     faker.helpers.arrayElement(definedSkills),
+      //     faker.helpers.arrayElement(definedSkills),
+      //     faker.helpers.arrayElement(definedSkills),
+      //     faker.helpers.arrayElement(definedSkills),
+      //   ]),
+      // ),
       remark: getRandom(),
       transactionId: getRandom(),
       invoiceId: getRandom(),
-      bill: {
-        amount: getRandomNumber(),
-        date: faker.date.between(new Date("2020-03-01"), new Date()).toISOString(),
-        remark: faker.random.word(),
-      },
+      // bill: {
+      //   amount: getRandomNumber(),
+      //   date: faker.date.between(new Date("2020-03-01"), new Date()).toISOString(),
+      //   remark: faker.random.word(),
+      // },
     };
     const result = await this.mocody_createOne({ data });
     console.log(result);

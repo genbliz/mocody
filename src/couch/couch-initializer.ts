@@ -270,7 +270,11 @@ export class MocodyInitializerCouch {
         const proxyHeaders = this.baseConfig.couchConfig.proxyHeaders;
 
         const url = `${protocol}://${host}:${port}`;
-        this._databaseInstance = Nano({ url, requestDefaults: { headers: proxyHeaders } });
+        this._databaseInstance = Nano({
+          url,
+          // requestDefaults: { headers: proxyHeaders },
+          headers: proxyHeaders,
+        });
         //
       } else if (this.baseConfig.authType === "cookie") {
         //

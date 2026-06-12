@@ -1,9 +1,9 @@
 // import { UtilService } from "../helpers/util-service";
-import { GetItemCommandInput } from "@aws-sdk/client-dynamodb";
+import type { GetItemCommandInput } from "@aws-sdk/client-dynamodb";
 import type { IMocodyPagingResult } from "../type";
 import { LoggingService } from "../helpers/logging-service";
-import { MocodyInitializerDynamo } from "./dynamo-initializer";
-import { ExecuteStatementCommandInput } from "@aws-sdk/lib-dynamodb";
+import type { MocodyInitializerDynamo } from "./dynamo-initializer";
+import type { ExecuteStatementCommandInput } from "@aws-sdk/lib-dynamodb";
 
 interface IParamInput {
   subStatement: string[];
