@@ -7,7 +7,6 @@
     "removeComments": true,
     "moduleResolution": "bundler",
     "sourceMap": true,
-    "importHelpers": true,
     "alwaysStrict": true,
     "lib": ["dom", "esnext"],
     "esModuleInterop": true,
@@ -20,8 +19,9 @@
     "skipLibCheck": true,
     "strict": true,
     "outDir": "./dist",
-    "rootDir": "./src/"
+    "rootDir": "./src/",
+    "ignoreDeprecations": "6.0"
   },
-  "include": ["src/**/*", "src/index.ts", "src/dynamo/operation-data.ts"],
+  "include": ["src/**/*"],
   "exclude": ["node_modules", "**/dumps/**", "src/test/**", "src/**/*.test.ts", "src/**/*.spec.ts"]
 }
