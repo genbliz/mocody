@@ -18,13 +18,7 @@ export class MongoManageTable<T> {
   private readonly tableFullName: string;
   private readonly secondaryIndexOptions: IMocodyIndexDefinition<T>[];
 
-  constructor({
-    mongoDb,
-    secondaryIndexOptions,
-    tableFullName,
-    partitionKeyFieldName,
-    sortKeyFieldName,
-  }: ITableOptions<T>) {
+  constructor({ mongoDb, secondaryIndexOptions, tableFullName, partitionKeyFieldName, sortKeyFieldName }: ITableOptions<T>) {
     this.mongoDb = mongoDb;
     this.tableFullName = tableFullName;
     this.partitionKeyFieldName = partitionKeyFieldName;

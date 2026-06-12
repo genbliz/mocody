@@ -6,7 +6,8 @@ import type {
   BatchWriteItemCommandInput,
   BatchGetItemCommandInput,
   DeleteItemCommandInput,
-  ExecuteStatementCommandInput} from "@aws-sdk/client-dynamodb";
+  ExecuteStatementCommandInput,
+} from "@aws-sdk/client-dynamodb";
 import {
   DynamoDBClient,
   PutItemCommand,
@@ -14,7 +15,7 @@ import {
   TransactWriteItemsCommand,
   BatchWriteItemCommand,
   BatchGetItemCommand,
-  DeleteItemCommand
+  DeleteItemCommand,
 } from "@aws-sdk/client-dynamodb";
 
 import { ExecuteStatementCommand, DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
