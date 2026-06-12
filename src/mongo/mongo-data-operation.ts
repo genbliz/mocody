@@ -16,7 +16,7 @@ import { RepoModel } from "../model";
 import Joi from "joi";
 import type { IMocodyCoreEntityModel } from "../core/base-schema";
 import { coreSchemaDefinition } from "../core/base-schema";
-import { MocodyErrorUtils, MocodyGenericError } from "../helpers/errors";
+import { MocodyErrorUtilsService, MocodyGenericError } from "../helpers/errors";
 import { getJoiValidationErrors } from "../helpers/base-joi-helper";
 import type { MocodyInitializerMongo } from "./mongo-initializer";
 import { MongoFilterQueryOperation } from "./mongo-filter-query-operation";
@@ -53,7 +53,6 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   private readonly _mocody_strictRequiredFields: string[];
   private readonly _mocody_featureEntityValue: string;
   private readonly _mocody_secondaryIndexOptions: IMocodyIndexDefinition<T>[];
-  private readonly _mocody_errorHelper: MocodyErrorUtils;
   private readonly _mocody_filterQueryOperation = new MongoFilterQueryOperation();
   //
   private readonly _mocody_fieldAliases: IFieldAliases<T> | undefined | null;
@@ -77,7 +76,6 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     this._mocody_featureEntityValue = featureEntityValue;
     this._mocody_secondaryIndexOptions = secondaryIndexOptions;
     this._mocody_strictRequiredFields = strictRequiredFields as string[];
-    this._mocody_errorHelper = new MocodyErrorUtils();
     this._mocody_entityFieldsKeySet = new Set();
     this._mocody_fieldAliases = fieldAliases;
 
@@ -225,7 +223,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
 
     if (error) {
       const msg = getJoiValidationErrors(error) ?? "Validation error occured";
-      throw this._mocody_errorHelper.mocody_helper_createFriendlyError(msg);
+      throw MocodyErrorUtilsService.mocody_helper_createFriendlyError(msg);
     }
 
     const validatedData = MocodyUtil.alignFormatFieldAlias({
@@ -254,7 +252,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     dataId: string;
     withCondition?: IMocodyFieldCondition<T> | undefined | null;
   }): Promise<T | null> {
-    this._mocody_errorHelper.mocody_helper_validateRequiredString({ dataId });
+    MocodyErrorUtilsService.mocody_helper_validateRequiredString({ dataId });
 
     const mongo = await this._mocody_getDbInstance();
 
@@ -290,7 +288,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     }
 
     dataIds.forEach((dataId) => {
-      this._mocody_errorHelper.mocody_helper_validateRequiredString({ BatchGetDataId: dataId });
+      MocodyErrorUtilsService.mocody_helper_validateRequiredString({ BatchGetDataId: dataId });
     });
 
     const uniqueIds = this._mocody_removeDuplicateString(dataIds);
@@ -427,7 +425,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     updateData: Partial<T>;
     withCondition?: IMocodyFieldCondition<T> | undefined | null;
   }): Promise<T> {
-    this._mocody_errorHelper.mocody_helper_validateRequiredString({ dataId });
+    MocodyErrorUtilsService.mocody_helper_validateRequiredString({ dataId });
 
     const nativeId = this._mocody_getNativeMongoId(dataId);
     const query = { _id: nativeId } as IFullEntityNative<T> as any;
@@ -762,7 +760,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     dataId: string;
     withCondition?: IMocodyFieldCondition<T> | undefined | null;
   }): Promise<T> {
-    this._mocody_errorHelper.mocody_helper_validateRequiredString({ dataId });
+    MocodyErrorUtilsService.mocody_helper_validateRequiredString({ dataId });
 
     const db = await this._mocody_getDbInstance();
 
