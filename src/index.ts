@@ -8,7 +8,8 @@ export type {
   IMocodyPagingResult,
   IMocodyQueryDefinition,
   IMocodyQueryIndexOptionsNoPaging,
-  IFieldAliases,
+  IMocodyFieldAliases,
+  IMocodyPreparedTransaction,
 } from "./type";
 
 export type { IMocodyCoreEntityModel } from "./core/base-schema";

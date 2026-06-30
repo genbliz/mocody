@@ -3,7 +3,7 @@ import { SettingDefaults } from "./../helpers/constants";
 import { UtilService } from "./../helpers/util-service";
 import { LoggingService } from "./../helpers/logging-service";
 import type {
-  IFieldAliases,
+  IMocodyFieldAliases,
   IMocodyFieldCondition,
   IMocodyIndexDefinition,
   IMocodyPagingResult,
@@ -32,7 +32,7 @@ interface IOptions<T> {
   secondaryIndexOptions: IMocodyIndexDefinition<T>[];
   baseTableName: string;
   strictRequiredFields: (keyof T)[] | string[];
-  fieldAliases?: IFieldAliases<T> | undefined | null;
+  fieldAliases?: IMocodyFieldAliases<T> | undefined | null;
 }
 
 type IModelBase = IMocodyCoreEntityModel;
@@ -55,7 +55,7 @@ export class MongoDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   private readonly _mocody_secondaryIndexOptions: IMocodyIndexDefinition<T>[];
   private readonly _mocody_filterQueryOperation = new MongoFilterQueryOperation();
   //
-  private readonly _mocody_fieldAliases: IFieldAliases<T> | undefined | null;
+  private readonly _mocody_fieldAliases: IMocodyFieldAliases<T> | undefined | null;
   //
   private _mocody_tableManager!: MongoManageTable<T>;
 

@@ -1,7 +1,7 @@
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
 import { MocodyErrorUtilsService } from "./errors";
 import { UtilService } from "./util-service";
-import type { IFieldAliases } from "../type";
+import type { IMocodyFieldAliases } from "../type";
 
 class MocodyUtilBase {
   marshallFromJson(jsonData: Record<string, any>) {
@@ -69,7 +69,7 @@ class MocodyUtilBase {
     featureEntity,
   }: {
     data: Partial<T>;
-    fieldAliases: IFieldAliases<T> | undefined | null;
+    fieldAliases: IMocodyFieldAliases<T> | undefined | null;
     featureEntity: string;
   }) {
     if (fieldAliases?.length && data && typeof data === "object" && Object.keys(data).length && featureEntity) {
@@ -90,7 +90,7 @@ class MocodyUtilBase {
     featureEntity,
   }: {
     data: Partial<T>;
-    fieldAliases: IFieldAliases<T> | undefined | null;
+    fieldAliases: IMocodyFieldAliases<T> | undefined | null;
     featureEntity: string;
   }) {
     if (fieldAliases?.length && typeof data === "object" && Object.keys(data).length && featureEntity) {

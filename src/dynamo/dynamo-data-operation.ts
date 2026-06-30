@@ -10,7 +10,7 @@ import type {
   IMocodyPreparedTransaction,
   IMocodyTransactionPrepare,
   IMocodyQueryDefinition,
-  IFieldAliases,
+  IMocodyFieldAliases,
 } from "../type";
 import { MocodyErrorUtilsService, MocodyGenericError } from "./../helpers/errors";
 import type {
@@ -43,7 +43,7 @@ interface IOptions<T> {
   secondaryIndexOptions: IMocodyIndexDefinition<T>[];
   baseTableName: string;
   strictRequiredFields: (keyof T)[] | string[];
-  fieldAliases?: IFieldAliases<T> | undefined | null;
+  fieldAliases?: IMocodyFieldAliases<T> | undefined | null;
 }
 
 export interface IBulkDataDynamoDb {
@@ -73,7 +73,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
   private readonly _mocody_queryPartiQlProcessor: DynamoQueryPartiqlProcessor;
   private readonly _mocody_entityFieldsKeySet: Set<keyof T>;
   //
-  private readonly _mocody_fieldAliases: IFieldAliases<T> | undefined | null;
+  private readonly _mocody_fieldAliases: IMocodyFieldAliases<T> | undefined | null;
   //
   private _mocody_tableManager!: DynamoManageTable<T>;
 
@@ -580,6 +580,8 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
             ExpressionAttributeValues: expressionAttributeValues,
           },
         });
+      } else {
+        throw this._mocody_createGenericError("Invalid transaction kind");
       }
     }
     await this._mocody_dynamoInit().transactWriteItems(transactData);
