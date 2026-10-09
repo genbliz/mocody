@@ -1,22 +1,24 @@
-import { IMocodyCoreEntityModel } from "../core/base-schema";
-import { IMocodyIndexDefinition } from "../type";
+import type { IMocodyCoreEntityModel } from "../core/base-schema";
+import type { IMocodyIndexDefinition } from "../type";
 import { UtilService } from "../helpers/util-service";
 import { LoggingService } from "../helpers/logging-service";
-import {
+import type {
   TableDescription,
-  ProjectionType,
   DescribeTableCommandInput,
   UpdateTableCommandInput,
   UpdateTimeToLiveCommandInput,
   CreateTableCommandInput,
   ListTablesCommandInput,
+} from "@aws-sdk/client-dynamodb";
+import {
+  ProjectionType,
   UpdateTableCommand,
   CreateTableCommand,
   DescribeTableCommand,
   UpdateTimeToLiveCommand,
   ListTablesCommand,
 } from "@aws-sdk/client-dynamodb";
-import { MocodyInitializerDynamo } from "./dynamo-initializer";
+import type { MocodyInitializerDynamo } from "./dynamo-initializer";
 
 interface ITableOptions<T> {
   dynamoDb: () => MocodyInitializerDynamo;
@@ -33,13 +35,7 @@ export class DynamoManageTable<T> {
   private readonly tableFullName: string;
   private readonly secondaryIndexOptions: IMocodyIndexDefinition<T>[];
 
-  constructor({
-    dynamoDb,
-    secondaryIndexOptions,
-    tableFullName,
-    partitionKeyFieldName,
-    sortKeyFieldName,
-  }: ITableOptions<T>) {
+  constructor({ dynamoDb, secondaryIndexOptions, tableFullName, partitionKeyFieldName, sortKeyFieldName }: ITableOptions<T>) {
     this.dynamoDb = dynamoDb;
     this.tableFullName = tableFullName;
     this.partitionKeyFieldName = partitionKeyFieldName;
@@ -399,8 +395,7 @@ export class DynamoManageTable<T> {
   }
 
   async mocody_tbl_createTable() {
-    const { partitionKeyFieldName, sortKeyFieldName, tableFullName, secondaryIndexOptions } =
-      this._tbl_getLocalVariables();
+    const { partitionKeyFieldName, sortKeyFieldName, tableFullName, secondaryIndexOptions } = this._tbl_getLocalVariables();
 
     const params: CreateTableCommandInput = {
       AttributeDefinitions: [
@@ -463,11 +458,7 @@ export class DynamoManageTable<T> {
 
     if (result?.TableDescription) {
       LoggingService.log(
-        [
-          `@allCreateTableBase,`,
-          `Created table: '${result?.TableDescription.TableName}'`,
-          new Date().toTimeString(),
-        ].join(" "),
+        [`@allCreateTableBase,`, `Created table: '${result?.TableDescription.TableName}'`, new Date().toTimeString()].join(" "),
       );
       return result.TableDescription?.TableName;
     }

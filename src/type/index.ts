@@ -11,8 +11,8 @@ type TypeFallBackArray<T> = number extends T ? number[] : string extends T ? str
 type TypeFallBackArrayAdvanced<T> = number extends T
   ? number[]
   : string extends T
-  ? string[]
-  : Extract<T, string>[] | Extract<T, number>[];
+    ? string[]
+    : Extract<T, string>[] | Extract<T, number>[];
 
 export type IMocodyKeyConditionParams<T = string> = {
   // https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/LegacyConditionalParameters.KeyConditions.html
@@ -155,4 +155,4 @@ export type IMocodyPreparedTransaction =
   | IMocodyPreparedUpdateTransaction
   | IMocodyPreparedDeleteTransaction;
 
-export type IFieldAliases<T> = { source: keyof T; dest: keyof T }[];
+export type IMocodyFieldAliases<T> = { source: keyof T; dest: keyof T }[];

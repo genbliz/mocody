@@ -4,7 +4,7 @@ export class MocodyGenericError extends Error {
   }
 }
 
-export class MocodyErrorUtils {
+class MocodyErrorUtilsServiceBase {
   mocody_helper_validateRequiredNumber(keyValueValidates: { [key: string]: number }) {
     const errors: string[] = [];
     Object.entries(keyValueValidates).forEach(([key, value]) => {
@@ -34,4 +34,4 @@ export class MocodyErrorUtils {
   }
 }
 
-export const MocodyErrorUtilsService = new MocodyErrorUtils();
+export const MocodyErrorUtilsService = new MocodyErrorUtilsServiceBase();

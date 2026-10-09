@@ -10,10 +10,10 @@ import type {
   IMocodyPreparedTransaction,
   IMocodyTransactionPrepare,
   IMocodyQueryDefinition,
-  IFieldAliases,
+  IMocodyFieldAliases,
 } from "../type";
-import { MocodyErrorUtils, MocodyGenericError } from "./../helpers/errors";
-import {
+import { MocodyErrorUtilsService, MocodyGenericError } from "./../helpers/errors";
+import type {
   PutItemCommandInput,
   DeleteItemCommandInput,
   QueryCommandInput,
@@ -24,13 +24,13 @@ import {
 } from "@aws-sdk/client-dynamodb";
 import Joi from "joi";
 import { getJoiValidationErrors } from "../helpers/base-joi-helper";
-import { coreSchemaDefinition, IMocodyCoreEntityModel } from "../core/base-schema";
+import type { IMocodyCoreEntityModel } from "../core/base-schema";
+import { coreSchemaDefinition } from "../core/base-schema";
 import { DynamoManageTable } from "./dynamo-manage-table";
 import { LoggingService } from "../helpers/logging-service";
-import { MocodyInitializerDynamo } from "./dynamo-initializer";
+import type { MocodyInitializerDynamo } from "./dynamo-initializer";
 import { DynamoFilterQueryOperation } from "./dynamo-filter-query-operation";
 import { DynamoQueryScanProcessor } from "./dynamo-query-scan-processor";
-import lodash from "lodash";
 import { getDynamoRandomKeyOrHash } from "./dynamo-helper";
 import { DynamoQueryPartiqlProcessor } from "./dynamo-query-partiql-processor";
 import { DynamoFilterQueryPartiQlOperation } from "./dynamo-filter-query-partiql-operation";
@@ -43,7 +43,7 @@ interface IOptions<T> {
   secondaryIndexOptions: IMocodyIndexDefinition<T>[];
   baseTableName: string;
   strictRequiredFields: (keyof T)[] | string[];
-  fieldAliases?: IFieldAliases<T> | undefined | null;
+  fieldAliases?: IMocodyFieldAliases<T> | undefined | null;
 }
 
 export interface IBulkDataDynamoDb {
@@ -71,10 +71,9 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
   //
   private readonly _mocody_queryScanProcessor: DynamoQueryScanProcessor;
   private readonly _mocody_queryPartiQlProcessor: DynamoQueryPartiqlProcessor;
-  private readonly _mocody_errorHelper: MocodyErrorUtils;
   private readonly _mocody_entityFieldsKeySet: Set<keyof T>;
   //
-  private readonly _mocody_fieldAliases: IFieldAliases<T> | undefined | null;
+  private readonly _mocody_fieldAliases: IMocodyFieldAliases<T> | undefined | null;
   //
   private _mocody_tableManager!: DynamoManageTable<T>;
 
@@ -99,7 +98,6 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     this._mocody_queryPartiQlFilter = new DynamoFilterQueryPartiQlOperation();
     this._mocody_queryScanProcessor = new DynamoQueryScanProcessor();
     this._mocody_queryPartiQlProcessor = new DynamoQueryPartiqlProcessor();
-    this._mocody_errorHelper = new MocodyErrorUtils();
     this._mocody_featureEntity_Key_Value = { featureEntity: featureEntityValue };
     this._mocody_entityFieldsKeySet = new Set();
     this._mocody_fieldAliases = fieldAliases;
@@ -211,7 +209,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
 
     if (error) {
       const msg = getJoiValidationErrors(error) ?? "Validation error occured";
-      throw this._mocody_errorHelper.mocody_helper_createFriendlyError(msg);
+      throw MocodyErrorUtilsService.mocody_helper_createFriendlyError(msg);
     }
 
     const validatedData = MocodyUtil.alignFormatFieldAlias({
@@ -271,7 +269,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       return result;
     } catch (error: any) {
       if (error?.name === "ConditionalCheckFailedException") {
-        throw this._mocody_errorHelper.mocody_helper_createFriendlyError(`Field, ${partitionKeyFieldName} already exists`);
+        throw MocodyErrorUtilsService.mocody_helper_createFriendlyError(`Field, ${partitionKeyFieldName} already exists`);
       }
       throw error;
     }
@@ -339,7 +337,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       tableFullName,
     } = this._mocody_getLocalVariables();
 
-    this._mocody_errorHelper.mocody_helper_validateRequiredString({
+    MocodyErrorUtilsService.mocody_helper_validateRequiredString({
       QueryGetOnePartitionKey: dataId,
       QueryGetOneSortKey: featureEntityValue,
     });
@@ -381,12 +379,12 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       featureEntityValue,
     } = this._mocody_getLocalVariables();
 
-    this._mocody_errorHelper.mocody_helper_validateRequiredString({ Update1DataId: dataId });
+    MocodyErrorUtilsService.mocody_helper_validateRequiredString({ Update1DataId: dataId });
 
     const dataInDb = await this.mocody_getOneById({ dataId });
 
     if (!dataInDb?.[partitionKeyFieldName]) {
-      throw this._mocody_errorHelper.mocody_helper_createFriendlyError("Data does NOT exists");
+      throw MocodyErrorUtilsService.mocody_helper_createFriendlyError("Data does NOT exists");
     }
     if (dataInDb?.[sortKeyFieldName] !== featureEntityValue) {
       throw this._mocody_createGenericError("Record does not exists");
@@ -582,6 +580,8 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
             ExpressionAttributeValues: expressionAttributeValues,
           },
         });
+      } else {
+        throw this._mocody_createGenericError("Invalid transaction kind");
       }
     }
     await this._mocody_dynamoInit().transactWriteItems(transactData);
@@ -619,7 +619,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     }
 
     dataIds.forEach((dataId) => {
-      this._mocody_errorHelper.mocody_helper_validateRequiredString({ BatchGetDataId: dataId });
+      MocodyErrorUtilsService.mocody_helper_validateRequiredString({ BatchGetDataId: dataId });
     });
 
     const originalIds = this._mocody_removeDuplicateString(dataIds);
@@ -642,7 +642,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     }
 
     const BATCH_SIZE = 80;
-    const batchIds = lodash.chunk(originalIds, BATCH_SIZE);
+    const batchIds = UtilService.chunk(originalIds, BATCH_SIZE);
 
     LoggingService.log({
       batchIds,
@@ -1186,7 +1186,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
 
   async mocody_deleteById({ dataId, withCondition }: { dataId: string; withCondition?: IMocodyFieldCondition<T> }): Promise<T> {
     //
-    this._mocody_errorHelper.mocody_helper_validateRequiredString({ Del1SortKey: dataId });
+    MocodyErrorUtilsService.mocody_helper_validateRequiredString({ Del1SortKey: dataId });
 
     const {
       //
@@ -1199,7 +1199,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
     const dataExist = await this.mocody_getOneById({ dataId, withCondition });
 
     if (!(dataExist && dataExist[partitionKeyFieldName])) {
-      throw this._mocody_errorHelper.mocody_helper_createFriendlyError("Record does NOT exists");
+      throw MocodyErrorUtilsService.mocody_helper_createFriendlyError("Record does NOT exists");
     }
 
     const params: DeleteItemCommandInput = {
@@ -1214,9 +1214,9 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
       await this._mocody_dynamoInit().deleteItem(params);
     } catch (err: any) {
       if (err && err.code === "ResourceNotFoundException") {
-        throw this._mocody_errorHelper.mocody_helper_createFriendlyError("Table not found");
+        throw MocodyErrorUtilsService.mocody_helper_createFriendlyError("Table not found");
       } else if (err && err.code === "ResourceInUseException") {
-        throw this._mocody_errorHelper.mocody_helper_createFriendlyError("Table in use");
+        throw MocodyErrorUtilsService.mocody_helper_createFriendlyError("Table in use");
       } else {
         throw err;
       }

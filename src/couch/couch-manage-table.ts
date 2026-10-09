@@ -17,13 +17,7 @@ export class CouchManageTable<T> {
   private readonly tableFullName: string;
   private readonly secondaryIndexOptions: IMocodyIndexDefinition<T>[];
 
-  constructor({
-    couchDb,
-    secondaryIndexOptions,
-    tableFullName,
-    partitionKeyFieldName,
-    sortKeyFieldName,
-  }: ITableOptions<T>) {
+  constructor({ couchDb, secondaryIndexOptions, tableFullName, partitionKeyFieldName, sortKeyFieldName }: ITableOptions<T>) {
     this.couchDb = couchDb;
     this.tableFullName = tableFullName;
     this.partitionKeyFieldName = partitionKeyFieldName;

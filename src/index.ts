@@ -8,10 +8,11 @@ export type {
   IMocodyPagingResult,
   IMocodyQueryDefinition,
   IMocodyQueryIndexOptionsNoPaging,
-  IFieldAliases,
+  IMocodyFieldAliases,
+  IMocodyPreparedTransaction,
 } from "./type";
 
-export { IMocodyCoreEntityModel } from "./core/base-schema";
+export type { IMocodyCoreEntityModel } from "./core/base-schema";
 export { MocodyGenericError } from "./helpers/errors";
 export { MocodyUtil } from "./helpers/mocody-utils";
 //

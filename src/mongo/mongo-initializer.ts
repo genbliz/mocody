@@ -1,4 +1,5 @@
-import { MongoClient, MongoClientOptions, Document } from "mongodb";
+import type { MongoClientOptions, Document } from "mongodb";
+import { MongoClient } from "mongodb";
 import throat from "throat";
 const concurrency = throat(1);
 

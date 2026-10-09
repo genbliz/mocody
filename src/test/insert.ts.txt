@@ -36,4 +36,4 @@ setTimeout(() => {
   runInserts().catch((e) => console.log(e));
 }, 10);
 
-// ts-node ./src/test/insert.ts
+// npx tsx ./src/test/insert.ts

@@ -1,4 +1,4 @@
-import { IMocodyCoreEntityModel } from "../core/base-schema";
+import type { IMocodyCoreEntityModel } from "../core/base-schema";
 import { LoggingService } from "./../helpers/logging-service";
 import type { IMocodyIndexDefinition } from "../type";
 import type { MocodyInitializerMongo } from "./mongo-initializer";
@@ -18,13 +18,7 @@ export class MongoManageTable<T> {
   private readonly tableFullName: string;
   private readonly secondaryIndexOptions: IMocodyIndexDefinition<T>[];
 
-  constructor({
-    mongoDb,
-    secondaryIndexOptions,
-    tableFullName,
-    partitionKeyFieldName,
-    sortKeyFieldName,
-  }: ITableOptions<T>) {
+  constructor({ mongoDb, secondaryIndexOptions, tableFullName, partitionKeyFieldName, sortKeyFieldName }: ITableOptions<T>) {
     this.mongoDb = mongoDb;
     this.tableFullName = tableFullName;
     this.partitionKeyFieldName = partitionKeyFieldName;

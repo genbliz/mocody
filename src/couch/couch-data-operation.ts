@@ -2,8 +2,8 @@ import { MocodyUtil } from "./../helpers/mocody-utils";
 import { SettingDefaults } from "./../helpers/constants";
 import { UtilService } from "./../helpers/util-service";
 import { LoggingService } from "./../helpers/logging-service";
-import {
-  IFieldAliases,
+import type {
+  IMocodyFieldAliases,
   IMocodyFieldCondition,
   IMocodyIndexDefinition,
   IMocodyPagingResult,
@@ -15,8 +15,9 @@ import {
 import { RepoModel } from "../model";
 import Joi from "joi";
 import type { MocodyInitializerCouch } from "./couch-initializer";
-import { coreSchemaDefinition, IMocodyCoreEntityModel } from "../core/base-schema";
-import { MocodyErrorUtils, MocodyGenericError } from "../helpers/errors";
+import type { IMocodyCoreEntityModel } from "../core/base-schema";
+import { coreSchemaDefinition } from "../core/base-schema";
+import { MocodyErrorUtilsService, MocodyGenericError } from "../helpers/errors";
 import { getJoiValidationErrors } from "../helpers/base-joi-helper";
 import { CouchFilterQueryOperation } from "./couch-filter-query-operation";
 import { CouchManageTable } from "./couch-manage-table";
@@ -29,7 +30,7 @@ interface IOptions<T> {
   secondaryIndexOptions: IMocodyIndexDefinition<T>[];
   baseTableName: string;
   strictRequiredFields: (keyof T)[] | string[];
-  fieldAliases?: IFieldAliases<T> | undefined | null;
+  fieldAliases?: IMocodyFieldAliases<T> | undefined | null;
 }
 
 type IModelBase = IMocodyCoreEntityModel;
@@ -49,10 +50,9 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   private readonly _mocody_strictRequiredFields: string[];
   private readonly _mocody_featureEntityValue: string;
   private readonly _mocody_secondaryIndexOptions: IMocodyIndexDefinition<T>[];
-  private readonly _mocody_errorHelper: MocodyErrorUtils;
   private readonly _mocody_filterQueryOperation = new CouchFilterQueryOperation();
   //
-  private readonly _mocody_fieldAliases: IFieldAliases<T> | undefined | null;
+  private readonly _mocody_fieldAliases: IMocodyFieldAliases<T> | undefined | null;
   //
   private _mocody_tableManager!: CouchManageTable<T>;
 
@@ -73,7 +73,6 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     this._mocody_featureEntityValue = featureEntityValue;
     this._mocody_secondaryIndexOptions = secondaryIndexOptions;
     this._mocody_strictRequiredFields = strictRequiredFields as string[];
-    this._mocody_errorHelper = new MocodyErrorUtils();
     this._mocody_entityFieldsKeySet = new Set();
     this._mocody_fieldAliases = fieldAliases;
 
@@ -225,7 +224,7 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
 
     if (error) {
       const msg = getJoiValidationErrors(error) ?? "Validation error occured";
-      throw this._mocody_errorHelper.mocody_helper_createFriendlyError(msg);
+      throw MocodyErrorUtilsService.mocody_helper_createFriendlyError(msg);
     }
 
     const validatedData = MocodyUtil.alignFormatFieldAlias({
@@ -328,7 +327,7 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     dataId: string;
     withCondition?: IMocodyFieldCondition<T> | undefined | null;
   }): Promise<T | null> {
-    this._mocody_errorHelper.mocody_helper_validateRequiredString({ dataId });
+    MocodyErrorUtilsService.mocody_helper_validateRequiredString({ dataId });
 
     const nativeId = this._mocody_getNativePouchId(dataId);
 
@@ -352,7 +351,7 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     updateData: Partial<T>;
     withCondition?: IMocodyFieldCondition<T> | undefined | null;
   }): Promise<T> {
-    this._mocody_errorHelper.mocody_helper_validateRequiredString({ dataId });
+    MocodyErrorUtilsService.mocody_helper_validateRequiredString({ dataId });
 
     const nativeId = this._mocody_getNativePouchId(dataId);
 
@@ -430,7 +429,7 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
     }
 
     dataIds.forEach((dataId) => {
-      this._mocody_errorHelper.mocody_helper_validateRequiredString({ BatchGetDataId: dataId });
+      MocodyErrorUtilsService.mocody_helper_validateRequiredString({ BatchGetDataId: dataId });
     });
 
     const uniqueIds = this._mocody_removeDuplicateString(dataIds);
