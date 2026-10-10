@@ -1,6 +1,6 @@
 {
   "name": "mocody",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "Implementation of single table design, and unified query access for MongoDB, CouchDB, and dynamoDB",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -71,16 +71,16 @@
     "outDir": "dist"
   },
   "dependencies": {
-    "@aws-sdk/client-dynamodb": "^3.1149.0",
-    "@aws-sdk/lib-dynamodb": "^3.1149.0",
-    "@aws-sdk/util-dynamodb": "^3.996.9",
-    "joi": "^18.2.9",
-    "mongodb": "^7.7.0",
-    "nano": "^11.0.7",
-    "nanoid": "^6.0.2",
-    "pouchdb": "^9.0.0",
-    "pouchdb-find": "^9.0.0",
-    "throat": "^6.0.2"
+    "@aws-sdk/client-dynamodb": "3.1149.0",
+    "@aws-sdk/lib-dynamodb": "3.1149.0",
+    "@aws-sdk/util-dynamodb": "3.996.9",
+    "joi": "18.2.9",
+    "mongodb": "7.7.0",
+    "nano": "11.0.7",
+    "nanoid": "6.0.2",
+    "pouchdb": "9.0.0",
+    "pouchdb-find": "9.0.0",
+    "throat": "6.0.2"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
