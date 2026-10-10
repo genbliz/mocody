@@ -16,14 +16,13 @@ type IFindOptions = {
   selector: Nano.MangoSelector;
   fields: string[] | undefined;
   use_index: string;
-  sort?: {
-    [propName: string]: "asc" | "desc";
-  }[];
+  sort?: { [propName: string]: "asc" | "desc" }[];
 };
 
 type IOptions = {
   connType: "LOCAL_FIRST" | "REMOTE_FIRST";
   localSqliteDbFilePath?: string;
+  /** smaple: http://username:password@localhost:5984/my_database */
   remoteConnectionUrl?: string;
   liveSync?: boolean;
   indexes?: { indexName: string; fields: string[] }[];
