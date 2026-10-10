@@ -1,11 +1,11 @@
 import { UtilService } from "./../helpers/util-service";
 import { MongoDataOperation } from "./../mongo/mongo-data-operation";
 import type { IMocodyIndexDefinition } from "../type";
-import type Joi from "joi";
 import { MongoConnection } from "./mongo-conn";
+import type { ISchemaMap } from "../helpers/base-joi-helper";
 
 interface IBaseRepoOptions<T> {
-  schemaSubDef: Joi.SchemaMap;
+  schemaSubDef: ISchemaMap;
   featureEntityValue: string;
   secondaryIndexOptions: IMocodyIndexDefinition<T>[];
 }

@@ -1,10 +1,10 @@
 import { DynamoDataOperation } from "./../dynamo/dynamo-data-operation";
 import type { IMocodyIndexDefinition } from "../type";
-import type Joi from "joi";
 import { MyDynamoConnection } from "./dynamo-conn";
+import type { ISchemaMap } from "../helpers/base-joi-helper";
 
 interface IBaseRepoOptions<T> {
-  schemaSubDef: Joi.SchemaMap;
+  schemaSubDef: ISchemaMap;
   featureEntityValue: string;
   secondaryIndexOptions: IMocodyIndexDefinition<T>[];
 }

@@ -1,5 +1,8 @@
 import type Joi from "joi";
 
+export type ISchemaMap = Joi.SchemaMap;
+export type ISchema = Joi.Schema;
+
 const fieldPlaceholderWithLabel = process.env.MOCODY_SCHEMA_VALIDATE_FIELD_PLACEHOLDER_WITH_LABEL || "";
 const fieldPlaceholder = process.env.MOCODY_SCHEMA_VALIDATE_FIELD_PLACEHOLDER || "";
 

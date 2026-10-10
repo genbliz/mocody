@@ -23,7 +23,7 @@ import type {
   BatchGetItemCommandInput,
 } from "@aws-sdk/client-dynamodb";
 import Joi from "joi";
-import { getJoiValidationErrors } from "../helpers/base-joi-helper";
+import { getJoiValidationErrors, type ISchema, type ISchemaMap } from "../helpers/base-joi-helper";
 import type { IMocodyCoreEntityModel } from "../core/base-schema";
 import { coreSchemaDefinition } from "../core/base-schema";
 import { DynamoManageTable } from "./dynamo-manage-table";
@@ -36,7 +36,7 @@ import { DynamoQueryPartiqlProcessor } from "./dynamo-query-partiql-processor";
 import { DynamoFilterQueryPartiQlOperation } from "./dynamo-filter-query-partiql-operation";
 
 interface IOptions<T> {
-  schemaDef: Joi.SchemaMap;
+  schemaDef: ISchemaMap;
   dynamoDbInitializer: () => MocodyInitializerDynamo;
   dataKeyGenerator: () => string;
   featureEntityValue: string;
@@ -61,7 +61,7 @@ export class DynamoDataOperation<T> extends RepoModel<T> implements RepoModel<T>
   //
   private readonly _mocody_dynamoDb: () => MocodyInitializerDynamo;
   private readonly _mocody_dataKeyGenerator: () => string;
-  private readonly _mocody_schema: Joi.Schema;
+  private readonly _mocody_schema: ISchema;
   private readonly _mocody_tableFullName: string;
   private readonly _mocody_strictRequiredFields: string[];
   private readonly _mocody_featureEntityValue: string;

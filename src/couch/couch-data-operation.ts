@@ -18,12 +18,12 @@ import type { MocodyInitializerCouch } from "./couch-initializer";
 import type { IMocodyCoreEntityModel } from "../core/base-schema";
 import { coreSchemaDefinition } from "../core/base-schema";
 import { MocodyErrorUtilsService, MocodyGenericError } from "../helpers/errors";
-import { getJoiValidationErrors } from "../helpers/base-joi-helper";
+import { getJoiValidationErrors, type ISchema, type ISchemaMap } from "../helpers/base-joi-helper";
 import { CouchFilterQueryOperation } from "./couch-filter-query-operation";
 import { CouchManageTable } from "./couch-manage-table";
 
 interface IOptions<T> {
-  schemaDef: Joi.SchemaMap;
+  schemaDef: ISchemaMap;
   couchDbInitializer: () => MocodyInitializerCouch;
   dataKeyGenerator: () => string;
   featureEntityValue: string;
@@ -45,7 +45,7 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
   private readonly _mocody_entityFieldsKeySet: Set<keyof T>;
   private readonly _mocody_couchDb: () => MocodyInitializerCouch;
   private readonly _mocody_dataKeyGenerator: () => string;
-  private readonly _mocody_schema: Joi.Schema;
+  private readonly _mocody_schema: ISchema;
   private readonly _mocody_tableFullName: string;
   private readonly _mocody_strictRequiredFields: string[];
   private readonly _mocody_featureEntityValue: string;
@@ -87,7 +87,7 @@ export class CouchDataOperation<T> extends RepoModel<T> implements RepoModel<T> 
 
     this._mocody_schema = Joi.object().keys({
       ...fullSchemaMapDef,
-      _id: Joi.string().required().min(5).max(512),
+      _id: Joi.string().required().min(4).max(512),
     });
   }
 
