@@ -1,7 +1,12 @@
 import type Nano from "nano";
 import throat from "throat";
-import PouchDB from "pouchdb";
+//
+import PouchDB00 from "pouchdb-core";
 import pouchdbFind from "pouchdb-find";
+import pouchdbhttp from "pouchdb-adapter-http";
+import pouchdbmapreduce from "pouchdb-mapreduce";
+import pouchdbreplication from "pouchdb-replication";
+//
 import { LoggingService } from "../helpers/logging-service";
 import type { IMocodyCoreEntityModel } from "../core/base-schema";
 import { MocodyGenericError } from "../helpers/errors";
@@ -186,6 +191,10 @@ export class MocodyInitializerPouch<T extends IMocodyCoreEntityModel> {
     return await concurrency(() => this.pouch_getDbInstanceBase());
   }
 
+  private getPouchWithPlugins() {
+    return PouchDB00.plugin(pouchdbhttp).plugin(pouchdbmapreduce).plugin(pouchdbreplication).plugin(pouchdbFind);
+  }
+
   private async pouch_getDbInstanceBase() {
     if (this._pouchInstance) return this._pouchInstance;
 
@@ -206,14 +215,15 @@ export class MocodyInitializerPouch<T extends IMocodyCoreEntityModel> {
         throw new MocodyGenericError("localSqliteDbFilePath not defined");
       }
 
-      PouchDB.plugin(pouchdbFind);
+      const PouchDB = this.getPouchWithPlugins();
+
       this._pouchInstance = new PouchDB(localSqliteDbFilePath, { adapter: "nodesqlite" });
     } else {
       if (!remoteConnectionUrl) {
         throw new MocodyGenericError("couchRemoteConnectionUrl not defined");
       }
 
-      PouchDB.plugin(pouchdbFind);
+      const PouchDB = this.getPouchWithPlugins();
       this._pouchInstance = new PouchDB(remoteConnectionUrl);
     }
 

@@ -1,6 +1,6 @@
 {
   "name": "mocody",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "description": "Implementation of single table design, and unified query access for MongoDB, CouchDB, and dynamoDB",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -55,7 +55,7 @@
     "dist"
   ],
   "engines": {
-    "node": ">=26"
+    "node": ">= 26"
   },
   "tsup": {
     "entry": [
@@ -78,15 +78,21 @@
     "mongodb": "7.7.0",
     "nano": "11.0.7",
     "nanoid": "6.0.2",
-    "pouchdb": "9.0.0",
+    "pouchdb-adapter-http": "^9.0.0",
+    "pouchdb-core": "^9.0.0",
     "pouchdb-find": "9.0.0",
+    "pouchdb-mapreduce": "^9.0.0",
+    "pouchdb-replication": "^9.0.0",
     "throat": "6.0.2"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^26",
-    "@types/pouchdb": "^6.4.2",
+    "@types/pouchdb-adapter-http": "^6.1.6",
+    "@types/pouchdb-core": "^7.0.15",
     "@types/pouchdb-find": "^7.3.3",
+    "@types/pouchdb-mapreduce": "^6.1.10",
+    "@types/pouchdb-replication": "^6.4.7",
     "@typescript-eslint/eslint-plugin": "^8.71.1",
     "@typescript-eslint/parser": "^8.71.1",
     "eslint": "^10.12.0",
